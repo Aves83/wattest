@@ -185,6 +185,19 @@ export function schluesselInfo(spki: Uint8Array): SchluesselInfo | null {
   }
 }
 
+const schluesselCache = new Map<string, Promise<CryptoKey>>();
+
+function importiere(spki: Uint8Array, alg: EcKeyImportParams | RsaHashedImportParams): Promise<CryptoKey> {
+  const id = `${JSON.stringify(alg)}:${hex(spki)}`;
+  let k = schluesselCache.get(id);
+  if (!k) {
+    if (schluesselCache.size > 64) schluesselCache.clear();
+    k = subtle().importKey("spki", puffer(spki), alg, false, ["verify"]);
+    schluesselCache.set(id, k);
+  }
+  return k;
+}
+
 /** Prüft eine Signatur über WebCrypto. Ergibt false bei ungültiger Signatur und wirft bei nicht unterstützten Verfahren. */
 export async function pruefeSignatur(spki: Uint8Array, algorithmusOid: string, signatur: Uint8Array, daten: Uint8Array): Promise<boolean> {
   const verfahren = HASHES[algorithmusOid];
@@ -194,10 +207,10 @@ export async function pruefeSignatur(spki: Uint8Array, algorithmusOid: string, s
   if (info.art === "ECDSA") {
     const roh = ecdsaRoh(signatur, info.groesse!);
     if (!roh) return false;
-    const key = await subtle().importKey("spki", puffer(spki), { name: "ECDSA", namedCurve: info.kurve! }, false, ["verify"]);
+    const key = await importiere(spki, { name: "ECDSA", namedCurve: info.kurve! });
     return subtle().verify({ name: "ECDSA", hash: verfahren.hash }, key, puffer(roh), puffer(daten));
   }
-  const key = await subtle().importKey("spki", puffer(spki), { name: "RSASSA-PKCS1-v1_5", hash: verfahren.hash }, false, ["verify"]);
+  const key = await importiere(spki, { name: "RSASSA-PKCS1-v1_5", hash: verfahren.hash });
   return subtle().verify({ name: "RSASSA-PKCS1-v1_5" }, key, puffer(signatur), puffer(daten));
 }
 

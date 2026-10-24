@@ -7,13 +7,13 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { deflateSync } from "node:zlib";
 import * as esbuild from "esbuild";
 
 const WURZEL = fileURLToPath(new URL("..", import.meta.url));
-const AUS = process.argv[2] ? join(process.cwd(), process.argv[2]) : join(WURZEL, "dist");
+const AUS = process.argv[2] ? resolve(process.argv[2]) : join(WURZEL, "dist");
 const KOPF = "// SPDX-License-Identifier: EUPL-1.2\n// WATTest © 2026 Hans-Joachim Steudel\n";
 const SEITE = "https://aves83.github.io/wattest/";
 
