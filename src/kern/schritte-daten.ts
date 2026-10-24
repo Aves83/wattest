@@ -162,7 +162,7 @@ export async function pruefeDaten(k: Kontext): Promise<void> {
     if (!gesehenA.has(tag)) abweichungen.push({ text: `${objektName("abwesenheit", tag)}: besteht laut Kette (${o.letztes ? gliedName(o.letztes) : "Bestand des Neubeginns"}), fehlt aber in den Daten.` });
   }
 
-  const zahlen = `${anzahl(dateiEintraege.length, "Eintrag", "Einträge")} und ${anzahl(dateiAbw.length, "Abwesenheit", "Abwesenheiten")} mit Gutschrift`;
+  const zahlen = `${anzahl(dateiEintraege.length, "Eintrag", "Einträgen")} und ${anzahl(dateiAbw.length, "Abwesenheit", "Abwesenheiten")} mit Gutschrift`;
   const nebenbei = dienstfrei ? ` Dienstfreie Tage (${dienstfrei}) stehen nicht in der Kette und bleiben außen vor.` : "";
   if (abweichungen.length || probleme.length) {
     sage(k, "P3", "widerlegt", "Die Daten entsprechen nicht der Kette.", `WATTest hat ${anzahl(nachgespielt, "Glied", "Glieder")} der Arten eintrag und abwesenheit nachgespielt (7.) und den Stand Feld für Feld mit ${zahlen} der Datei verglichen. ${anzahl(abweichungen.length + probleme.length, "Abweichung", "Abweichungen")}: Die Daten wurden nach dem Export bearbeitet, oder Kette und Daten gehören nicht zusammen.${nebenbei}`, {

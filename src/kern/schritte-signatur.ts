@@ -163,7 +163,7 @@ export async function pruefeSignaturen(k: Kontext): Promise<void> {
       "offen",
       hoechste === null ? "Kein Glied der Kette trägt eine gültige Signatur." : `${ab.seq === bis.seq ? `Glied ${ab.seq} ist` : `Die Glieder ${ab.seq} bis ${bis.seq} sind`} nicht signiert.`,
       `Nach ${hoechste === null ? "keinem Glied" : `Glied ${hoechste}`} folgt keine gültige Signatur mehr; für diese Glieder fehlt der Nachweis, dass sie in WATT entstanden.${nichtVerfuegbar.length ? ` Die Kette vermerkt, dass kein Schlüssel verfügbar war: ${nichtVerfuegbar.map((x) => `${gliedName(x)}${x.json?.["grund"] ? ` (Grund: ${String(x.json["grund"])})` : ""}`).join("; ")}.` : ""}`,
-      { fundstelle: dateiFundstelle(k, `Glied ${ab.seq} bis ${bis.seq}`), grenze: GRENZE.signatur },
+      { fundstelle: dateiFundstelle(k, ab.seq === bis.seq ? `Glied ${ab.seq}` : `Glied ${ab.seq} bis ${bis.seq}`), grenze: GRENZE.signatur },
     );
   }
 

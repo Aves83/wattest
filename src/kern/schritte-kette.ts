@@ -56,7 +56,7 @@ export async function pruefeKette(k: Kontext): Promise<void> {
   const letzter = g[g.length - 1]!;
   if (brueche.length === 0) {
     k.ersterBruch = null;
-    const formen = [sieben ? anzahl(sieben, "Glied mit sieben Feldern", "Glieder mit sieben Feldern") : "", neun ? anzahl(neun, "Glied mit Uhrstand (neun Felder)", "Glieder mit Uhrstand (neun Felder)") : ""].filter(Boolean);
+    const formen = [sieben ? `${zahl(sieben)} mit sieben Feldern` : "", neun ? `${zahl(neun)} mit neun Feldern, also mit Uhrstand` : ""].filter(Boolean);
     sage(
       k,
       "P2",
@@ -163,7 +163,7 @@ export function pruefeZeit(k: Kontext): void {
       k,
       "P4",
       "hinweis",
-      summe === 1 ? "Das Gerät wurde einmal neu gestartet." : `Das Gerät wurde ${zahl(summe)}-mal neu gestartet.`,
+      summe === 0 ? "Das Gerät wurde nicht neu gestartet." : summe === 1 ? "Das Gerät wurde einmal neu gestartet." : `Das Gerät wurde ${zahl(summe)}-mal neu gestartet.`,
       `Summe der Neustarts (neustarts) aus ${anzahl(mitUhrstand.length, "Glied", "Gliedern")} mit Uhrstand (4.7)${ohneBezug.length ? `; bei ${anzahl(ohneBezug.length, "Glied", "Gliedern")} fehlte der Bezug (-1), etwa nach dem Update oder einer Wiederherstellung: Glied ${bereiche(ohneBezug)}` : ""}. Über einen Neustart hinweg prüft WATT die Uhr nicht gegen die Monotonuhr.`,
       { fundstelle: fund, grenze: GRENZE.zeit },
     );

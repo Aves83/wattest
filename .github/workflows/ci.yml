@@ -1,0 +1,33 @@
+# SPDX-License-Identifier: EUPL-1.2
+# WATTest © 2026 Hans-Joachim Steudel
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  pruefen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Typprüfung
+        run: npm run typecheck
+      - name: Tests
+        run: npm test
+      - name: Bau
+        run: npm run build
+      - name: Prüfsummen
+        run: cat dist/SHA256SUMS.txt
