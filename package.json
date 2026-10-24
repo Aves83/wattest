@@ -1,0 +1,28 @@
+{
+  "name": "wattest",
+  "version": "0.1.0",
+  "description": "WATTest – prüft Exporte der App WATT im Browser",
+  "license": "EUPL-1.2",
+  "author": "Hans-Joachim Steudel",
+  "private": true,
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Aves83/wattest.git"
+  },
+  "homepage": "https://aves83.github.io/wattest/",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "compile": "tsc -p tsconfig.json",
+    "test": "npm run compile && node --test --test-reporter=spec \"build/tests/**/*.test.js\"",
+    "build": "npm run compile && node scripts/bau.mjs",
+    "daten": "node scripts/daten-holen.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "typescript": "6.0.3"
+  }
+}

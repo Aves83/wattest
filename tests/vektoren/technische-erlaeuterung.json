@@ -1,0 +1,155 @@
+{
+  "quelle": "Technische Erläuterung für Gutachter:innen aus WATT (Branch feat/attestierte-kette, docs/app-texte/technische-erlaeuterung.txt), Stand 25.10.2026",
+  "vektoren": [
+    {
+      "id": "B1",
+      "fundstelle": "Technische Erläuterung, Abschnitt 4.2, Rechenbeispiel B1",
+      "eingabe": "1:120:2026-09-28T16:05:00Z8:ANGELEGT7:eintrag2:e1343:{\"tag\":\"2026-09-28\",\"kategorieId\":\"korrektur\",\"unterkategorieId\":null,\"beginn\":\"2026-09-28T14:00:00Z\",\"ende\":\"2026-09-28T15:30:00Z\",\"dauerMinuten\":0,\"notiz\":\"Schulaufgabe 10b\",\"quelle\":\"MANUELL\",\"planRef\":null,\"erfasstAm\":\"2026-09-28T16:05:00Z\",\"geaendertAm\":null,\"begruendung\":null,\"kategorie\":\"Korrektur und Bewertung\",\"unterkategorie\":null}1:0",
+      "sha256": "6b8dfd63e7541957a8503fbc90d380e69f5c3e94532dda5b8f17e10913b6d013"
+    },
+    {
+      "id": "B2",
+      "fundstelle": "Technische Erläuterung, Abschnitt 4.2, Rechenbeispiel B2",
+      "eingabe": "1:220:2026-09-28T16:20:00Z9:GEAENDERT7:eintrag2:e1361:{\"tag\":\"2026-09-28\",\"kategorieId\":\"korrektur\",\"unterkategorieId\":null,\"beginn\":\"2026-09-28T14:00:00Z\",\"ende\":\"2026-09-28T16:00:00Z\",\"dauerMinuten\":0,\"notiz\":\"Schulaufgabe 10b\",\"quelle\":\"MANUELL\",\"planRef\":null,\"erfasstAm\":\"2026-09-28T16:05:00Z\",\"geaendertAm\":\"2026-09-28T16:20:00Z\",\"begruendung\":null,\"kategorie\":\"Korrektur und Bewertung\",\"unterkategorie\":null}64:6b8dfd63e7541957a8503fbc90d380e69f5c3e94532dda5b8f17e10913b6d013",
+      "sha256": "759a07d61bb0d53f334cf8f48b3937df7d945405ea55ffbb78f40a6bb99f19da"
+    },
+    {
+      "id": "B10",
+      "fundstelle": "Technische Erläuterung, Abschnitt 4.2, Rechenbeispiel B10",
+      "eingabe": "1:320:2026-09-28T16:40:00Z8:ANGELEGT7:eintrag2:t1327:{\"tag\":\"2026-09-28\",\"kategorieId\":\"vorbereitung\",\"unterkategorieId\":null,\"beginn\":\"2026-09-28T16:00:00Z\",\"ende\":\"2026-09-28T16:40:00Z\",\"dauerMinuten\":0,\"notiz\":\"\",\"quelle\":\"TIMER\",\"planRef\":null,\"erfasstAm\":\"2026-09-28T16:40:00Z\",\"geaendertAm\":null,\"begruendung\":null,\"kategorie\":\"Vor- und Nachbereitung\",\"unterkategorie\":null}64:759a07d61bb0d53f334cf8f48b3937df7d945405ea55ffbb78f40a6bb99f19da",
+      "sha256": "b2e4bd74aefe61ad9a82dfc13671731557206ada5c9d935718e93ee0989c77a3"
+    },
+    {
+      "id": "B9",
+      "fundstelle": "Technische Erläuterung, Abschnitt 4.2, Rechenbeispiel B9",
+      "eingabe": "1:420:2026-09-28T16:45:00Z9:GEAENDERT7:eintrag2:t1410:{\"tag\":\"2026-09-28\",\"kategorieId\":\"vorbereitung\",\"unterkategorieId\":null,\"beginn\":\"2026-09-28T16:00:00Z\",\"ende\":\"2026-09-28T16:35:00Z\",\"dauerMinuten\":0,\"notiz\":\"\",\"quelle\":\"TIMER\",\"planRef\":null,\"erfasstAm\":\"2026-09-28T16:40:00Z\",\"geaendertAm\":\"2026-09-28T16:45:00Z\",\"begruendung\":\"Automatische Anpassung wegen verspätet gestarteter Folgetätigkeit\",\"kategorie\":\"Vor- und Nachbereitung\",\"unterkategorie\":null}64:b2e4bd74aefe61ad9a82dfc13671731557206ada5c9d935718e93ee0989c77a3",
+      "sha256": "88316b05dae509f5a0038826b8325eed8cfd201da60d9070e10e7239e7af7c45"
+    },
+    {
+      "id": "B8",
+      "fundstelle": "Technische Erläuterung, Abschnitt 4.6, Rechenbeispiel B8",
+      "eingabe": "{\"id\":\"e1\",\"tag\":\"2026-09-28\",\"kategorieId\":\"korrektur\",\"unterkategorieId\":null,\"beginn\":\"2026-09-28T14:00:00Z\",\"ende\":\"2026-09-28T15:30:00Z\",\"dauerMinuten\":0,\"notiz\":\"Schulaufgabe 10b\",\"quelle\":\"MANUELL\",\"planRef\":null,\"erfasstAm\":\"2026-09-28T16:05:00Z\",\"geaendertAm\":null,\"fach\":\"\",\"klasse\":\"\"}",
+      "sha256": "11b5450f7c375bc79b62cc52ba607207f06ecc7b3a4986152bb03938f430b5c7",
+      "bestand": "11b5450f7c375bc79b62cc52ba607207",
+      "objekt": {
+        "id": "e1",
+        "tag": "2026-09-28",
+        "kategorieId": "korrektur",
+        "unterkategorieId": null,
+        "beginn": "2026-09-28T14:00:00Z",
+        "ende": "2026-09-28T15:30:00Z",
+        "dauerMinuten": 0,
+        "notiz": "Schulaufgabe 10b",
+        "quelle": "MANUELL",
+        "planRef": null,
+        "erfasstAm": "2026-09-28T16:05:00Z",
+        "geaendertAm": null,
+        "fach": "",
+        "klasse": ""
+      }
+    },
+    {
+      "id": "B3",
+      "fundstelle": "Technische Erläuterung, Abschnitt 4.6, Rechenbeispiel B3",
+      "eingabe": "{\n    \"format\": \"watt-daten\",\n    \"version\": 19,\n    \"exportiertAm\": \"1970-01-01T00:00:00Z\",\n    \"appVersion\": \"\",\n    \"umfang\": \"VOLLSTAENDIG\",\n    \"profil\": {\n        \"beschaeftigung\": [\n            {\n                \"ab\": \"2000-01-01\",\n                \"pflichtstunden\": null,\n                \"pflichtstundenMinuten\": null,\n                \"teilzeitStunden\": null,\n                \"altersteilzeit\": false,\n                \"pflichtstundenAnderer\": false\n            }\n        ],\n        \"regionaleFeiertage\": [\n            \"MARIAE_HIMMELFAHRT\"\n        ],\n        \"bundesland\": \"BAYERN\",\n        \"schulart\": \"BERUFLICHE_SCHULEN\",\n        \"unterart\": null,\n        \"amt\": null,\n        \"amtsform\": null,\n        \"amtBezeichnung\": \"\",\n        \"funktionenBestaetigt\": false,\n        \"vorbereitungsdienstBeginn\": null,\n        \"vorbereitungsdienstEnde\": null,\n        \"geburtHalbjahr\": null,\n        \"geburtMonat\": null,\n        \"geburtTag\": null,\n        \"gdbAnfang\": null,\n        \"gdbAenderungen\": [],\n        \"antworten\": {},\n        \"unterrichtVd\": [],\n        \"deputatStartwert\": 0,\n        \"deputatAusgleiche\": []\n    },\n    \"kategorien\": [],\n    \"ferien\": [],\n    \"sonderTage\": [],\n    \"stundenplan\": {\n        \"aktiv\": true,\n        \"abWochenAktiv\": false,\n        \"zykluslaenge\": 1,\n        \"abBezugstag\": null,\n        \"abFerienwochenUeberspringen\": true,\n        \"uebernommenBis\": null,\n        \"raster\": [],\n        \"eintraege\": [],\n        \"bloecke\": [],\n        \"ausgesetzteTage\": [],\n        \"verworfen\": [],\n        \"quelle\": \"HAND\"\n    },\n    \"eintraege\": [],\n    \"abwesenheiten\": [],\n    \"protokoll\": [],\n    \"laufenderTimer\": null,\n    \"einstellungen\": {\n        \"unterkategorienEingeblendet\": [],\n        \"schlagworteEingeblendet\": []\n    },\n    \"nachweise\": {\n        \"meineDaten\": {\n            \"name\": \"\",\n            \"schule\": \"\",\n            \"adressat\": \"\",\n            \"empfaengerEmail\": \"\",\n            \"kopien\": [\n                {\n                    \"stelle\": \"PERSONALRAT\",\n                    \"aktiv\": false,\n                    \"email\": \"\"\n                },\n                {\n                    \"stelle\": \"SCHWERBEHINDERTENVERTRETUNG\",\n                    \"aktiv\": false,\n                    \"email\": \"\"\n                },\n                {\n                    \"stelle\": \"GLEICHSTELLUNGSBEAUFTRAGTE\",\n                    \"aktiv\": false,\n                    \"email\": \"\"\n                }\n            ]\n        },\n        \"anzeigen\": [],\n        \"gespraeche\": [],\n        \"kette\": []\n    },\n    \"funktionen\": [],\n    \"kalenderlink\": null,\n    \"kalenderZuordnungen\": [],\n    \"kalenderEntscheidungen\": []\n}",
+      "sha256": "afa3d7d0361a798add4613b553d328e63c81c007f5e3ebbe72359e48ef2a3c32"
+    },
+    {
+      "id": "B11",
+      "fundstelle": "Technische Erläuterung, Abschnitt 4.7, Rechenbeispiel B11",
+      "eingabe": "1:120:2026-09-28T16:05:00Z8:ANGELEGT7:eintrag2:e1343:{\"tag\":\"2026-09-28\",\"kategorieId\":\"korrektur\",\"unterkategorieId\":null,\"beginn\":\"2026-09-28T14:00:00Z\",\"ende\":\"2026-09-28T15:30:00Z\",\"dauerMinuten\":0,\"notiz\":\"Schulaufgabe 10b\",\"quelle\":\"MANUELL\",\"planRef\":null,\"erfasstAm\":\"2026-09-28T16:05:00Z\",\"geaendertAm\":null,\"begruendung\":null,\"kategorie\":\"Korrektur und Bewertung\",\"unterkategorie\":null}1:01:24:true",
+      "sha256": "95146a2017725f7122a29f497d6693e66bb89956eb060dab075cf3d4526a68db"
+    },
+    {
+      "id": "B12",
+      "fundstelle": "Technische Erläuterung, Abschnitt 4.7, Rechenbeispiel B12",
+      "eingabe": "watt-kopf-1:95146a2017725f7122a29f497d6693e66bb89956eb060dab075cf3d4526a68db",
+      "sha256": "53078a7535d394176afad0d51f56c9284ae81ceec01a0f4489b51141c319e27f",
+      "spkiBase64": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEhxtk9HRQgKVnxYjQycLUeu8HXymjAGpwX0qjkPSoQk8DGhJBcDJ7JzkyGhoqLKbJ530pkqlgV1MAq+WeuAfrjg==",
+      "fingerabdruck": "f3bb2eab722f4dcb14beb4d98d68c33630966b7edea8f967fe9e3997fc229445",
+      "signaturBase64": "MEUCIQCKS2bSW695v1wZ6feklKXmJ5BGV6FC6twMs6zdIyg1GgIgSGlYfxermK6cfq1Xq5ywcMoaNxr4cr6a0kGg2UZWjHA="
+    },
+    {
+      "id": "B4",
+      "fundstelle": "Technische Erläuterung, Abschnitt 5.1, Rechenbeispiel B4",
+      "eingabe": "1:22:a115:ZUSAMMENFASSUNG10:2026-09-0110:2026-09-3011:PLATZHALTER5:false17:sl@schule.example1:111:PERSONALRAT17:pr@schule.example20:Ueberlastungsanzeige29:Sehr geehrte Damen und Herren10:2026-10-0117:sl@schule.example20:2026-10-01T08:00:00Z1:111:ANSCHREIBEN15:Anschreiben.pdf64:315d429b7714cedb6ad04ac31240145257692630457f3c88253c5beceac760271:01:264:759a07d61bb0d53f334cf8f48b3937df7d945405ea55ffbb78f40a6bb99f19da20:2026-09-28T16:20:00Z",
+      "sha256": "71106548e39f6879dab3b120034a07da4382b67ce3d2cc3e91c21ff6613912b7",
+      "objekt": {
+        "anzeige": {
+          "id": "a1",
+          "stufe": "ZUSAMMENFASSUNG",
+          "zeitraumVon": "2026-09-01",
+          "zeitraumBis": "2026-09-30",
+          "angabenArt": "PLATZHALTER",
+          "angabenEntfernt": false,
+          "empfaenger": "sl@schule.example",
+          "kopien": [
+            {
+              "stelle": "PERSONALRAT",
+              "email": "pr@schule.example"
+            }
+          ],
+          "betreff": "Ueberlastungsanzeige",
+          "anschreiben": "Sehr geehrte Damen und Herren",
+          "datum": "2026-10-01",
+          "gesendetAn": "sl@schule.example",
+          "gesendetAm": "2026-10-01T08:00:00Z",
+          "notizen": [],
+          "kettenkopf": {
+            "anzahl": 2,
+            "hash": "759a07d61bb0d53f334cf8f48b3937df7d945405ea55ffbb78f40a6bb99f19da",
+            "zeitpunkt": "2026-09-28T16:20:00Z"
+          },
+          "pruefverfahren": 2
+        },
+        "dokumente": [
+          {
+            "art": "ANSCHREIBEN",
+            "dateiname": "Anschreiben.pdf",
+            "inhaltText": "%PDF"
+          }
+        ]
+      }
+    },
+    {
+      "id": "B5",
+      "fundstelle": "Technische Erläuterung, Abschnitt 5.1, Rechenbeispiel B5",
+      "eingabe": "2:g111:PERSOENLICH20:2026-10-02T12:00:00Z2:2012:Schulleitung0:20:Ueberlastungsanzeige36:Entscheidung bis Monatsende zugesagt12:Rueckmeldung10:2026-10-3020:2026-10-02T13:10:00Z",
+      "sha256": "91f081c27971d7668642eb508fc7ee4549cdb67b7f2284c3502dc9893917250b",
+      "objekt": {
+        "id": "g1",
+        "art": "PERSOENLICH",
+        "zeitpunkt": "2026-10-02T12:00:00Z",
+        "dauerMinuten": 20,
+        "partner": "Schulleitung",
+        "anwesende": "",
+        "anlass": "Ueberlastungsanzeige",
+        "inhalt": "Entscheidung bis Monatsende zugesagt",
+        "zusagen": "Rueckmeldung",
+        "frist": "2026-10-30",
+        "erfasstAm": "2026-10-02T13:10:00Z"
+      }
+    },
+    {
+      "id": "B6",
+      "fundstelle": "Technische Erläuterung, Abschnitt 5.1, Rechenbeispiel B6",
+      "eingabe": "%PDF",
+      "sha256": "315d429b7714cedb6ad04ac31240145257692630457f3c88253c5beceac76027"
+    },
+    {
+      "id": "B7",
+      "fundstelle": "Technische Erläuterung, Abschnitt 5.1, Rechenbeispiel B7",
+      "eingabe": "1:120:2026-10-01T08:30:00Z16:ANZEIGE_GESENDET2:a164:71106548e39f6879dab3b120034a07da4382b67ce3d2cc3e91c21ff6613912b71:0",
+      "sha256": "65abd5b0c8432113e3236d16a8764f4023a16a569ad0dd609f814e63a3a08762",
+      "objekt": {
+        "seq": 1,
+        "zeitpunkt": "2026-10-01T08:30:00Z",
+        "ereignis": "ANZEIGE_GESENDET",
+        "referenzId": "a1",
+        "pruefsumme": "71106548e39f6879dab3b120034a07da4382b67ce3d2cc3e91c21ff6613912b7",
+        "prev": "0"
+      }
+    }
+  ],
+  "hinweis": "eingabe ist die aufbereitete Bytefolge (UTF-8), sha256 ihr Prüfwert, beide wörtlich aus der Technischen Erläuterung; objekt ist die strukturierte Form nach der Beschreibung im jeweiligen Abschnitt (von WATTest abgeleitet)."
+}

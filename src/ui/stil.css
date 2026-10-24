@@ -1,0 +1,489 @@
+/* SPDX-License-Identifier: EUPL-1.2 */
+/* WATTest © 2026 Hans-Joachim Steudel */
+
+/* Farben: Blau = bestätigt, helles Gelb = nicht bestätigbar, dunkles Rot = widerlegt.
+   Deutlich verschiedene Helligkeit, damit sie auch bei Rot-Grün-Schwäche und in Graustufen
+   unterscheidbar sind; das Zeichen steht immer dabei. Kontraste: tests/oberflaeche.test.ts. */
+:root {
+  --grund: #ffffff;
+  --karte: #f6f7f9;
+  --text: #111418;
+  --leise: #4a5361;
+  --linie: #c9ced6;
+  --akzent: #1d4ed8;
+  --akzent-text: #ffffff;
+  --fokus: #b45309;
+  --fehler: #9b1c1c;
+  --ok-grund: #3b82f6;
+  --ok-text: #000000;
+  --offen-grund: #fef08a;
+  --offen-text: #000000;
+  --nein-grund: #7f1d1d;
+  --nein-text: #ffffff;
+  --info-grund: #e2e5ea;
+  --info-text: #111418;
+  --rand-zeichen: transparent;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --grund: #111418;
+    --karte: #1b2028;
+    --text: #eef1f5;
+    --leise: #aeb6c2;
+    --linie: #3a4250;
+    --akzent: #93b4ff;
+    --akzent-text: #0b1020;
+    --fokus: #fbbf24;
+    --fehler: #fca5a5;
+    --ok-grund: #3b82f6;
+    --ok-text: #000000;
+    --offen-grund: #fef08a;
+    --offen-text: #000000;
+    --nein-grund: #7f1d1d;
+    --nein-text: #ffffff;
+    --info-grund: #3a4250;
+    --info-text: #eef1f5;
+    --rand-zeichen: #fca5a5;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--grund);
+  color: var(--text);
+  font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+  overflow-wrap: break-word;
+}
+
+a {
+  color: var(--akzent);
+}
+
+:focus-visible {
+  outline: 3px solid var(--fokus);
+  outline-offset: 2px;
+}
+
+.sprung {
+  position: absolute;
+  left: -9999px;
+}
+
+.sprung:focus {
+  left: 1rem;
+  top: 1rem;
+  background: var(--grund);
+  padding: 0.5rem;
+  z-index: 10;
+}
+
+.unsichtbar {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.kopf,
+main,
+.fuss {
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.kopf h1 {
+  font-size: 1.75rem;
+  margin: 1.5rem 0 0.25rem;
+}
+
+.unterzeile {
+  margin: 0 0 1rem;
+  color: var(--leise);
+}
+
+.karte {
+  background: var(--karte);
+  border: 1px solid var(--linie);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin: 0 0 1rem;
+}
+
+.karte h2 {
+  font-size: 1.2rem;
+  margin: 0 0 0.5rem;
+}
+
+.leise,
+.hilfe {
+  color: var(--leise);
+}
+
+.hilfe {
+  margin-top: 0;
+}
+
+.ablage {
+  border: 2px dashed var(--linie);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.ablage.ueber {
+  border-color: var(--akzent);
+}
+
+.knopf {
+  display: inline-block;
+  font: inherit;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  border: 1px solid var(--akzent);
+  background: var(--akzent);
+  color: var(--akzent-text);
+  cursor: pointer;
+  min-height: 2.75rem;
+}
+
+.knopf.zweit {
+  background: transparent;
+  color: var(--akzent);
+}
+
+.knopf.haupt {
+  font-weight: 600;
+  min-width: 10rem;
+}
+
+.knopf:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.knopf.klein {
+  min-height: 2.25rem;
+  padding: 0.25rem 0.75rem;
+}
+
+.knopfreihe {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.liste {
+  list-style: none;
+  padding: 0;
+  margin: 0.75rem 0 0;
+}
+
+.liste li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.375rem 0;
+  border-top: 1px solid var(--linie);
+}
+
+.liste li span {
+  min-width: 0;
+}
+
+.feld {
+  margin: 0 0 0.75rem;
+}
+
+.feld label,
+legend {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+input,
+textarea {
+  font: inherit;
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--linie);
+  border-radius: 0.375rem;
+  background: var(--grund);
+  color: var(--text);
+}
+
+.mono,
+textarea,
+code,
+.hash {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, "Liberation Mono", monospace;
+  overflow-wrap: anywhere;
+}
+
+.fehler {
+  color: var(--fehler);
+  margin: 0.25rem 0 0;
+  min-height: 0;
+}
+
+.fehler:empty {
+  display: none;
+}
+
+[aria-invalid="true"] {
+  border-color: var(--fehler);
+  border-width: 2px;
+}
+
+fieldset.hand {
+  border: 1px solid var(--linie);
+  border-radius: 0.375rem;
+  padding: 0.75rem;
+  margin: 0.5rem 0 0;
+}
+
+.raster {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 0 1rem;
+}
+
+.raster .breit {
+  grid-column: 1 / -1;
+}
+
+.kamera video {
+  width: 100%;
+  max-width: 24rem;
+  border-radius: 0.375rem;
+  background: #000;
+}
+
+progress {
+  width: 100%;
+  height: 1rem;
+}
+
+.gesamt {
+  font-size: 1.15rem;
+  font-weight: 600;
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.75rem;
+  border-radius: 0.375rem;
+  border: 1px solid var(--linie);
+  background: var(--grund);
+}
+
+.schritt {
+  margin: 1rem 0 0;
+}
+
+.schritt-titel {
+  font-size: 1rem;
+  margin: 0 0 0.25rem;
+  color: var(--leise);
+}
+
+.datei-titel {
+  font-size: 1.05rem;
+  margin: 1.25rem 0 0;
+  overflow-wrap: anywhere;
+}
+
+.aussagen {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.aussagen > li {
+  margin: 0.375rem 0;
+}
+
+details.aussage {
+  background: var(--grund);
+  border: 1px solid var(--linie);
+  border-radius: 0.375rem;
+}
+
+details.aussage > summary {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+details.aussage > summary::-webkit-details-marker {
+  display: none;
+}
+
+details.aussage > summary::after {
+  content: "▸";
+  margin-left: auto;
+  color: var(--leise);
+}
+
+details.aussage[open] > summary::after {
+  content: "▾";
+}
+
+.zeichen {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  font-weight: 700;
+  line-height: 1;
+  border: 2px solid var(--rand-zeichen);
+}
+
+.z-bestaetigt {
+  background: var(--ok-grund);
+  color: var(--ok-text);
+}
+
+.z-offen {
+  background: var(--offen-grund);
+  color: var(--offen-text);
+}
+
+.z-widerlegt {
+  background: var(--nein-grund);
+  color: var(--nein-text);
+}
+
+.z-hinweis {
+  background: var(--info-grund);
+  color: var(--info-text);
+  font-style: italic;
+  font-family: Georgia, serif;
+}
+
+.aussage-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.aussage-text .art {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--leise);
+}
+
+.erlaeuterung {
+  padding: 0 0.75rem 0.75rem 3.25rem;
+}
+
+.erlaeuterung dt {
+  font-weight: 600;
+  margin-top: 0.5rem;
+}
+
+.erlaeuterung dd {
+  margin: 0;
+}
+
+.erlaeuterung ul {
+  margin: 0.25rem 0 0;
+  padding-left: 1.25rem;
+}
+
+.inhalt {
+  color: var(--leise);
+}
+
+.druckkopf {
+  display: none;
+}
+
+.fuss {
+  padding-top: 1rem;
+  padding-bottom: 2rem;
+  color: var(--leise);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 30rem) {
+  .erlaeuterung {
+    padding-left: 0.75rem;
+  }
+  .kopf h1 {
+    font-size: 1.5rem;
+  }
+}
+
+@media print {
+  :root {
+    --grund: #ffffff;
+    --karte: #ffffff;
+    --text: #000000;
+    --leise: #333333;
+    --linie: #999999;
+    --rand-zeichen: #000000;
+  }
+  body {
+    font-size: 10.5pt;
+  }
+  .sprung,
+  .kopf .unterzeile,
+  section.karte:not(.befund),
+  .nichtdrucken,
+  .fuss,
+  details.aussage > summary::after,
+  .inhalt {
+    display: none !important;
+  }
+  .karte {
+    border: none;
+    padding: 0;
+  }
+  .druckkopf {
+    display: block;
+    margin-bottom: 0.75rem;
+  }
+  .druckkopf table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+  .druckkopf th,
+  .druckkopf td {
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid #ccc;
+    padding: 0.15rem 0.4rem 0.15rem 0;
+  }
+  details.aussage {
+    break-inside: avoid;
+  }
+  .erlaeuterung {
+    padding-left: 2.75rem;
+  }
+}

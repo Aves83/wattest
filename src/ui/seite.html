@@ -1,0 +1,101 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: EUPL-1.2 -->
+<!-- WATTest © 2026 Hans-Joachim Steudel -->
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="{{CSP}}">
+<meta name="description" content="WATTest prüft Exporte der App WATT im Browser: Arbeitszeitkette, Daten, Anker, Signaturen und Nachweise. Nichts verlässt den Rechner.">
+<meta name="color-scheme" content="light dark">
+<meta name="referrer" content="no-referrer">
+<title>WATTest – Stimmt WATT?</title>
+{{KOPF}}
+<style>{{CSS}}</style>
+</head>
+<body>
+<a class="sprung" href="#inhalt">Zum Inhalt</a>
+<header class="kopf">
+  <h1>WATTest – Stimmt WATT?</h1>
+  <p class="unterzeile">WATTest prüft Exporte der App WATT: ob die Arbeitszeitkette intakt ist, ob die Daten und Anker zu ihr passen und ob sie von WATT auf einem bestätigten Gerät stammt. Alles geschieht in diesem Browser; keine Datei und keine Eingabe verlässt deinen Rechner.</p>
+</header>
+<main id="inhalt" tabindex="-1">
+  <section class="karte" aria-labelledby="h-dateien">
+    <h2 id="h-dateien">1. Dateien</h2>
+    <p class="hilfe" id="hilfe-dateien">Klartext-Export (JSON, XML oder ZIP mit Anhängen) und Aktenauszug (ZIP mit SHA256SUMS.txt), auch mehrere zugleich.</p>
+    <div class="ablage" id="ablage">
+      <input type="file" id="datei" multiple aria-describedby="hilfe-dateien" class="unsichtbar">
+      <label for="datei" class="knopf">Dateien auswählen</label>
+      <span class="ablage-text">oder hierher ziehen und ablegen</span>
+    </div>
+    <ul class="liste" id="dateiliste" aria-label="Ausgewählte Dateien"></ul>
+  </section>
+
+  <section class="karte" aria-labelledby="h-anker">
+    <h2 id="h-anker">2. Anker <span class="leise">(wenn vorhanden)</span></h2>
+    <p class="hilfe">Ein Anker ist ein Prüfvermerk oder QR-Code aus einem weitergegebenen Dokument von WATT, etwa einer Überlastungsanzeige.</p>
+    <div class="feld">
+      <label for="ankertext">QR-Inhalt oder Wortlaut des Prüfvermerks</label>
+      <textarea id="ankertext" rows="3" spellcheck="false" autocomplete="off" aria-describedby="ankertext-fehler" placeholder="watt-pruef:1;v=…;n=…;t=…;sha256=…"></textarea>
+      <p class="fehler" id="ankertext-fehler" role="alert"></p>
+      <div class="knopfreihe">
+        <button type="button" class="knopf" id="ankertext-ok">Anker hinzufügen</button>
+        <button type="button" class="knopf zweit" id="scannen" hidden>QR-Code mit der Kamera scannen</button>
+      </div>
+      <div id="kamera" class="kamera" hidden>
+        <video id="video" muted playsinline aria-label="Kamerabild zum Scannen"></video>
+        <button type="button" class="knopf zweit" id="scannen-ende">Scannen beenden</button>
+      </div>
+    </div>
+    <fieldset class="hand">
+      <legend>Prüfvermerk von Hand</legend>
+      <div class="raster">
+        <div class="feld">
+          <label for="hand-anzahl">Anzahl der Einträge</label>
+          <input id="hand-anzahl" inputmode="numeric" autocomplete="off" aria-describedby="hand-anzahl-fehler">
+          <p class="fehler" id="hand-anzahl-fehler" role="alert"></p>
+        </div>
+        <div class="feld">
+          <label for="hand-stand">Stand (TT.MM.JJJJ HH:MM)</label>
+          <input id="hand-stand" autocomplete="off" placeholder="12.03.2026 14:32" aria-describedby="hand-stand-fehler">
+          <p class="fehler" id="hand-stand-fehler" role="alert"></p>
+        </div>
+        <div class="feld breit">
+          <label for="hand-pruefsumme">Prüfsumme (SHA-256)</label>
+          <input id="hand-pruefsumme" class="mono" autocomplete="off" spellcheck="false" aria-describedby="hand-pruefsumme-fehler">
+          <p class="fehler" id="hand-pruefsumme-fehler" role="alert"></p>
+        </div>
+      </div>
+      <button type="button" class="knopf" id="hand-ok">Anker hinzufügen</button>
+    </fieldset>
+    <ul class="liste" id="ankerliste" aria-label="Anker"></ul>
+  </section>
+
+  <section class="karte" aria-labelledby="h-pruefen">
+    <h2 id="h-pruefen">3. Prüfen</h2>
+    <button type="button" class="knopf haupt" id="pruefen" disabled>Prüfen</button>
+    <div class="fortschritt" id="fortschritt" hidden>
+      <progress id="balken" max="1" value="0" aria-labelledby="fortschritt-text"></progress>
+    </div>
+    <p id="fortschritt-text" class="leise" role="status" aria-live="polite"></p>
+  </section>
+
+  <section class="karte befund" id="befund" aria-labelledby="h-befund" hidden>
+    <h2 id="h-befund" tabindex="-1">Befund</h2>
+    <div class="druckkopf" id="druckkopf"></div>
+    <p class="gesamt" id="gesamt"></p>
+    <div id="aussagen"></div>
+    <div class="knopfreihe nichtdrucken">
+      <button type="button" class="knopf" id="drucken">Befund drucken</button>
+      <button type="button" class="knopf zweit" id="aufklappen">Alle Begründungen zeigen</button>
+    </div>
+    <p class="leise">WATTest bewertet keine Inhalte: Es prüft Unverändertheit und Herkunft, nicht, ob die erfassten Zeiten stimmen.</p>
+  </section>
+</main>
+<footer class="fuss">
+  <p>WATTest {{VERSION}} · © 2026 Hans-Joachim Steudel · EUPL-1.2 · <a href="https://github.com/Aves83/wattest">Quelltext</a> · <a href="{{IMPRESSUM}}">Impressum</a> · <a href="{{DATENSCHUTZ}}">Datenschutz</a></p>
+</footer>
+{{DATEN}}
+<script>{{JS}}</script>
+</body>
+</html>
