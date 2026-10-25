@@ -42,14 +42,14 @@ Buchungsdaten (Export im Überblick) und verschlüsselte Sicherungen (`.wattbak`
 
 ## Die Einzeldatei prüfen
 
-Jede Version gibt es als eine einzige HTML-Datei, die ohne Netz läuft (mit Wurzeln und Sperrliste zum Stand des Baus). Ihre SHA-256 steht in `SHA256SUMS.txt` beim Release. Die Einzeldatei auf der Seite (`https://aves83.github.io/wattest/wattest-0.1.1.html`) wird täglich mit frischer Sperrliste neu gebaut; ihre Prüfsumme steht im `SHA256SUMS.txt` der Seite und weicht deshalb von der des Releases ab.
+Jede Version gibt es als eine einzige HTML-Datei, die ohne Netz läuft (mit Wurzeln und Sperrliste zum Stand des Baus). Ihre SHA-256 steht in `SHA256SUMS.txt` beim Release. Die Einzeldatei auf der Seite (`https://aves83.github.io/wattest/wattest-0.1.2.html`) wird täglich mit frischer Sperrliste neu gebaut; ihre Prüfsumme steht im `SHA256SUMS.txt` der Seite und weicht deshalb von der des Releases ab.
 
 ```
-sha256sum wattest-0.1.1.html
+sha256sum wattest-0.1.2.html
 ```
 
 ```
-Get-FileHash wattest-0.1.1.html -Algorithm SHA256
+Get-FileHash wattest-0.1.2.html -Algorithm SHA256
 ```
 
 Der Bau ist reproduzierbar: Aus demselben Commit und denselben Daten (`daten/`) entsteht dieselbe Datei.
@@ -67,7 +67,7 @@ Aus Abschnitt 9 der Technischen Erläuterung, unter anderem:
 
 ## Unterlagen von WATT
 
-Technische Erläuterung und Datenformat werden in Aves83/watt_public veröffentlicht. WATTest folgt der Gliederung der Technischen Erläuterung; jede Aussage nennt den Abschnitt (etwa 4.2, 4.7 oder 8., Schritt 5). Unklare Stellen stehen in [docs/UNKLARHEITEN.md](docs/UNKLARHEITEN.md), Entscheidungen in [docs/ENTSCHEIDUNGEN.md](docs/ENTSCHEIDUNGEN.md), die Spezifikation in [docs/SPEZIFIKATION.md](docs/SPEZIFIKATION.md).
+Maßgeblich sind die veröffentlichten Unterlagen von WATT in [Aves83/watt_public](https://github.com/Aves83/watt_public): die [Technische Erläuterung](https://github.com/Aves83/watt_public/blob/main/doc/technische-erlaeuterung.md) und das [Datenformat](https://github.com/Aves83/watt_public/blob/main/doc/datenformat.md) mit den Schemas unter `schema/`. WATTest folgt der Gliederung der Technischen Erläuterung; jede Aussage nennt den Abschnitt (etwa 4.2, 4.7 oder 8., Schritt 5). Unklare Stellen stehen in [docs/UNKLARHEITEN.md](docs/UNKLARHEITEN.md), Entscheidungen in [docs/ENTSCHEIDUNGEN.md](docs/ENTSCHEIDUNGEN.md), die Spezifikation in [docs/SPEZIFIKATION.md](docs/SPEZIFIKATION.md).
 
 ## Bau und Tests
 

@@ -97,12 +97,17 @@ for (const name of ["index.html", `wattest-${VERSION}.html`, "impressum.html", "
       assert.equal(c.get("manifest-src"), "'self'");
     }
     if (name.startsWith("wattest-")) assert.equal(c.get("connect-src"), "'none'");
+    // Die Links auf WATT, watt_public und den Quelltext sind nur Verweise: Keine Richtlinie lässt eine fremde Herkunft zu.
+    for (const [richtlinie, wert] of c) assert.doesNotMatch(wert, /https?:|github|aves83|\*/i, richtlinie);
+    assert.match(html, /<a href="https:\/\/aves83\.github\.io\/watt_public\/">WATT<\/a>/);
   });
 }
 
-// Erlaubte Adressen: Links in Fußzeile, Impressum und Datenschutz sowie Quellenangaben in den Daten.
+// Erlaubte Adressen: Links in Fußzeile, im Absatz „Über WATT“, in Impressum und Datenschutz sowie Quellenangaben in den Daten.
 const ERLAUBT = [
   /^https:\/\/github\.com\/Aves83\/wattest$/,
+  /^https:\/\/aves83\.github\.io\/watt_public\/$/,
+  /^https:\/\/github\.com\/Aves83\/watt_public\/blob\/main\/doc\/technische-erlaeuterung\.md$/,
   /^https:\/\/aves83\.github\.io\/wattest\/(impressum|datenschutz)\.html$/,
   /^https:\/\/docs\.github\.com\/de\/site-policy\/privacy-policies\/github-general-privacy-statement$/,
   /^https:\/\/www\.lda\.bayern\.de\/$/,
@@ -136,6 +141,20 @@ test("dist lädt keine fremden Adressen", () => {
   }
 });
 
+test("der Absatz „Über WATT“ verlinkt WATT, die Technische Erläuterung und den Quelltext in neuem Tab", () => {
+  for (const name of ["index.html", `wattest-${VERSION}.html`]) {
+    const html = readFileSync(join(a, name), "utf8");
+    const absatz = /<p class="unterzeile ueber">([\s\S]*?)<\/p>/.exec(html);
+    assert.ok(absatz, name);
+    const links = [...absatz[1]!.matchAll(/<a ([^>]*)>([^<]*)<\/a>/g)].map((m) => [m[2], m[1]]);
+    assert.deepEqual(links, [
+      ["Mehr zu WATT", 'href="https://aves83.github.io/watt_public/" target="_blank" rel="noopener"'],
+      ["veröffentlichten Unterlagen von WATT", 'href="https://github.com/Aves83/watt_public/blob/main/doc/technische-erlaeuterung.md" target="_blank" rel="noopener"'],
+      ["Quelltext", 'href="https://github.com/Aves83/wattest" target="_blank" rel="noopener"'],
+    ]);
+  }
+});
+
 test("die Einzeldatei ist vollständig und verweist auf keine weiteren Dateien", () => {
   const html = readFileSync(join(a, `wattest-${VERSION}.html`), "utf8");
   assert.match(html, /<script type="application\/json" id="wattest-daten">/);
@@ -155,7 +174,7 @@ test("die Einzeldatei ist vollständig und verweist auf keine weiteren Dateien",
 test("Fußzeile mit Version, Lizenz und Links", () => {
   for (const name of ["index.html", `wattest-${VERSION}.html`]) {
     const html = readFileSync(join(a, name), "utf8");
-    assert.match(html, new RegExp(`WATTest ${VERSION.replace(/\./g, "\\.")} · © 2026 Hans-Joachim Steudel · EUPL-1.2 · <a href="https://github.com/Aves83/wattest">Quelltext</a> · <a href="[^"]*impressum.html">Impressum</a> · <a href="[^"]*datenschutz.html">Datenschutz</a>`));
+    assert.match(html, new RegExp(`WATTest ${VERSION.replace(/\./g, "\\.")} · © 2026 Hans-Joachim Steudel · EUPL-1.2 · <a href="https://github.com/Aves83/wattest">Quelltext</a> · <a href="https://aves83.github.io/watt_public/">WATT</a> · <a href="[^"]*impressum.html">Impressum</a> · <a href="[^"]*datenschutz.html">Datenschutz</a>`));
   }
 });
 

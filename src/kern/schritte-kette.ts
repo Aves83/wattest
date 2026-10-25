@@ -154,6 +154,8 @@ export function pruefeZeit(k: Kontext): void {
     });
   }
 
+  pruefeBezug(k);
+
   if (mitUhrstand.length) {
     let summe = 0;
     const ohneBezug: number[] = [];
@@ -179,6 +181,37 @@ export function pruefeZeit(k: Kontext): void {
       { fundstelle: fund },
     );
   }
+}
+
+/**
+ * uhr_ruecksprung, obwohl ein Bezug bestand (8., Schritt 5): Das Glied vor dem auslösenden trägt den Uhrstand,
+ * und vom auslösenden Glied bis zum Vermerk nennt jedes Glied den Uhrstand mit neustarts 0. Auslösend ist bei
+ * objektId timer oder nachweis der Vermerk selbst, sonst das Glied davor. Nur Hinweis (U-18).
+ */
+function pruefeBezug(k: Kontext): void {
+  const g = k.kt.glieder;
+  const treffer: { x: Glied; bezug: Glied }[] = [];
+  for (let j = 0; j < g.length; j++) {
+    const x = g[j]!;
+    if (x.objektArt !== "uhr_ruecksprung") continue;
+    const ausloeser = x.objektId === "timer" || x.objektId === "nachweis" ? j : j - 1;
+    const bezug = g[ausloeser - 1];
+    if (!bezug || bezug.form !== "neun") continue;
+    if (g.slice(ausloeser, j + 1).every((y) => y.form === "neun" && y.neustarts === 0)) treffer.push({ x, bezug });
+  }
+  if (!treffer.length) return;
+  sage(
+    k,
+    "P4",
+    "hinweis",
+    `${treffer.length === 1 ? "Ein Glied uhr_ruecksprung steht" : `${zahl(treffer.length)} Glieder uhr_ruecksprung stehen`} in einem Abschnitt, in dem ein Bezug zur Monotonuhr bestand.`,
+    "Seit dem 24.10.2026 vermerkt WATT bei Gliedern mit Uhrstand eine Verstellung der Uhr als uhr_verstellt; uhr_ruecksprung folgt nach 8., Schritt 5 nur noch, wenn kein Bezug bestand (neustarts größer als 0 oder -1). Hier trägt das vorangehende Glied den Uhrstand, und kein Glied bis zum Vermerk nennt einen Neustart. Das widerlegt nichts: Den Bezug hält WATT nur auf dem Gerät, und die Technische Erläuterung nennt die Fälle ohne Bezug nur beispielhaft (4.7); der Rücksprung selbst ist vermerkt.",
+    {
+      fundstelle: dateiFundstelle(k, `Glied ${bereiche(treffer.map(({ x }) => x.seq ?? 0))}`),
+      grenze: GRENZE.zeit,
+      details: treffer.map(({ x, bezug }) => ({ text: `${gliedText(x)}: Bezug seit ${gliedText(bezug)}, ohne Neustart dazwischen.` })),
+    },
+  );
 }
 
 /**

@@ -1,5 +1,14 @@
 # Änderungen
 
+## 0.1.2 – 25.10.2026
+
+- Unterlagen: Technische Erläuterung, Datenformat und Schemas liest WATTest jetzt aus dem öffentlichen Repository Aves83/watt_public (Commit 1b52ef6, Inhalt gleich dem bisherigen Stand; die Schemas der Version 19 sind dort noch nicht veröffentlicht, U-19). `scripts/vektoren-holen.mjs` holt die TE von dort; die Rechenbeispiele B1 bis B12 sind unverändert. README und Spezifikation verlinken die beiden Dokumente.
+- Startseite: neuer Absatz „Über WATT“ unter der Einleitung, mit Links auf WATT, die Technische Erläuterung und den Quelltext (in neuem Tab).
+- Fußzeile: zusätzlich „WATT“ mit Link auf https://aves83.github.io/watt_public/.
+- Datenschutzhinweis: Verantwortlicher ohne Anschrift. Das Impressum bleibt unverändert.
+- P4: Hinweis, wenn ein Glied `uhr_ruecksprung` in einem Abschnitt steht, in dem nach 8., Schritt 5 ein Bezug bestand (vorangehendes Glied mit Uhrstand, `neustarts` 0 bis zum Vermerk); keine ✗ (U-18).
+- Tests: Absatz „Über WATT“, Datenschutzhinweis, neue Links im Test „keine fremden Adressen“, CSP ohne fremde Herkunft, Hinweis zu U-18.
+
 ## 0.1.1 – 25.10.2026
 
 Erste veröffentlichte Version. Grundlage ist die Technische Erläuterung von WATT vom 25.10.2026 (Markdown); sie klärt die Punkte aus `docs/UNKLARHEITEN.md`.
