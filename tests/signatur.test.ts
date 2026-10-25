@@ -88,6 +88,25 @@ test("uhr_verstellt mit objektId glied zwischen Kopf und schluessel (Erzeuger): 
   assert.match(texte(b, "P4"), /Der Vermerk uhr_verstellt erklärt seinen Zeitsprung nach der Rechnung in 4\.7\./);
 });
 
+test("U-18: uhr_ruecksprung mit objektId nachweis als erstes Glied (Erzeuger): Schlüssel folgt mit dem hash des Kopfs als Challenge", async () => {
+  const e = await erzeugeKette({ eintraege: 3, zertifikate: z, ruecksprung: { anlass: "nachweis", vorEintrag: 0, neustarts: 0 } });
+  assert.deepEqual(e.daten.protokoll.map((x) => x["objektArt"]), ["uhr_ruecksprung", "schluessel", "eintrag", "eintrag", "eintrag"]);
+  assert.equal(JSON.parse(String(e.daten.protokoll[1]!["daten"]))["challenge"], undefined);
+  const b = await befund([json("a.json", e.daten)], opt());
+  for (const s of ["P2", "P3", "P4", "P6", "P7"] as const) assert.equal(zeichen(b, s), "bestaetigt", `${s}:\n${texte(b)}`);
+  assert.match(texte(b, "P7"), /✓ Die Challenge ist die Prüfsumme von Glied 1\./);
+  assert.match(texte(b, "P4"), /Das Glied uhr_ruecksprung mit Uhrstand entstand ohne Bezug, wie 4\.7 es beschreibt\./);
+});
+
+test("U-18: uhr_ruecksprung mit Bezug in einer signierten Kette (Erzeuger): P4 nicht bestätigbar, Gesamtzeile ohne ✗", async () => {
+  const e = await erzeugeKette({ eintraege: 4, zertifikate: z, ruecksprung: { anlass: "timer", vorEintrag: 2, neustarts: 0 } });
+  const b = await befund([json("a.json", e.daten)], opt());
+  for (const s of ["P2", "P6", "P7"] as const) assert.equal(zeichen(b, s), "bestaetigt", `${s}:\n${texte(b)}`);
+  assert.equal(zeichen(b, "P4"), "offen", texte(b, "P4"));
+  assert.match(texte(b, "P4"), /Glied 4 \([^)]*\) mit objektId timer: der Vermerk selbst nennt neustarts 0, also einen Bezug\./);
+  assert.equal(b.gesamt, "offen");
+});
+
 /** Fügt vor dem Glied schluessel ein Glied uhr_verstellt ein, verkettet neu und signiert neu. */
 async function verstelltEinfuegen(e: Awaited<ReturnType<typeof erzeugeKette>>, objektId: string): Promise<void> {
   const p = e.daten.protokoll;

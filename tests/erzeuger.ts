@@ -138,6 +138,13 @@ export interface KettenAngaben {
   schluesselNach?: number;
   /** zwischen dem Kopf und dem Glied schluessel ein Glied uhr_verstellt mit objektId glied (4.7) */
   verstelltVorSchluessel?: boolean;
+  /**
+   * vor dem Eintrag mit Index vorEintrag springt die Uhr um 10 Minuten zurück, vermerkt mit uhr_ruecksprung (4.7):
+   * bei anlass glied nach dem auslösenden Eintrag (objektId dessen seq, neustarts des Eintrags wie angegeben,
+   * Vermerk 0), sonst als eigenes Glied mit objektId anlass und den angegebenen neustarts. Bei vorEintrag gleich
+   * schluesselNach steht ein solcher Vermerk vor dem Glied schluessel; bei 0 ist er das erste Glied der Kette.
+   */
+  ruecksprung?: { anlass: "glied" | "timer" | "nachweis" | "start" | "zeitsignal"; vorEintrag: number; neustarts: number };
 }
 
 function ausHexTest(h: string): Uint8Array<ArrayBuffer> {
@@ -171,7 +178,24 @@ export async function erzeugeKette(a: KettenAngaben): Promise<Erzeugt> {
   let kettenschluessel: Record<string, unknown>[] = [];
   const eintraege: Record<string, unknown>[] = [];
   let versatz = 0;
+  const r = a.ruecksprung;
+  let vermerkt = false;
+  const ruecksprungGlied = (objektId: string, zeitpunkt: number, neustarts: number): void => {
+    const voriges = protokoll[protokoll.length - 1];
+    const vorher = voriges ? String(voriges["zeitpunkt"]) : iso(t0);
+    protokoll.push({ seq: protokoll.length + 1, zeitpunkt: iso(zeitpunkt), aktion: "ANGELEGT", objektArt: "uhr_ruecksprung", objektId, daten: JSON.stringify({ vorher, nachher: iso(zeitpunkt) }), neustarts, autoZeit: true });
+  };
+  // Vermerk ohne eigenes auslösendes Glied: 30 Sekunden vor dem nächsten Eintrag nach der zurückgestellten Uhr.
+  const vermerk = (i: number): void => {
+    if (!r || vermerkt || r.anlass === "glied" || i !== r.vorEintrag) return;
+    vermerkt = true;
+    versatz -= 600000;
+    ruecksprungGlied(r.anlass, t0 + i * 60000 + 30000 + versatz, r.neustarts);
+  };
   const eintrag = (i: number): void => {
+    vermerk(i);
+    const ausloeser = r?.anlass === "glied" && i === r.vorEintrag;
+    if (ausloeser) versatz -= 600000;
     const t = t0 + (i + 1) * 60000 + versatz;
     const tag = iso(t).slice(0, 10);
     const e = {
@@ -194,13 +218,15 @@ export async function erzeugeKette(a: KettenAngaben): Promise<Erzeugt> {
       objektArt: "eintrag",
       objektId: `e${i + 1}`,
       daten: JSON.stringify({ ...e, begruendung: null, kategorie: "Korrektur und Bewertung", unterkategorie: null }),
-      neustarts: i === 0 ? 0 : i % 1000 === 0 ? 1 : 0,
+      neustarts: ausloeser ? r.neustarts : i === 0 ? 0 : i % 1000 === 0 ? 1 : 0,
       autoZeit: true,
     });
+    if (ausloeser) ruecksprungGlied(String(protokoll.length), t, 0);
     eintraege.push({ id: `e${i + 1}`, ...e, fach: "", klasse: "", plausibilitaetBestaetigt: false, importiertAm: null });
   };
   const vorSchluessel = z ? Math.min(a.schluesselNach ?? 0, a.eintraege) : 0;
   for (let i = 0; i < vorSchluessel; i++) eintrag(i);
+  if (z) vermerk(vorSchluessel);
   if (z) {
     blatt = await schluessel("ec256");
     // Challenge (4.7): leere Kette 32 Zufallsbytes im Glied, sonst der hash des Kopfs; ein Glied uhr_verstellt
@@ -227,7 +253,7 @@ export async function erzeugeKette(a: KettenAngaben): Promise<Erzeugt> {
           autoZeit: true,
         });
         zeitSchluessel = nachher;
-        versatz = 600000;
+        versatz += 600000;
       }
     }
     const b: Bestaetigung = { challenge, sicherheitsstufe: 1, paket: "de.achim.watt", appDigest: APP_DIGEST, bootzustand: 0, gesperrt: true, mitRootOfTrust: true, erzeugtAm: zeitSchluessel, ...a.bestaetigung };
