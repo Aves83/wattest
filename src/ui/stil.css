@@ -54,6 +54,11 @@
   box-sizing: border-box;
 }
 
+/* hidden gilt auch für Elemente mit eigener display-Regel (etwa .knopf). */
+[hidden] {
+  display: none !important;
+}
+
 html {
   -webkit-text-size-adjust: 100%;
 }

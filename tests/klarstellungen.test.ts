@@ -354,7 +354,7 @@ test("U-18: uhr_ruecksprung mit objektId start oder zeitsignal erklärt einen R�
     const d = await mitRuecksprung(anlass, 1);
     const b = await befund([json("x.json", d)]);
     assert.equal(zeichen(b, "P4"), "bestaetigt", texte(b, "P4"));
-    assert.match(texte(b, "P4"), /jeder Rücksprung der Uhr um mehr als 2 Minuten ist vermerkt/);
+    assert.match(texte(b, "P4"), /^P4 bestaetigt: Die Zeitstempel steigen an\. Die Geräteuhr wurde einmal verstellt oder sprang zurück; jeder Fall ist vermerkt \(Glied \d+\)\./m);
     assert.match(texte(b, "P4"), anlass === "start" ? /Rücksprung der Uhr beim Start der App von / : /Rücksprung der Uhr nach einer von Android gemeldeten Änderung der Uhrzeit von /);
     // Mit einer anderen objektId ist derselbe Rücksprung nicht erklärt.
     const v = d.protokoll.find((x) => x["objektArt"] === "uhr_ruecksprung")!;

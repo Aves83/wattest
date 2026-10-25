@@ -27,3 +27,55 @@ export const GRENZE = {
   aktenauszug:
     "SHA256SUMS.txt liegt im selben ZIP wie die Dokumente; allein belegt sie nur, dass Liste und Dateien zusammenpassen. Erst der Abgleich mit der Nachweiskette oder einem Anker bindet sie an WATT (Technische Erläuterung, 5.1 und 8).",
 } as const;
+
+// Feste Grenzen für Eingaben von Dritten (Härtung, WATTest 0.1.5). Großzügig gewählt: Echte Exporte von WATT liegen
+// weit darunter. Darüber meldet WATTest „?“ mit Hinweis auf die Grenze, nie einen Absturz und nie ✗.
+
+const MB = 1024 * 1024;
+
+export const GRENZWERTE = {
+  /** Größe einer geprüften Datei */
+  dateiBytes: 200 * MB,
+  /** Glieder der Arbeitszeitkette */
+  glieder: 1_000_000,
+  /** Einträge in kettensignaturen */
+  signaturen: 1_000_000,
+  /** Einträge in kettenschluessel */
+  schluessel: 256,
+  /** Zertifikate je Schlüssel */
+  zertifikateJeSchluessel: 8,
+  /** Größe eines Zertifikats (DER) */
+  zertifikatBytes: 8 * 1024,
+  /** Größe einer Signatur (DER) */
+  signaturBytes: 128,
+  /** Verschachtelungstiefe von JSON, auch im Feld daten eines Glieds */
+  jsonTiefe: 64,
+  /** Verschachtelungstiefe von XML */
+  xmlTiefe: 64,
+  /** Attribute je XML-Element */
+  xmlAttribute: 32,
+  /** Verschachtelungstiefe von DER */
+  derTiefe: 32,
+  /** Tag-Nummer in DER (höchstens zwei Bytes in der langen Form) */
+  derTag: 0x3fff,
+  /** Einträge in einem ZIP */
+  zipEintraege: 10_000,
+  /** entpackte Größe eines Eintrags */
+  zipEintragBytes: 200 * MB,
+  /** entpackte Größe aller Einträge zusammen */
+  zipGesamtBytes: 512 * MB,
+  /** Kompressionsverhältnis eines Eintrags ab 1 MB entpackter Größe */
+  zipVerhaeltnis: 250,
+  /** Länge eines Pfads im ZIP (Zeichen) */
+  zipPfad: 1024,
+} as const;
+
+/** Text der Grenze für Begründungen, z. B. „200 MB“ oder „1.000.000“. */
+export function grenzeText(wert: number, einheit?: "bytes"): string {
+  if (einheit === "bytes") return wert >= MB ? `${wert / MB} MB` : wert >= 1024 ? `${wert / 1024} KB` : `${wert} Bytes`;
+  const s = String(wert);
+  return s.length > 4 ? s.replace(/\B(?=(\d{3})+(?!\d))/g, ".") : s;
+}
+
+export const GRENZE_HAERTUNG =
+  "WATTest prüft Dateien von Dritten nur innerhalb fester Grenzen (Größe, Anzahl, Verschachtelung); darüber sagt es nichts über die Datei, sondern meldet „?“.";

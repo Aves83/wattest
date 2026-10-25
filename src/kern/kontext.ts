@@ -4,7 +4,7 @@
 // Gemeinsamer Zustand der Prüfschritte für einen Klartext.
 
 import type { Anker } from "./anker.js";
-import type { Aussage, Schritt, Zeichen, Detail } from "./befund.js";
+import { zahl, type Aussage, type Schritt, type Zeichen, type Detail } from "./befund.js";
 import type { Klartext } from "./klartext.js";
 
 export interface Sperreintrag {
@@ -31,7 +31,15 @@ export interface Optionen {
   /** Zeitpunkt der Prüfung (ms) */
   jetzt: number;
   fortschritt?: (anteil: number, text: string) => void;
+  /** ergibt true, wenn die Prüfung abgebrochen werden soll (ohne Worker, auf der Seite) */
+  abgebrochen?: () => boolean;
 }
+
+/** Abbruch durch die Nutzerin oder den Nutzer; wird nicht zu „?“, sondern beendet die Prüfung. */
+export class Abbruch extends Error {}
+
+/** Höchstzahl der Einzelheiten je Aussage; der Rest wird gezählt, damit Befund und Seite klein bleiben. */
+export const MAX_DETAILS = 200;
 
 export type SignaturStatus = "gueltig" | "ungueltig" | "unpruefbar";
 
@@ -55,9 +63,13 @@ export function sage(
   zeichen: Zeichen,
   text: string,
   begruendung: string,
-  weiter: { fundstelle?: string; grenze?: string; details?: Detail[] } = {},
+  weiter: { fundstelle?: string; grenze?: string; details?: Detail[]; kennung?: Aussage["kennung"] } = {},
 ): Aussage {
   const datei = k.kt?.name ?? k.datei;
+  if (weiter.details && weiter.details.length > MAX_DETAILS) {
+    const rest = weiter.details.length - MAX_DETAILS;
+    weiter = { ...weiter, details: [...weiter.details.slice(0, MAX_DETAILS), { text: `… und ${zahl(rest)} weitere.` }] };
+  }
   const a: Aussage = { schritt, ...(datei ? { datei } : {}), zeichen, text, begruendung, ...weiter };
   k.aussagen.push(a);
   return a;

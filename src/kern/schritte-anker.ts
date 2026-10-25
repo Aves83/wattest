@@ -10,6 +10,9 @@ import { gliedName, type Glied } from "./klartext.js";
 import { dateiFundstelle, sage, type Kontext } from "./kontext.js";
 import { berlinMinute, deutsch, zeitpunktMs } from "./zeit.js";
 
+/** Handlungshinweis, wenn kein Anker vorliegt (Auftrag 0.1.5, B3). */
+export const HANDLUNG_ANKER = "Füge einen Prüfvermerk aus einem Bericht oder einer Anzeige hinzu (Text oder QR-Code), um den Stand daran zu prüfen.";
+
 function zaehler(g: Glied[], bis: number): { r: number; w: number; wa: number; i: number } {
   let r = 0;
   let w = 0;
@@ -46,9 +49,10 @@ export function pruefeAnker(k: Kontext): void {
   const g = k.kt.glieder;
   const anker = k.optionen.anker;
   if (anker.length === 0) {
-    sage(k, "P5", "offen", "Es liegt kein Anker vor.", "Ohne Prüfvermerk oder QR-Code aus einem weitergegebenen Dokument lässt sich nicht bestätigen, dass die Kette seit einem früheren Stand unverändert ist. Ein Anker lässt sich oben eingeben.", {
+    sage(k, "P5", "offen", `Es liegt kein Anker vor. ${HANDLUNG_ANKER}`, "Ohne Prüfvermerk oder QR-Code aus einem weitergegebenen Dokument lässt sich nicht bestätigen, dass die Kette seit einem früheren Stand unverändert ist. Ein Anker lässt sich oben unter „Anker“ eingeben.", {
       fundstelle: dateiFundstelle(k),
       grenze: GRENZE.anker,
+      kennung: "ohne-anker",
     });
     return;
   }

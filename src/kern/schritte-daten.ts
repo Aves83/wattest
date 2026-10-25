@@ -3,8 +3,8 @@
 
 // P3: Die Kette nachspielen (Technische Erläuterung 7.) und den Stand mit eintraege und abwesenheiten vergleichen.
 
-import { anzahl, type Detail } from "./befund.js";
-import { GRENZE } from "./grenzen.js";
+import { anzahl, bereiche, type Detail } from "./befund.js";
+import { GRENZE, GRENZE_HAERTUNG, GRENZWERTE } from "./grenzen.js";
 import { bestandAbwesenheitEingabe, bestandEintragEingabe } from "./kanonisch.js";
 import { gliedName, liste, type Glied } from "./klartext.js";
 import { dateiFundstelle, sage, type Kontext } from "./kontext.js";
@@ -61,6 +61,9 @@ export async function pruefeDaten(k: Kontext): Promise<void> {
   const abwesenheiten = new Map<string, Objekt>();
   const probleme: Detail[] = [];
   const nurBestand: string[] = [];
+  // Objekte mit einem Glied, dessen daten über der Grenze der Verschachtelung liegt: nicht nachspielbar, „?“.
+  const ueberGrenze: Glied[] = [];
+  const offen = new Set<string>();
   let neubeginnAlt: Glied | null = null;
   let nachgespielt = 0;
 
@@ -77,6 +80,12 @@ export async function pruefeDaten(k: Kontext): Promise<void> {
     nachgespielt++;
     const karte = x.objektArt === "eintrag" ? eintraege : abwesenheiten;
     const name = `${gliedName(x)}: ${objektName(x.objektArt, x.objektId)}`;
+    if (offen.has(`${x.objektArt}:${x.objektId}`)) continue;
+    if (!x.json && x.datenUeberGrenze) {
+      ueberGrenze.push(x);
+      offen.add(`${x.objektArt}:${x.objektId}`);
+      continue;
+    }
     if (!x.json) {
       probleme.push({ text: `${name}: daten ist kein lesbares JSON; der Stand lässt sich nicht nachspielen.` });
       continue;
@@ -104,6 +113,7 @@ export async function pruefeDaten(k: Kontext): Promise<void> {
   for (const e of dateiEintraege) {
     const id = String(e["id"] ?? "");
     gesehen.add(id);
+    if (offen.has(`eintrag:${id}`)) continue;
     const o = eintraege.get(id);
     if (!o) {
       const erf = zeitpunktMs(e["erfasstAm"]);
@@ -125,7 +135,7 @@ export async function pruefeDaten(k: Kontext): Promise<void> {
     if (felder.length) abweichungen.push({ text: `${objektName("eintrag", id)} (zuletzt ${gliedName(o.letztes!)}): abweichend in ${felder.join(", ")}.` });
   }
   for (const [id, o] of eintraege) {
-    if (!gesehen.has(id)) abweichungen.push({ text: `${objektName("eintrag", id)}: besteht laut Kette (${o.letztes ? gliedName(o.letztes) : "Bestand des Neubeginns"}), fehlt aber in den Daten.` });
+    if (!gesehen.has(id) && !offen.has(`eintrag:${id}`)) abweichungen.push({ text: `${objektName("eintrag", id)}: besteht laut Kette (${o.letztes ? gliedName(o.letztes) : "Bestand des Neubeginns"}), fehlt aber in den Daten.` });
   }
 
   const dateiAbw = liste(k.kt.daten["abwesenheiten"]).filter((a) => MIT_GUTSCHRIFT.has(String(a["art"])));
@@ -139,6 +149,7 @@ export async function pruefeDaten(k: Kontext): Promise<void> {
       continue;
     }
     gesehenA.add(tag);
+    if (offen.has(`abwesenheit:${tag}`)) continue;
     const o = abwesenheiten.get(tag);
     if (!o) {
       if (neubeginnMs !== null) {
@@ -159,7 +170,7 @@ export async function pruefeDaten(k: Kontext): Promise<void> {
   }
   for (const [tag, o] of abwesenheiten) {
     if (o.daten && !MIT_GUTSCHRIFT.has(String(o.daten["art"]))) continue;
-    if (!gesehenA.has(tag)) abweichungen.push({ text: `${objektName("abwesenheit", tag)}: besteht laut Kette (${o.letztes ? gliedName(o.letztes) : "Bestand des Neubeginns"}), fehlt aber in den Daten.` });
+    if (!gesehenA.has(tag) && !offen.has(`abwesenheit:${tag}`)) abweichungen.push({ text: `${objektName("abwesenheit", tag)}: besteht laut Kette (${o.letztes ? gliedName(o.letztes) : "Bestand des Neubeginns"}), fehlt aber in den Daten.` });
   }
 
   const zahlen = `${anzahl(dateiEintraege.length, "Eintrag", "Einträgen")} und ${anzahl(dateiAbw.length, "Abwesenheit", "Abwesenheiten")} mit Gutschrift`;
@@ -174,6 +185,13 @@ export async function pruefeDaten(k: Kontext): Promise<void> {
     sage(k, "P3", "bestaetigt", "Die Daten entsprechen der Kette.", `WATTest hat ${anzahl(nachgespielt, "Glied", "Glieder")} der Arten eintrag und abwesenheit nachgespielt (7.); der entstehende Stand stimmt Feld für Feld mit ${zahlen} der Datei überein.${nebenbei}`, {
       fundstelle: fund,
       grenze: GRENZE.daten,
+    });
+  }
+  if (ueberGrenze.length) {
+    sage(k, "P3", "offen", `${anzahl(ueberGrenze.length, "Glied lässt", "Glieder lassen")} sich nicht nachspielen.`, `Das Feld daten dieser Glieder ist tiefer verschachtelt als die Grenze von ${GRENZWERTE.jsonTiefe} Ebenen; WATTest liest es nicht. Die betroffenen Einträge und Abwesenheiten bleiben beim Abgleich außen vor; über sie sagt P3 nichts.`, {
+      fundstelle: dateiFundstelle(k, `Glied ${bereiche(ueberGrenze.map((x) => x.seq ?? x.index + 1))}`),
+      grenze: GRENZE_HAERTUNG,
+      details: ueberGrenze.map((x) => ({ text: `${gliedName(x)}: ${objektName(x.objektArt === "abwesenheit" ? "abwesenheit" : "eintrag", x.objektId)}` })),
     });
   }
   if (nurBestand.length && neubeginnAlt) {

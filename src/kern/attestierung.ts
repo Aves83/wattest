@@ -4,7 +4,7 @@
 // Erweiterung 1.3.6.1.4.1.11129.2.1.17 (KeyDescription) der Android Key Attestation lesen.
 
 import { hex, textAus } from "./bytes.js";
-import { DerFehler, T, bool, erwarte, ganzzahl, inhalt, kinder, wurzel, type Tlv } from "./der.js";
+import { DerFehler, T, bool, erwarte, ganzzahl, inhalt, kinder, teil, wurzel, type Tlv } from "./der.js";
 
 export const ATTESTIERUNG_OID = "1.3.6.1.4.1.11129.2.1.17";
 
@@ -34,6 +34,8 @@ export interface Schluesselbeschreibung {
   osVersion: number | null;
   osPatchLevel: number | null;
   erzeugtAm: number | null;
+  /** Felder, die vorhanden, aber nicht lesbar sind */
+  unlesbar: string[];
 }
 
 function stufe(n: number): Sicherheitsstufe {
@@ -64,13 +66,14 @@ function leseAppId(oktette: Uint8Array): { pakete: Paket[]; digests: string[] } 
   const t = erwarte(wurzel(oktette), T.SEQUENCE);
   const [infos, digests] = kinder(t);
   const pakete: Paket[] = [];
-  for (const p of kinder(erwarte(infos!, T.SET))) {
+  for (const p of kinder(erwarte(infos, T.SET))) {
     const [name, version] = kinder(erwarte(p, T.SEQUENCE));
+    const nameT = erwarte(name, T.OCTET_STRING);
     let n: string;
     try {
-      n = textAus(inhalt(erwarte(name!, T.OCTET_STRING)));
+      n = textAus(inhalt(nameT));
     } catch {
-      n = hex(inhalt(name!));
+      n = hex(inhalt(nameT));
     }
     pakete.push({ name: n, version: version ? ganzzahl(version) : 0 });
   }
@@ -99,17 +102,20 @@ export function leseSchluesselbeschreibung(wert: Uint8Array): Schluesselbeschrei
   if (rot) {
     const r = kinder(erwarte(rot, T.SEQUENCE));
     rootOfTrust = {
-      verifiedBootKey: hex(inhalt(r[0]!)),
-      deviceLocked: bool(erwarte(r[1]!, T.BOOLEAN)),
-      verifiedBootState: boot(enumWert(r[2]!)),
+      verifiedBootKey: hex(inhalt(teil(r, 0, "verifiedBootKey"))),
+      deviceLocked: bool(erwarte(r[1], T.BOOLEAN)),
+      verifiedBootState: boot(enumWert(teil(r, 2, "verifiedBootState"))),
     };
   }
-  const zahl = (tag: number): number | null => {
+  // Nicht lesbare Zahlen (etwa über Number.MAX_SAFE_INTEGER) werden nicht still übergangen, sondern genannt.
+  const unlesbar: string[] = [];
+  const zahl = (tag: number, name: string): number | null => {
     const t = feld(tag);
     if (!t) return null;
     try {
       return ganzzahl(t);
-    } catch {
+    } catch (e) {
+      unlesbar.push(`${name} (Tag ${tag}): ${(e as Error).message}`);
       return null;
     }
   };
@@ -122,8 +128,9 @@ export function leseSchluesselbeschreibung(wert: Uint8Array): Schluesselbeschrei
     pakete,
     signaturDigests: digests,
     rootOfTrust,
-    osVersion: zahl(705),
-    osPatchLevel: zahl(706),
-    erzeugtAm: zahl(701),
+    osVersion: zahl(705, "osVersion"),
+    osPatchLevel: zahl(706, "osPatchLevel"),
+    erzeugtAm: zahl(701, "creationDateTime"),
+    unlesbar,
   };
 }

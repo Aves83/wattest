@@ -193,7 +193,9 @@ test("P4: Rücksprung mit folgendem uhr_ruecksprung ist vermerkt", async () => {
   await neuVerketten(d.protokoll);
   const b = await befund([json("x.json", d)]);
   assert.equal(zeichen(b, "P4"), "bestaetigt", texte(b, "P4"));
-  assert.match(texte(b, "P4"), /2 Vorgänge an der Geräteuhr/);
+  // Eine Aussage statt zwei (B2): der Rücksprung zählt, die Abweichung beim Timer steht nur in den Einzelheiten.
+  assert.match(texte(b, "P4"), /Die Zeitstempel steigen an\. Die Geräteuhr wurde einmal verstellt oder sprang zurück; jeder Fall ist vermerkt \(Glied 8\)\.\n.*Glied 8 .*\n.*Glied 10 .*Timer-Laufs/);
+  assert.doesNotMatch(texte(b, "P4"), /Vorgänge an der Geräteuhr/);
 });
 
 test("P4: Neustarts und ausgeschaltete automatische Uhrzeit werden genannt", async () => {

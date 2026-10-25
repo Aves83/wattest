@@ -97,3 +97,10 @@ test("Fokus ist sichtbar, und nichts scrollt bei 360 px waagerecht", () => {
   assert.doesNotMatch(css, /min-width:\s*(?:[4-9]\d{2}|\d{4,})px/);
   assert.doesNotMatch(css, /width:\s*(?:[4-9]\d{2}|\d{4,})px/);
 });
+
+test("„Abbrechen“ steht neben „Prüfen“, und hidden blendet auch Knöpfe aus", () => {
+  assert.match(seite, /<button type="button" class="knopf haupt" id="pruefen" disabled>Prüfen<\/button>\s*<button type="button" class="knopf zweit" id="abbrechen" hidden>Abbrechen<\/button>/);
+  // .knopf setzt display; ohne diese Regel wären versteckte Knöpfe sichtbar.
+  assert.match(css, /\[hidden\]\s*\{\s*display: none !important;\s*\}/);
+  assert.match(seite, /id="fortschritt-text" class="leise" role="status" aria-live="polite"/);
+});

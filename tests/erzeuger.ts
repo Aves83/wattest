@@ -145,6 +145,8 @@ export interface KettenAngaben {
    * schluesselNach steht ein solcher Vermerk vor dem Glied schluessel; bei 0 ist er das erste Glied der Kette.
    */
   ruecksprung?: { anlass: "glied" | "timer" | "nachweis" | "start" | "zeitsignal"; vorEintrag: number; neustarts: number };
+  /** weitere Schlüssel nach dem ersten, gleichmäßig über die Einträge verteilt; jeder beginnt einen Abschnitt (4.7) */
+  weitereSchluessel?: number;
 }
 
 function ausHexTest(h: string): Uint8Array<ArrayBuffer> {
@@ -162,7 +164,10 @@ function grundbestand(): Record<string, unknown> {
 
 export interface Erzeugt {
   daten: Record<string, unknown> & { protokoll: Record<string, unknown>[]; kettensignaturen: Record<string, unknown>[]; kettenschluessel: Record<string, unknown>[]; eintraege: Record<string, unknown>[] };
+  /** Blattschlüssel des ersten Abschnitts */
   blatt: Paar | null;
+  /** Blattschlüssel je Fingerabdruck, für alle Abschnitte */
+  blaetter: Map<string, Paar>;
   zertifikate: Testzertifikate | null;
 }
 
@@ -174,12 +179,22 @@ export async function erzeugeKette(a: KettenAngaben): Promise<Erzeugt> {
   const protokoll: Record<string, unknown>[] = [];
   const iso = (ms: number): string => new Date(ms).toISOString().replace(".000Z", "Z");
   let blatt: Paar | null = null;
+  const blaetter = new Map<string, Paar>();
   const z = a.zertifikate ?? null;
-  let kettenschluessel: Record<string, unknown>[] = [];
+  const kettenschluessel: Record<string, unknown>[] = [];
   const eintraege: Record<string, unknown>[] = [];
   let versatz = 0;
   const r = a.ruecksprung;
   let vermerkt = false;
+  // Prüfsummen fortlaufend: frühere Glieder ändern sich nicht mehr.
+  let verkettet = 0;
+  const verkette = async (): Promise<void> => {
+    for (; verkettet < protokoll.length; verkettet++) {
+      const g = protokoll[verkettet]!;
+      g["prev"] = verkettet === 0 ? "0" : protokoll[verkettet - 1]!["hash"];
+      g["hash"] = await gliedHash(g);
+    }
+  };
   const ruecksprungGlied = (objektId: string, zeitpunkt: number, neustarts: number): void => {
     const voriges = protokoll[protokoll.length - 1];
     const vorher = voriges ? String(voriges["zeitpunkt"]) : iso(t0);
@@ -224,22 +239,20 @@ export async function erzeugeKette(a: KettenAngaben): Promise<Erzeugt> {
     if (ausloeser) ruecksprungGlied(String(protokoll.length), t, 0);
     eintraege.push({ id: `e${i + 1}`, ...e, fach: "", klasse: "", plausibilitaetBestaetigt: false, importiertAm: null });
   };
-  const vorSchluessel = z ? Math.min(a.schluesselNach ?? 0, a.eintraege) : 0;
-  for (let i = 0; i < vorSchluessel; i++) eintrag(i);
-  if (z) vermerk(vorSchluessel);
-  if (z) {
-    blatt = await schluessel("ec256");
+  /** Glied schluessel mit neuem Blattschlüssel; Challenge nach 4.7. */
+  const schluesselGlied = async (z: Testzertifikate, erster: boolean): Promise<void> => {
+    const paar = await schluessel("ec256");
     // Challenge (4.7): leere Kette 32 Zufallsbytes im Glied, sonst der hash des Kopfs; ein Glied uhr_verstellt
     // mit objektId glied dazwischen ändert daran nichts.
     let challenge: Uint8Array<ArrayBuffer> = new Uint8Array(32).map((_, i) => (i * 31 + 5) & 0xff);
     let zeitSchluessel = t0;
     const leer = protokoll.length === 0;
     if (!leer) {
-      await neuVerketten(protokoll);
+      await verkette();
       const kopf = protokoll[protokoll.length - 1]!;
       challenge = ausHexTest(String(kopf["hash"]));
       zeitSchluessel = Date.parse(String(kopf["zeitpunkt"])) + 30000;
-      if (a.verstelltVorSchluessel) {
+      if (erster && a.verstelltVorSchluessel) {
         const vorher = zeitSchluessel;
         const nachher = vorher + 600000;
         protokoll.push({
@@ -258,20 +271,22 @@ export async function erzeugeKette(a: KettenAngaben): Promise<Erzeugt> {
     }
     const b: Bestaetigung = { challenge, sicherheitsstufe: 1, paket: "de.achim.watt", appDigest: APP_DIGEST, bootzustand: 0, gesperrt: true, mitRootOfTrust: true, erzeugtAm: zeitSchluessel, ...a.bestaetigung };
     const blattDer = await zertifikat({
-      seriennummer: 1n,
+      seriennummer: BigInt(blaetter.size + 1),
       aussteller: ZWISCHEN_NAME,
       inhaber: name("Android Keystore Key", "Android"),
       // Standardgrenzen von Android, WATT setzt keine eigenen (4.7, Schritt 1).
       nichtVor: Date.parse("1970-01-01T00:00:00Z"),
       nichtNach: Date.parse("2048-01-01T00:00:00Z"),
-      spki: blatt.spki,
+      spki: paar.spki,
       signierer: z.zwischen,
       erweiterungen: [{ oid: "1.3.6.1.4.1.11129.2.1.17", wert: schluesselbeschreibung(b) }],
     });
     const der = [blattDer, z.zwischenDer, z.wurzelDer];
-    const fp = hex(new Uint8Array(await subtle.digest("SHA-256", puffer(blatt.spki))));
+    const fp = hex(new Uint8Array(await subtle.digest("SHA-256", puffer(paar.spki))));
     const zs = hex(new Uint8Array(await subtle.digest("SHA-256", puffer(verbinde(der)))));
-    kettenschluessel = [{ fingerabdruck: fp, zertifikate: der.map(base64) }];
+    kettenschluessel.push({ fingerabdruck: fp, zertifikate: der.map(base64) });
+    blaetter.set(fp, paar);
+    if (erster) blatt = paar;
     const angaben: Record<string, unknown> = { status: "verfuegbar", fingerabdruck: fp, zertifikateSha256: zs, sicherheitsstufe: b.sicherheitsstufe === 2 ? "STRONGBOX" : b.sicherheitsstufe === 1 ? "TEE" : "SOFTWARE" };
     if (leer) angaben["challenge"] = hex(challenge);
     protokoll.push({
@@ -284,32 +299,49 @@ export async function erzeugeKette(a: KettenAngaben): Promise<Erzeugt> {
       neustarts: 0,
       autoZeit: true,
     });
+  };
+  const vorSchluessel = z ? Math.min(a.schluesselNach ?? 0, a.eintraege) : 0;
+  for (let i = 0; i < vorSchluessel; i++) eintrag(i);
+  if (z) vermerk(vorSchluessel);
+  if (z) await schluesselGlied(z, true);
+  const weitere = z ? (a.weitereSchluessel ?? 0) : 0;
+  const abstand = weitere ? Math.max(1, Math.floor((a.eintraege - vorSchluessel) / (weitere + 1))) : 0;
+  let neu = 0;
+  for (let i = vorSchluessel; i < a.eintraege; i++) {
+    if (z && weitere && i > vorSchluessel && (i - vorSchluessel) % abstand === 0 && neu < weitere) {
+      neu++;
+      await schluesselGlied(z, false);
+    }
+    eintrag(i);
   }
-  for (let i = vorSchluessel; i < a.eintraege; i++) eintrag(i);
-  await neuVerketten(protokoll);
+  await verkette();
   const signaturen: Record<string, unknown>[] = [];
-  if (blatt && kettenschluessel.length) {
+  if (blaetter.size) {
     const jedes = a.signiereJedes ?? 1;
     const bis = protokoll.length - (a.ohneSignaturAmEnde ?? 0);
     const ab = protokoll.findIndex((x) => x["objektArt"] === "schluessel");
+    let fp = "";
     for (let i = ab; i < bis; i++) {
-      if ((i + 1) % jedes !== 0 && i !== bis - 1) continue;
       const g = protokoll[i]!;
-      const sig = await signiere(blatt, utf8(`watt-kopf-1:${g["hash"]}`));
-      signaturen.push({ seq: g["seq"], fingerabdruck: kettenschluessel[0]!["fingerabdruck"], signatur: base64(sig) });
+      if (g["objektArt"] === "schluessel") fp = String(g["objektId"]);
+      if ((i + 1) % jedes !== 0 && i !== bis - 1) continue;
+      const sig = await signiere(blaetter.get(fp)!, utf8(`watt-kopf-1:${g["hash"]}`));
+      signaturen.push({ seq: g["seq"], fingerabdruck: fp, signatur: base64(sig) });
     }
   }
   d["eintraege"] = eintraege;
   d["protokoll"] = protokoll;
   d["kettenschluessel"] = kettenschluessel;
   d["kettensignaturen"] = signaturen;
-  return { daten: d, blatt, zertifikate: z };
+  return { daten: d, blatt, blaetter, zertifikate: z };
 }
 
 export async function signiereNeu(e: Erzeugt): Promise<void> {
-  if (!e.blatt) return;
+  const nachSeq = new Map(e.daten.protokoll.map((x) => [x["seq"], x]));
   for (const s of e.daten.kettensignaturen) {
-    const g = e.daten.protokoll.find((x) => x["seq"] === s["seq"])!;
-    s["signatur"] = base64(await signiere(e.blatt, utf8(`watt-kopf-1:${g["hash"]}`)));
+    const paar = e.blaetter.get(String(s["fingerabdruck"])) ?? e.blatt;
+    const g = nachSeq.get(s["seq"]);
+    if (!paar || !g) continue;
+    s["signatur"] = base64(await signiere(paar, utf8(`watt-kopf-1:${g["hash"]}`)));
   }
 }

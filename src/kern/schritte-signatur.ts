@@ -4,126 +4,224 @@
 // P6 Signaturen und P7 Attestierung (Technische Erläuterung 4.7, Prüfverfahren für die Signaturen).
 
 import { ATTESTIERUNG_OID, leseSchluesselbeschreibung, type Schluesselbeschreibung } from "./attestierung.js";
-import { anzahl, bereiche, type Detail, type Zeichen } from "./befund.js";
+import { anzahl, bereiche, zahl, type Detail, type Zeichen } from "./befund.js";
 import { ausBase64, ausHex, gleich, hex, utf8, verbinde } from "./bytes.js";
-import { GRENZE } from "./grenzen.js";
+import { GRENZE, GRENZE_HAERTUNG, GRENZWERTE, grenzeText } from "./grenzen.js";
 import { gliedName, liste, type Glied } from "./klartext.js";
-import { dateiFundstelle, sage, type Kontext } from "./kontext.js";
+import { dateiFundstelle, sage, type Kontext, type SignaturStatus } from "./kontext.js";
 import { sha256Hex } from "./sha.js";
-import { istSigniertVon, leseZertifikat, pruefeSignatur, type Zertifikat } from "./x509.js";
+import { ecdsaLesbar, istSigniertVon, leseZertifikat, pruefeSignatur, type Zertifikat } from "./x509.js";
 import { deutsch, deutschTag } from "./zeit.js";
 
 const ECDSA_SHA256 = "1.2.840.10045.4.3.2";
 
 interface Schluessel {
   fingerabdruck: string;
+  /** alle Zertifikate, nur wenn alle lesbar sind */
   zertifikate: Zertifikat[];
-  der: Uint8Array[];
-  fehler: string | null;
+  /** Blattzertifikat, wenn es lesbar ist; genügt für die Signaturen */
+  blatt: Zertifikat | null;
+  /** DER aller Zertifikate, null, wenn eines kein Base64 ist oder über der Grenze liegt */
+  der: Uint8Array[] | null;
+  /** Lesefehler oder überschrittene Grenze: „?“, nie ✗ */
+  unlesbar: string | null;
+  /** echter Widerspruch (Fingerabdruck passt nicht zum Blattzertifikat): ✗ */
+  widerspruch: string | null;
 }
 
 function kurz(fp: string): string {
   return fp.slice(0, 16) + "…";
 }
 
+/** Längste Base64-Darstellung von n Bytes, mit etwas Raum für Zeilenumbrüche. */
+function base64Laenge(n: number): number {
+  return Math.ceil(n / 3) * 4 + 256;
+}
+
 async function leseSchluessel(k: Kontext): Promise<Map<string, Schluessel>> {
   const out = new Map<string, Schluessel>();
   for (const e of liste(k.kt.daten["kettenschluessel"])) {
-    const fp = String(e["fingerabdruck"] ?? "");
-    const s: Schluessel = { fingerabdruck: fp, zertifikate: [], der: [], fehler: null };
-    try {
-      const z = Array.isArray(e["zertifikate"]) ? (e["zertifikate"] as unknown[]) : [];
-      if (!z.length) throw new Error("ohne Zertifikate");
-      for (const [i, b] of z.entries()) {
-        const der = ausBase64(String(b));
-        if (!der) throw new Error(`Zertifikat ${i + 1} ist kein Base64`);
-        s.der.push(der);
-        s.zertifikate.push(leseZertifikat(der));
-      }
-      const blattFp = await sha256Hex(s.zertifikate[0]!.spki);
-      if (blattFp !== fp) s.fehler = `Der Fingerabdruck ${kurz(fp)} passt nicht zum öffentlichen Schlüssel des Blattzertifikats (${kurz(blattFp)}).`;
-    } catch (err) {
-      s.fehler = `Die Zertifikate zu ${kurz(fp)} sind nicht lesbar (${(err as Error).message}).`;
-    }
+    const fp = String(e["fingerabdruck"] ?? "").slice(0, 200);
+    const s: Schluessel = { fingerabdruck: fp, zertifikate: [], blatt: null, der: null, unlesbar: null, widerspruch: null };
     out.set(fp, s);
+    const z = Array.isArray(e["zertifikate"]) ? (e["zertifikate"] as unknown[]) : [];
+    if (!z.length) {
+      s.unlesbar = `Zum Schlüssel ${kurz(fp)} stehen keine Zertifikate in kettenschluessel.`;
+      continue;
+    }
+    if (z.length > GRENZWERTE.zertifikateJeSchluessel) {
+      s.unlesbar = `Zum Schlüssel ${kurz(fp)} stehen ${zahl(z.length)} Zertifikate, mehr als die Grenze von ${GRENZWERTE.zertifikateJeSchluessel}.`;
+      continue;
+    }
+    const der: Uint8Array[] = [];
+    const fehler: string[] = [];
+    const max = base64Laenge(GRENZWERTE.zertifikatBytes);
+    for (const [i, b] of z.entries()) {
+      const t = typeof b === "string" ? b : "";
+      const d = t.length > max ? null : ausBase64(t);
+      if (t.length > max || (d && d.length > GRENZWERTE.zertifikatBytes)) fehler.push(`Zertifikat ${i + 1} ist größer als die Grenze von ${grenzeText(GRENZWERTE.zertifikatBytes, "bytes")}`);
+      else if (!d) fehler.push(`Zertifikat ${i + 1} ist kein Base64`);
+      else der.push(d);
+    }
+    if (fehler.length) {
+      s.unlesbar = `Die Zertifikate zum Schlüssel ${kurz(fp)} sind nicht lesbar: ${fehler.join("; ")}.`;
+      continue;
+    }
+    s.der = der;
+    const gelesen: (Zertifikat | null)[] = der.map((d, i) => {
+      try {
+        return leseZertifikat(d);
+      } catch (err) {
+        fehler.push(`Zertifikat ${i + 1}: ${(err as Error).message}`);
+        return null;
+      }
+    });
+    s.blatt = gelesen[0] ?? null;
+    if (fehler.length) s.unlesbar = `Die Zertifikate zum Schlüssel ${kurz(fp)} sind nicht lesbar (${fehler.join("; ")}). Ein Lesefehler ist kein Befund über die Herkunft.`;
+    else s.zertifikate = gelesen as Zertifikat[];
+    if (s.blatt) {
+      const blattFp = await sha256Hex(s.blatt.spki);
+      if (blattFp !== fp) s.widerspruch = `Der Fingerabdruck ${kurz(fp)} passt nicht zum öffentlichen Schlüssel des Blattzertifikats (${kurz(blattFp)}).`;
+    }
   }
   return out;
 }
 
-const KEINE_SIGNATUR = "Diese Version von WATT signiert noch nicht.";
+function keineSignatur(v: number | null): string {
+  return `Diese Fassung von WATT (Datenformat ${v ?? "unbekannt"}) signiert noch nicht; die Herkunft lässt sich deshalb nicht bestätigen.`;
+}
 
 export async function pruefeSignaturen(k: Kontext): Promise<void> {
   const g = k.kt.glieder;
-  const version = k.kt.version ?? 0;
+  const version = k.kt.version;
   const fund = dateiFundstelle(k);
-  if (version < 19) {
-    const begr = `Die Datei hat das Datenformat ${version}. Signaturen und Schlüssel der Kette gibt es erst ab Datenformat 19 (WATT „D“, seit 24.10.2026).`;
-    sage(k, "P6", "offen", KEINE_SIGNATUR, begr, { fundstelle: fund, grenze: GRENZE.signatur });
-    sage(k, "P7", "offen", KEINE_SIGNATUR, begr, { fundstelle: fund, grenze: GRENZE.attestierung });
+  if (version === null || version < 19) {
+    // Vor Datenformat 19 nur ein „?“ in P6; P7 entfällt als Hinweis (Auftrag 0.1.5, B4).
+    sage(k, "P6", "offen", keineSignatur(version), `Die Datei hat das Datenformat ${version ?? "unbekannt"}. Signaturen und Schlüssel der Kette gibt es erst ab Datenformat 19; ohne Signatur bleibt offen, ob die Kette in WATT entstand. Das ist kein negativer Befund über diese Datei.`, {
+      fundstelle: fund,
+      grenze: GRENZE.signatur,
+      ...(version !== null ? { kennung: "ohne-signatur" as const } : {}),
+    });
+    sage(k, "P7", "hinweis", "Entfällt (keine Signatur).", "Ohne Signatur gibt es keinen Schlüssel der Kette, dessen Bestätigung durch Android sich prüfen ließe (4.7).", { fundstelle: fund });
+    return;
+  }
+  const schluesselListe = liste(k.kt.daten["kettenschluessel"]);
+  if (schluesselListe.length > GRENZWERTE.schluessel) {
+    const begr = `Die Datei nennt ${zahl(schluesselListe.length)} Schlüssel in kettenschluessel, mehr als die Grenze von ${GRENZWERTE.schluessel}. WATTest prüft Signaturen und Attestierung dann nicht; das ist kein Befund über die Datei.`;
+    sage(k, "P6", "offen", "Die Signaturen lassen sich nicht prüfen: zu viele Schlüssel.", begr, { fundstelle: fund, grenze: GRENZE_HAERTUNG });
+    sage(k, "P7", "offen", "Die Attestierung lässt sich nicht prüfen: zu viele Schlüssel.", begr, { fundstelle: fund, grenze: GRENZE_HAERTUNG });
     return;
   }
   const schluessel = await leseSchluessel(k);
-  const sigListe = liste(k.kt.daten["kettensignaturen"]);
   const schluesselGlieder = g.filter((x) => x.objektArt === "schluessel");
+  const alleSignaturen = liste(k.kt.daten["kettensignaturen"]);
+  const zuViele = alleSignaturen.length > GRENZWERTE.signaturen;
+  const sigListe = zuViele ? [] : alleSignaturen;
+  if (zuViele) {
+    sage(k, "P6", "offen", "Die Signaturen lassen sich nicht prüfen: zu viele Signaturen.", `Die Datei enthält ${zahl(alleSignaturen.length)} Signaturen, mehr als die Grenze von ${grenzeText(GRENZWERTE.signaturen)}. WATTest prüft sie nicht; das ist kein Befund über die Datei.`, { fundstelle: fund, grenze: GRENZE_HAERTUNG });
+  }
 
   // Abschnitte: vom Glied schluessel bis vor das nächste (4.7, Schritt 7).
+  // Ein Glied schluessel, dessen daten über der Grenze liegt, ergibt einen nicht lesbaren Abschnitt (UNLESBAR).
+  const UNLESBAR = "?";
   const abschnitt: (string | null)[] = [];
   let aktuell: string | null = null;
   for (const x of g) {
-    if (x.objektArt === "schluessel") aktuell = x.json?.["status"] === "verfuegbar" ? String(x.json?.["fingerabdruck"] ?? x.objektId) : null;
+    if (x.objektArt === "schluessel") aktuell = x.datenUeberGrenze ? UNLESBAR : x.json?.["status"] === "verfuegbar" ? String(x.json?.["fingerabdruck"] ?? x.objektId) : null;
     abschnitt.push(aktuell);
   }
   const indexVon = new Map<number, number>();
   g.forEach((x, i) => x.seq !== null && !indexVon.has(x.seq) && indexVon.set(x.seq, i));
+  const letzteSeq = g.length ? g[g.length - 1]!.seq : null;
 
   const ungueltig: Detail[] = [];
+  const unpruefbar: { text: string; seq: number | null }[] = [];
   const gueltigSeq: number[] = [];
+  const anzahlJeSeq = new Map<number, number>();
+  const setze = (seq: number, s: SignaturStatus): void => {
+    const vorher = k.signaturen.get(seq);
+    if (vorher === "ungueltig" || (vorher === "gueltig" && s === "unpruefbar")) return;
+    k.signaturen.set(seq, s);
+  };
+  const maxSig = base64Laenge(GRENZWERTE.signaturBytes);
   let n = 0;
   for (const s of sigListe) {
     n++;
-    if (n % 128 === 0) k.melde(0.6 + (0.2 * n) / sigListe.length, `Signaturen: ${n} von ${sigListe.length}`);
-    const seq = Number(s["seq"]);
-    const fp = String(s["fingerabdruck"] ?? "");
+    if (n % 128 === 0) k.melde(0.6 + (0.2 * n) / sigListe.length, `Signaturen: ${zahl(n)} von ${zahl(sigListe.length)}`);
+    const roh = s["seq"];
+    const fp = String(s["fingerabdruck"] ?? "").slice(0, 200);
+    // seq nicht genau lesbar, außerhalb der Kette oder doppelt: „?“ mit Fundstelle (Auftrag 0.1.5, A6).
+    if (typeof roh !== "number" || !Number.isSafeInteger(roh)) {
+      unpruefbar.push({ text: `Signatur Nr. ${zahl(n)} in kettensignaturen nennt keine Gliednummer, die WATTest genau lesen kann (${String(roh).slice(0, 40)}).`, seq: null });
+      continue;
+    }
+    const seq = roh;
+    anzahlJeSeq.set(seq, (anzahlJeSeq.get(seq) ?? 0) + 1);
     const i = indexVon.get(seq);
     if (i === undefined) {
-      ungueltig.push({ text: `Signatur zu Glied ${seq}: Dieses Glied gibt es in der Kette nicht.` });
-      k.signaturen.set(seq, "ungueltig");
+      const ausserhalb = letzteSeq !== null && (seq < 1 || seq > letzteSeq);
+      unpruefbar.push({ text: `Signatur zu Glied ${seq}: Dieses Glied gibt es in der Kette nicht${ausserhalb ? ` (sie reicht von Glied 1 bis ${letzteSeq})` : ""}.`, seq: null });
+      setze(seq, "unpruefbar");
       continue;
     }
     const glied = g[i]!;
+    if (abschnitt[i] === UNLESBAR) {
+      unpruefbar.push({ text: `Signatur zu ${gliedName(glied)}: Das Glied schluessel dieses Abschnitts ist nicht lesbar (daten über der Grenze der Verschachtelung).`, seq });
+      setze(seq, "unpruefbar");
+      continue;
+    }
     if (abschnitt[i] !== fp) {
       ungueltig.push({ text: `Signatur zu ${gliedName(glied)}: Sie nennt den Schlüssel ${kurz(fp)}, das Glied liegt aber im Abschnitt ${abschnitt[i] ? `des Schlüssels ${kurz(abschnitt[i]!)}` : "ohne Schlüssel"}.` });
-      k.signaturen.set(seq, "ungueltig");
+      setze(seq, "ungueltig");
       continue;
     }
     const sch = schluessel.get(fp);
-    if (!sch || sch.fehler || !sch.zertifikate.length) {
-      ungueltig.push({ text: `Signatur zu ${gliedName(glied)}: Der Schlüssel ${kurz(fp)} fehlt in kettenschluessel oder ist nicht lesbar.` });
-      k.signaturen.set(seq, "ungueltig");
+    if (sch?.widerspruch) {
+      ungueltig.push({ text: `Signatur zu ${gliedName(glied)}: Der Schlüssel ${kurz(fp)} passt nicht zu seinem Blattzertifikat.` });
+      setze(seq, "ungueltig");
       continue;
     }
-    const sig = ausBase64(String(s["signatur"] ?? ""));
-    let ok = false;
+    if (!sch || !sch.blatt) {
+      unpruefbar.push({ text: `Signatur zu ${gliedName(glied)}: ${!sch ? `Der Schlüssel ${kurz(fp)} fehlt in kettenschluessel.` : (sch.unlesbar ?? `Der Schlüssel ${kurz(fp)} ist nicht lesbar.`)}`, seq });
+      setze(seq, "unpruefbar");
+      continue;
+    }
+    const text = String(s["signatur"] ?? "");
+    const sig = text.length > maxSig ? null : ausBase64(text);
+    if (text.length > maxSig || (sig && sig.length > GRENZWERTE.signaturBytes)) {
+      unpruefbar.push({ text: `Signatur zu ${gliedName(glied)} ist länger als die Grenze von ${GRENZWERTE.signaturBytes} Bytes.`, seq });
+      setze(seq, "unpruefbar");
+      continue;
+    }
+    if (!sig || !ecdsaLesbar(sig)) {
+      unpruefbar.push({ text: `Signatur zu ${gliedName(glied)} ist nicht lesbar (${!sig ? "kein Base64" : "keine ECDSA-Signatur in DER"}).`, seq });
+      setze(seq, "unpruefbar");
+      continue;
+    }
+    let ok: boolean;
     try {
-      ok = !!sig && (await pruefeSignatur(sch.zertifikate[0]!.spki, ECDSA_SHA256, sig, utf8(`watt-kopf-1:${glied.hash}`)));
-    } catch {
-      ok = false;
+      ok = await pruefeSignatur(sch.blatt.spki, ECDSA_SHA256, sig, utf8(`watt-kopf-1:${glied.hash}`));
+    } catch (err) {
+      unpruefbar.push({ text: `Signatur zu ${gliedName(glied)} lässt sich nicht prüfen (${(err as Error).message}).`, seq });
+      setze(seq, "unpruefbar");
+      continue;
     }
     if (ok) {
       gueltigSeq.push(seq);
-      k.signaturen.set(seq, "gueltig");
+      setze(seq, "gueltig");
     } else {
       ungueltig.push({ text: `Signatur zu ${gliedName(glied)} ist ungültig: Sie passt nicht zu watt-kopf-1:<hash des Glieds> und dem öffentlichen Schlüssel ${kurz(fp)}.` });
-      k.signaturen.set(seq, "ungueltig");
+      setze(seq, "ungueltig");
     }
   }
+  for (const [seq, m] of anzahlJeSeq) if (m > 1 && indexVon.has(seq)) unpruefbar.push({ text: `Zu Glied ${seq} stehen ${m} Signaturen; nach 4.7 signiert WATT einen noch unsignierten Kopf (U-23).`, seq });
   k.melde(0.8, "Signaturen geprüft");
 
   for (const s of schluessel.values()) {
-    if (s.fehler) ungueltig.unshift({ text: s.fehler });
+    if (s.widerspruch) ungueltig.unshift({ text: s.widerspruch });
   }
 
-  if (!schluesselGlieder.length && !sigListe.length) {
+  if (!schluesselGlieder.length && !alleSignaturen.length) {
     sage(k, "P6", "offen", "Die Kette ist nicht signiert.", "Die Kette enthält kein Glied schluessel und keine Signaturen (kettensignaturen). Einträge ohne gültige Signatur bleiben ohne Nachweis der Herkunft aus WATT (Technische Erläuterung, Abschnitt 9).", { fundstelle: fund, grenze: GRENZE.signatur });
     sage(k, "P7", "offen", "Die Kette nennt keinen bestätigten Schlüssel.", "Ohne Glied schluessel und ohne kettenschluessel gibt es keine Attestierung zu prüfen.", { fundstelle: fund, grenze: GRENZE.attestierung });
     return;
@@ -134,11 +232,23 @@ export async function pruefeSignaturen(k: Kontext): Promise<void> {
     sage(k, "P6", "widerlegt", ungueltig.length === 1 ? "Eine Signatur der Kette ist ungültig." : `${anzahl(ungueltig.length, "Signatur ist", "Signaturen sind")} ungültig oder passen nicht zur Kette.`, "WATTest hat jede Signatur in kettensignaturen mit dem öffentlichen Schlüssel aus dem Blattzertifikat ihres Abschnitts über die ASCII-Nachricht watt-kopf-1:<hash> geprüft (4.7, Schritt 7). Eine ungültige Signatur zeigt, dass Kette, Signatur oder Schlüssel nachträglich verändert wurden.", {
       fundstelle: fund,
       grenze: GRENZE.signatur,
-      details: ungueltig.slice(0, 200),
+      details: ungueltig,
     });
   }
+  if (unpruefbar.length) {
+    const nummern = unpruefbar.flatMap((u) => (u.seq !== null ? [u.seq] : []));
+    sage(
+      k,
+      "P6",
+      "offen",
+      `${anzahl(unpruefbar.length, "Signatur lässt", "Signaturen lassen")} sich nicht prüfen.`,
+      `WATTest prüft nur Signaturen, die es vollständig lesen kann: zu einem Glied dieser Kette, eine je Glied, höchstens ${GRENZWERTE.signaturBytes} Bytes, als ECDSA-Signatur in DER, mit einem lesbaren Schlüssel aus kettenschluessel (4.7, Schritt 7). Diese Signaturen sind weder bestätigt noch widerlegt; ein Lesefehler ist kein Befund über die Kette.`,
+      { fundstelle: nummern.length ? dateiFundstelle(k, `Glied ${bereiche(nummern)}`) : fund, grenze: GRENZE_HAERTUNG, details: unpruefbar.map((u) => ({ text: u.text })) },
+    );
+  }
 
-  const hoechste = gueltigSeq.length ? Math.max(...gueltigSeq) : null;
+  let hoechste: number | null = null;
+  for (const s of gueltigSeq) if (hoechste === null || s > hoechste) hoechste = s;
   const hi = hoechste !== null ? indexVon.get(hoechste)! : -1;
   if (hoechste !== null) {
     const kopf = g[hi]!;
@@ -181,7 +291,7 @@ export async function pruefeSignaturen(k: Kontext): Promise<void> {
     const eingespielt = letzteWiederh >= 0 && i - 1 < letzteWiederh;
     abschnitte++;
     teile.push({
-      text: `Glied ${von}${von !== bis ? `–${bis}` : ""}: ${fp ? `Schlüssel ${kurz(fp)}, ${anzahl(sigs.length, "gültige Signatur", "gültige Signaturen")}${sigs.length ? `, jüngste bei Glied ${Math.max(...sigs)}` : ""}` : "ohne Schlüssel (nicht einzeln signiert; eine spätere Signatur deckt sie über die Hash-Kette mit)"}${eingespielt ? "; eingespielt mit der Wiederherstellung, ihre Herkunft zeigen nur ihre eigenen Signaturen" : ""}.`,
+      text: `Glied ${von}${von !== bis ? `–${bis}` : ""}: ${fp ? `Schlüssel ${kurz(fp)}, ${anzahl(sigs.length, "gültige Signatur", "gültige Signaturen")}${sigs.length ? `, jüngste bei Glied ${sigs.reduce((a, b) => (b > a ? b : a))}` : ""}` : "ohne Schlüssel (nicht einzeln signiert; eine spätere Signatur deckt sie über die Hash-Kette mit)"}${eingespielt ? "; eingespielt mit der Wiederherstellung, ihre Herkunft zeigen nur ihre eigenen Signaturen" : ""}.`,
     });
     start = i;
   }
@@ -221,15 +331,21 @@ async function pruefeAttestierung(k: Kontext, schluessel: Map<string, Schluessel
     };
     const sch = schluessel.get(fp);
     const T = x.ms;
-    if (!sch || sch.fehler || !sch.zertifikate.length) {
-      add("widerlegt", sch?.fehler ?? `Zum Fingerabdruck ${kurz(fp)} fehlt der Eintrag in kettenschluessel.`);
-    } else {
-      const z = sch.zertifikate;
+    // Fehlender Eintrag und Lesefehler sind „?“; ✗ nur bei einem Widerspruch in lesbaren Daten (E-4, Auftrag 0.1.5).
+    if (!sch) add("offen", `Zum Fingerabdruck ${kurz(fp)} fehlt der Eintrag in kettenschluessel; die Attestierung lässt sich nicht prüfen.`);
+    else {
       // 6. Fingerabdruck und Zertifikate im Glied
       if (x.objektId !== fp) add("widerlegt", `Die Kennung des Glieds (${kurz(x.objektId)}) ist nicht der Fingerabdruck ${kurz(fp)}.`);
-      const zs = await sha256Hex(verbinde(sch.der));
-      if (String(d["zertifikateSha256"] ?? "") !== zs) add("widerlegt", "zertifikateSha256 im Glied passt nicht zu den Zertifikaten in kettenschluessel.");
-      else add("bestaetigt", "Fingerabdruck und zertifikateSha256 im Glied passen zu den Zertifikaten.");
+      if (sch.widerspruch) add("widerlegt", sch.widerspruch);
+      if (sch.der) {
+        const zs = await sha256Hex(verbinde(sch.der));
+        if (String(d["zertifikateSha256"] ?? "") !== zs) add("widerlegt", "zertifikateSha256 im Glied passt nicht zu den Zertifikaten in kettenschluessel.");
+        else add("bestaetigt", sch.widerspruch ? "zertifikateSha256 im Glied passt zu den Zertifikaten." : "Fingerabdruck und zertifikateSha256 im Glied passen zu den Zertifikaten.");
+      }
+      if (sch.unlesbar) add("offen", sch.unlesbar);
+    }
+    if (sch && sch.zertifikate.length) {
+      const z = sch.zertifikate;
       // 1. Kette bis zur Wurzel
       let kette = true;
       for (let i = 0; i + 1 < z.length; i++) {
@@ -273,6 +389,7 @@ async function pruefeAttestierung(k: Kontext, schluessel: Map<string, Schluessel
       else {
         try {
           kd = leseSchluesselbeschreibung(ext.wert);
+          if (kd.unlesbar.length) add("offen", `Die Bestätigung von Android enthält Angaben, die WATTest nicht genau lesen kann: ${kd.unlesbar.join("; ")}.`);
         } catch (err) {
           add("offen", `Die Bestätigung von Android ist nicht lesbar (${(err as Error).message}).`);
         }
