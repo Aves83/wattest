@@ -1,6 +1,6 @@
 {
   "quelle": "https://android.googleapis.com/attestation/status",
-  "abgerufen": "2026-10-24T23:41:41Z",
+  "abgerufen": "2026-10-25T18:18:47Z",
   "eintraege": {
     "10023936558530442420": {
       "status": "REVOKED",

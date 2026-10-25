@@ -13,7 +13,7 @@ WATTest prüft Exporte der App WATT im Browser: ob die Arbeitszeitkette intakt i
 
 ## Benutzung
 
-1. Dateien wählen oder in die Seite ziehen: vollständiger Klartext-Export (JSON, XML oder ZIP mit `anhaenge/`) und, wenn vorhanden, Aktenauszug (ZIP mit `SHA256SUMS.txt`).
+1. Dateien wählen oder in die Seite ziehen: vollständiger Klartext-Export (JSON ab Formatversion 16, XML ab 18 oder ZIP mit `anhaenge/`) und, wenn vorhanden, Aktenauszug (ZIP mit `SHA256SUMS.txt`).
 2. Anker eingeben, wenn vorhanden: Inhalt des QR-Codes (`watt-pruef:1;…`), den Wortlaut des Prüfvermerks oder Anzahl, Stand und Prüfsumme von Hand. Wo der Browser es kann, lässt sich der QR-Code mit der Kamera scannen.
 3. „Prüfen“. Der Befund ist eine Liste einfacher Aussagen:
    - ✓ (blau) bestätigt
@@ -33,23 +33,23 @@ Buchungsdaten (Export im Überblick) und verschlüsselte Sicherungen (`.wattbak`
 | P1 | Format | Formatversion 16 bis 19, Pflichtfelder und Typen nach dem Schema der Version |
 | P2 | Arbeitszeitkette | Prüfsumme jedes Glieds nach 4.2 (sieben bzw. neun Felder), Verkettung, laufende Nummern, Neubeginn nur am Anfang |
 | P3 | Daten und Kette | Kette nachspielen (7.) und mit `eintraege` und `abwesenheiten` vergleichen |
-| P4 | Zeit | Zeitstempel, Vermerke zur Geräteuhr, Neustarts, automatische Uhrzeit |
-| P5 | Anker | Glied, Prüfsumme, Zeitpunkt und Zähler des Ankers |
+| P4 | Zeit | Zeitstempel, Vermerke zur Geräteuhr (8., Schritt 5; Zerlegung bei `uhr_verstellt` nach 4.7), Neustarts, automatische Uhrzeit |
+| P5 | Anker | Glied, Prüfsumme, Zeitpunkt und Zähler des Ankers (6.1, 6.2) |
 | P6 | Signaturen | `watt-kopf-1:<hash>` mit dem Schlüssel des Abschnitts (ab Datenformat 19) |
-| P7 | Attestierung | Zertifikatskette bis zu einer Wurzel von Google, Sperrliste, App, Sicherheitsstufe, RootOfTrust, Challenge |
+| P7 | Attestierung | Zertifikatskette bis zu einer Wurzel von Google, Sperrliste, Paketname und Signaturzertifikat der App (Fingerabdruck aus 4.7, Schritt 3), Sicherheitsstufe, RootOfTrust, Challenge |
 | P8 | Nachweise | Nachweiskette nach 5.1, Inhalte der Anzeigen und Gesprächsnotizen, Aktenauszug gegen `SHA256SUMS.txt` und gegen die Nachweiskette |
-| P9 | Besondere Glieder | Neubeginne, Wiederherstellungen, Löschungen, Änderungen mit Kommentar, Nachträge, eingelesene Buchungen |
+| P9 | Besondere Glieder | Neubeginne (mit Prüfsumme des Bestands nach 4.6), Wiederherstellungen, Löschungen, Änderungen mit Kommentar, Nachträge nach 4.5, eingelesene Buchungen |
 
 ## Die Einzeldatei prüfen
 
-Jede Version gibt es als eine einzige HTML-Datei, die ohne Netz läuft (mit Wurzeln und Sperrliste zum Stand des Baus). Ihre SHA-256 steht in `SHA256SUMS.txt` beim Release. Die Einzeldatei auf der Seite (`https://aves83.github.io/wattest/wattest-0.1.0.html`) wird täglich mit frischer Sperrliste neu gebaut; ihre Prüfsumme steht im `SHA256SUMS.txt` der Seite und weicht deshalb von der des Releases ab.
+Jede Version gibt es als eine einzige HTML-Datei, die ohne Netz läuft (mit Wurzeln und Sperrliste zum Stand des Baus). Ihre SHA-256 steht in `SHA256SUMS.txt` beim Release. Die Einzeldatei auf der Seite (`https://aves83.github.io/wattest/wattest-0.1.1.html`) wird täglich mit frischer Sperrliste neu gebaut; ihre Prüfsumme steht im `SHA256SUMS.txt` der Seite und weicht deshalb von der des Releases ab.
 
 ```
-sha256sum wattest-0.1.0.html
+sha256sum wattest-0.1.1.html
 ```
 
 ```
-Get-FileHash wattest-0.1.0.html -Algorithm SHA256
+Get-FileHash wattest-0.1.1.html -Algorithm SHA256
 ```
 
 Der Bau ist reproduzierbar: Aus demselben Commit und denselben Daten (`daten/`) entsteht dieselbe Datei.
@@ -67,7 +67,7 @@ Aus Abschnitt 9 der Technischen Erläuterung, unter anderem:
 
 ## Unterlagen von WATT
 
-Technische Erläuterung und Datenformat werden in Aves83/watt_public veröffentlicht. Unklare Stellen stehen in [docs/UNKLARHEITEN.md](docs/UNKLARHEITEN.md), Entscheidungen in [docs/ENTSCHEIDUNGEN.md](docs/ENTSCHEIDUNGEN.md), die Spezifikation in [docs/SPEZIFIKATION.md](docs/SPEZIFIKATION.md).
+Technische Erläuterung und Datenformat werden in Aves83/watt_public veröffentlicht. WATTest folgt der Gliederung der Technischen Erläuterung; jede Aussage nennt den Abschnitt (etwa 4.2, 4.7 oder 8., Schritt 5). Unklare Stellen stehen in [docs/UNKLARHEITEN.md](docs/UNKLARHEITEN.md), Entscheidungen in [docs/ENTSCHEIDUNGEN.md](docs/ENTSCHEIDUNGEN.md), die Spezifikation in [docs/SPEZIFIKATION.md](docs/SPEZIFIKATION.md).
 
 ## Bau und Tests
 
@@ -86,11 +86,11 @@ npm run daten     # Sperrliste und Wurzeln von Google nach daten/ holen
 | `src/kern/` | Prüfung ohne DOM: Prüfsummen, Abgleich, Anker, DER/X.509, Attestierung, ZIP, XML |
 | `src/worker/` | Web Worker mit Fortschritt |
 | `src/ui/` | Seite, Befund, Druckansicht, Impressum, Datenschutz |
-| `daten/` | Wurzeln, Sperrliste und Fingerabdruck der App, mit Quelle und Abrufzeitpunkt |
+| `daten/` | Wurzeln, Sperrliste und Fingerabdruck der App (Technische Erläuterung 4.7, Schritt 3), mit Quelle und Abrufzeitpunkt |
 | `tests/` | Testvektoren der Technischen Erläuterung, Beispieldateien von WATT, Erzeuger für Datenformat 19 mit eigenen Testzertifikaten, manipulierte Varianten, Bau und Oberfläche |
-| `scripts/` | Bau, Abruf der Daten, Auszüge aus Schemas und XSD |
+| `scripts/` | Bau, Abruf der Daten, Auszüge aus Schemas und XSD, Rechenbeispiele aus der Technischen Erläuterung |
 
-Die Schemas und XSDs von WATT liegen nicht im Repository; `scripts/schema-auszug.mjs` und `scripts/xml-typen.mjs` erzeugen daraus die Dateien in `src/kern/`.
+Die Unterlagen von WATT liegen nicht im Repository; `scripts/schema-auszug.mjs` und `scripts/xml-typen.mjs` erzeugen aus Schemas und XSDs die Dateien in `src/kern/`, `scripts/vektoren-holen.mjs` liest die Rechenbeispiele B1 bis B12 aus den Codeblöcken der Technischen Erläuterung nach `tests/vektoren/`.
 
 ## Lizenz
 

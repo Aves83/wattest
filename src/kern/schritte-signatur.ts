@@ -303,7 +303,7 @@ async function pruefeAttestierung(k: Kontext, schluessel: Map<string, Schluessel
         const pakete = kd.pakete.map((p) => p.name);
         if (!pakete.includes(o.paketname)) add("widerlegt", `Der Schlüssel gehört zur App ${pakete.join(", ") || "ohne Namen"}, nicht zu ${o.paketname}.`);
         else add("bestaetigt", `Paketname ${o.paketname}.`);
-        if (!o.appSignatur) add("offen", "Der Fingerabdruck des App-Signaturzertifikats von WATT ist noch nicht veröffentlicht; die Signatur der App lässt sich nicht vergleichen.");
+        if (!o.appSignatur) add("offen", "Der Fingerabdruck des App-Signaturzertifikats von WATT liegt WATTest nicht vor; die Signatur der App lässt sich nicht vergleichen.");
         else if (kd.signaturDigests.includes(o.appSignatur.toLowerCase())) add("bestaetigt", "Das Signaturzertifikat der App ist das von WATT.");
         else add("widerlegt", `Die App ist mit einem anderen Zertifikat signiert (${kd.signaturDigests.map(kurz).join(", ") || "keins genannt"}) als WATT.`);
         // 5. Sicherheitsstufe
@@ -316,12 +316,24 @@ async function pruefeAttestierung(k: Kontext, schluessel: Map<string, Schluessel
         if (!r) add("offen", "Die Bestätigung enthält keinen RootOfTrust.");
         else if (r.verifiedBootState === "VERIFIED" && r.deviceLocked) add("bestaetigt", "Verifizierter Start (Verified), Bootloader gesperrt.");
         else add("offen", `Das Gerät ist nicht als unverändert bestätigt: verifiedBootState ${r.verifiedBootState}, deviceLocked ${r.deviceLocked ? "true" : "false"}.`);
-        // 6. Challenge
+        // 6. Challenge: hash des Kopfs vor dem Glied schluessel; steht dazwischen uhr_verstellt mit objektId glied,
+        // der hash des Glieds davor; bei leerer Kette die Zufallsbytes in challenge (4.7).
         const i = g.indexOf(x);
-        const erwartet = i === 0 ? (typeof d["challenge"] === "string" ? ausHex(d["challenge"] as string) : null) : ausHex(g[i - 1]!.hash);
-        if (!erwartet) add("widerlegt", i === 0 ? "Das erste Glied schluessel nennt keine Challenge." : "Der Vorgänger des Glieds schluessel hat keine lesbare Prüfsumme.");
-        else if (gleich(erwartet, kd.challenge)) add("bestaetigt", i === 0 ? "Die Challenge sind die Zufallsbytes im Glied." : `Die Challenge ist die Prüfsumme von ${gliedName(g[i - 1]!)}.`);
-        else add("widerlegt", `Die Challenge im Zertifikat (${kurz(hex(kd.challenge))}) passt nicht zu ${i === 0 ? "den Zufallsbytes im Glied" : `der Prüfsumme von ${gliedName(g[i - 1]!)}`}.`);
+        const zwischen = i > 0 && g[i - 1]!.objektArt === "uhr_verstellt" && g[i - 1]!.objektId === "glied";
+        const kopf = i === 0 ? null : zwischen ? (g[i - 2] ?? null) : g[i - 1]!;
+        const zufall = typeof d["challenge"] === "string" ? (d["challenge"] as string) : null;
+        if (i === 0) {
+          if (zufall === null || !/^[0-9a-f]{64}$/.test(zufall)) add("widerlegt", "Das Glied schluessel einer leeren Kette nennt keine Challenge mit 64 Zeichen Hexadezimal in Kleinbuchstaben.");
+          else if (gleich(ausHex(zufall)!, kd.challenge)) add("bestaetigt", "Die Challenge sind die Zufallsbytes im Glied (leere Kette).");
+          else add("widerlegt", `Die Challenge im Zertifikat (${kurz(hex(kd.challenge))}) passt nicht zu den Zufallsbytes im Glied.`);
+        } else {
+          const erwartet = kopf ? ausHex(kopf.hash) : null;
+          const wessen = kopf ? `der Prüfsumme von ${gliedName(kopf)}${zwischen ? ` (vor dem Vermerk uhr_verstellt, ${gliedName(g[i - 1]!)})` : ""}` : "";
+          if (!erwartet || erwartet.length !== 32) add("widerlegt", kopf ? `${gliedName(kopf)} hat keine lesbare Prüfsumme.` : "Vor dem Vermerk uhr_verstellt steht kein Glied, dessen Prüfsumme die Challenge sein könnte.");
+          else if (gleich(erwartet, kd.challenge)) add("bestaetigt", `Die Challenge ist ${wessen.replace(/^der /, "die ")}.`);
+          else add("widerlegt", `Die Challenge im Zertifikat (${kurz(hex(kd.challenge))}) passt nicht zu ${wessen}.`);
+          if (zufall !== null) add("offen", "Das Glied nennt eine challenge, obwohl die Kette nicht leer war; nur das Glied schluessel einer leeren Kette hat dieses Feld (4.7).");
+        }
         const geraet: string[] = [];
         if (kd.osVersion) geraet.push(`Android ${Math.floor(kd.osVersion / 10000)}${kd.osVersion % 10000 ? `.${Math.floor((kd.osVersion % 10000) / 100)}` : ""}`);
         if (kd.osPatchLevel) geraet.push(`Sicherheitsupdate ${String(kd.osPatchLevel).slice(0, 4)}-${String(kd.osPatchLevel).slice(4, 6)}`);

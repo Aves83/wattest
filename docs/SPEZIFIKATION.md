@@ -1,4 +1,4 @@
-# WATTest – Spezifikation (Stand 25.10.2026, Entscheidungen Achim eingearbeitet; umgesetzt in WATTest 0.1.0, siehe Abschnitt 13)
+# WATTest – Spezifikation (Stand 25.10.2026, Entscheidungen Achim eingearbeitet; umgesetzt in WATTest 0.1.1, siehe Abschnitt 13)
 
 > **Stimmt WATT?** WATTest prüft Exporte der App WATT: ob die Arbeitszeitkette intakt ist, ob sie zu vorhandenen Ankern passt, ob die Daten zur Kette passen und, ab WATT „D“, ob die Kette vom echten WATT auf einem bestätigten Gerät stammt.
 
@@ -22,9 +22,9 @@
 
 ## 3. Maßgebliche Unterlagen
 
-1. **Technische Erläuterung für Gutachter:innen** (aus WATT), vor allem 4.1, 4.2 (Prüfsumme der Arbeitszeitkette), 4.6 (Neubeginn), 5 und 5.1 (Nachweiskette, Prüfsummen der Dokumente), 6.1 und 6.2 (Prüfvermerk, QR-Code `watt-pruef:1`), 7 (Abgleich der Daten mit der Kette, Vorgeschichte), 8 (Prüfverfahren), 9 (Grenzen) und ab D der Abschnitt zur Signatur und Attestierung.
-2. **Datenformat** mit JSON-Schema und XSD je Formatversion (`watt_public/schema/`).
-3. **Fingerabdruck des App-Signaturzertifikats** von WATT (SHA-256), veröffentlicht in watt_public.
+1. **Technische Erläuterung für Gutachter:innen** (aus WATT, als Markdown; Eingaben, Prüfsummen und Befehle der Rechenbeispiele stehen in Codeblöcken), vor allem 4.1, 4.2 (Prüfsumme der Arbeitszeitkette), 4.5 (Nachträge), 4.6 (Neubeginn), 4.7 (Uhrstand, Schlüssel und Signatur), 5 und 5.1 (Nachweiskette, Prüfsummen der Dokumente), 6.1 und 6.2 (Prüfvermerk, QR-Code `watt-pruef:1`), 7 und 7.1 (Abgleich der Daten mit der Kette, Vorgeschichte, eingelesene Buchungen), 8 (Prüfverfahren), 9 (Grenzen).
+2. **Datenformat** mit JSON-Schema je Formatversion ab 16 und XSD ab 18 (`watt_public/schema/`).
+3. **Fingerabdruck des App-Signaturzertifikats** von WATT (SHA-256): Technische Erläuterung 4.7, Schritt 3; in `daten/app-signatur.json` (Entscheidung Achim 25.10.2026).
 4. **Testvektoren** der Technischen Erläuterung und die **Beispieldateien** je ausgelieferter Version (`apfel-16`, `bergamotte-17`, …) als Konformitätstests.
 
 Voraussetzung: Technische Erläuterung und Datenformat sind öffentlich zugänglich (Entscheidung offen, Abschnitt 11).
@@ -34,7 +34,7 @@ Voraussetzung: Technische Erläuterung und Datenformat sind öffentlich zugängl
 | Eingabe | Unterstützt | Bemerkung |
 | --- | --- | --- |
 | Vollständiger Klartext-Export JSON | ja, ab Formatversion 16 | Hauptfall |
-| Vollständiger Klartext-Export XML | ja, ab Formatversion 17 | gleiche Prüfung |
+| Vollständiger Klartext-Export XML | ja, ab Formatversion 18 | gleiche Prüfung; WATT exportiert XML erst ab Formatversion 18 (TE 8., Schritt 1), XML der Version 17 ergibt in P1 „?“ |
 | Klartext als ZIP mit `anhaenge/` | ja | Anhänge werden nicht geprüft (nicht in der Nachweiskette), nur aufgelistet |
 | Aktenauszug: ZIP mit Originalen und `SHA256SUMS.txt` | ja | Dokumente gegen `SHA256SUMS.txt` und gegen die Prüfsummen der Nachweiskette |
 | Anker | ja, beliebig viele | QR-Text `watt-pruef:1;…` (Kamera über `BarcodeDetector`, wo vorhanden, sonst Einfügen), oder von Hand: Anzahl, Stand, Prüfsumme aus dem Prüfvermerk |
@@ -52,12 +52,12 @@ Jeder Schritt liefert einen Teilbefund (Abschnitt 6) mit Begründung und Fundste
 | P1 | Format | Formatversion erkannt, Datei gegen das Schema ihrer Version gültig; unbekannte Version → „nicht bestätigbar“ |
 | P2 | Arbeitszeitkette | Prüfsumme jedes Glieds nach 4.2 neu berechnen (beide kanonischen Formen: ohne und mit `neustarts`/`autoZeit`), Verkettung über `prev`, `seq` lückenlos ab 1, Neubeginn nur als erstes Glied |
 | P3 | Daten passen zur Kette | Kette nachspielen nach 7.; der entstehende Stand muss genau `eintraege` und `abwesenheiten` entsprechen; Abweichungen je Eintrag |
-| P4 | Zeit | Zeitstempel steigend; Rücksprünge über 2 Minuten nur mit folgendem `uhr_ruecksprung` (Regeln aus 8. Schritt 5); Liste aller `uhr_ruecksprung`, `uhr_abweichung`, `uhr_verstellt`; Summe der `neustarts`; Abschnitte mit `autoZeit` aus |
-| P5 | Anker | Je Anker: Glied mit `seq = n` suchen, `hash = sha256`, Zeitpunkt in Europe/Berlin auf Minuten = `t`; die Zähler `r`, `w`, `wa`, `i`, `s` gegen die Kette bis `n`; Anker ohne passendes Glied → „widerlegt“ bzw. „nicht in dieser Kette“ |
+| P4 | Zeit | Zeitstempel steigend; ein Rücksprung über 2 Minuten ist erklärt, wenn unmittelbar ein `uhr_ruecksprung` folgt oder das Glied selbst ein Vermerk zur Uhr ist (`uhr_ruecksprung` mit `objektId` `timer` oder `nachweis`, `uhr_verstellt` mit `richtung` `zurueck`; 8. Schritt 5); je `uhr_verstellt` die Zerlegung des Zeitsprungs nach 4.7 (`zeitpunkt` = `nachher`, `nachher − vorher` = `abweichungSekunden`); Liste aller `uhr_ruecksprung`, `uhr_abweichung`, `uhr_verstellt`; Summe der `neustarts`; Abschnitte mit `autoZeit` aus |
+| P5 | Anker | Je Anker: Glied mit `seq = n` suchen, `hash = sha256`, Zeitpunkt in Europe/Berlin auf Minuten = `t`; die Zähler `r`, `w`, `wa`, `i` (Anlage-Glieder `eintrag` und `abwesenheit` mit `importDatei`), `s` gegen die Kette bis `n`; Anker ohne passendes Glied → „widerlegt“ bzw. „nicht in dieser Kette“ |
 | P6 | Signaturen (ab D) | Signatur je Kopf über `watt-kopf-1:<hash>` mit dem Schlüssel aus dem Glied `schluessel` prüfen; Abschnitte: signiert ab Glied n, eingespielt (vor `wiederherstellung`, Herkunft aus deren eigenen Signaturen), unsigniert, ungültig ab Glied n |
-| P7 | Attestierung (ab D) | Zertifikatskette bis zu einer Google-Wurzel (alte RSA-Wurzel und „Key Attestation CA1“, ECDSA P-384), keine gesperrten Zertifikate laut Sperrliste (Stand angeben); aus der Erweiterung 1.3.6.1.4.1.11129.2.1.17: Paketname `de.achim.watt` und SHA-256 der App-Signatur = veröffentlichter Fingerabdruck, Sicherheitsstufe TEE oder StrongBox (Software → „nicht bestätigt“), `verifiedBootState` Verified und `deviceLocked`, Challenge passt zum Glied `schluessel`; Hinweis, wenn das erste signierte Glied älter ist als das Zwischenzertifikat (grobe Untergrenze) |
-| P8 | Nachweiskette | Prüfsummen nach 5.1 neu berechnen (Anzeigen, Gesprächsnotizen aus den Inhalten der Datei), Verkettung, Löschvermerke; im Aktenauszug jedes Dokument gegen `SHA256SUMS.txt` und gegen die Kette |
-| P9 | Besondere Glieder | Übersicht: Neubeginne mit Angaben zur alten Kette, Wiederherstellungen mit Vorgeschichte, Löschungen mit Begründung, Änderungen mit Kommentar, Nachträge über 24 h (Abstand nach der Regel von WATT), eingelesene Buchungen (`importDatei`) |
+| P7 | Attestierung (ab D) | Zertifikatskette bis zu einer Google-Wurzel (alte RSA-Wurzel und „Key Attestation CA1“, ECDSA P-384), keine gesperrten Zertifikate laut Sperrliste (Stand angeben); aus der Erweiterung 1.3.6.1.4.1.11129.2.1.17: Paketname `de.achim.watt` und SHA-256 der App-Signatur = veröffentlichter Fingerabdruck, Sicherheitsstufe TEE oder StrongBox (Software → „nicht bestätigt“), `verifiedBootState` Verified und `deviceLocked`, Challenge = `hash` des Kopfs vor dem Glied `schluessel` (steht dazwischen `uhr_verstellt` mit `objektId` `glied`, der `hash` des Glieds davor), bei leerer Kette die Zufallsbytes in `challenge`; Hinweis, wenn das erste signierte Glied älter ist als das Zwischenzertifikat (grobe Untergrenze) |
+| P8 | Nachweiskette | Prüfsummen nach 5.1 neu berechnen (Anzeigen mit den Notizen mit `fest` true, Gesprächsnotizen, Nachträge aus den Inhalten der Datei), Verkettung, Löschvermerke; im Aktenauszug jedes Dokument gegen `SHA256SUMS.txt` und gegen die Kette |
+| P9 | Besondere Glieder | Übersicht: Neubeginne mit Angaben zur alten Kette (Prüfsumme des Bestands nachgerechnet, wenn der Export ein JSON unmittelbar nach dem Neubeginn ist, 4.6), Wiederherstellungen mit Vorgeschichte, Löschungen mit Begründung, Änderungen mit Kommentar, Nachträge über 24 h nach 4.5 (Erfassung, Änderung und Einlesen getrennt, bis 96 h in Stunden, darüber in Tagen), eingelesene Buchungen (`importDatei`) |
 
 Rechnen im Web Worker mit Fortschritt; Ziel: 10.000 Glieder in wenigen Sekunden auf einem durchschnittlichen Laptop, ohne die Seite zu blockieren.
 
@@ -101,7 +101,7 @@ Entscheidung Achim 25.10.2026: WATTest setzt gleich auf WATT D auf (wenige Nutze
 
 ## 10. Zusammenspiel mit WATT
 
-- WATT verweist im Prüfvermerk bzw. in der Technischen Erläuterung auf WATTest (Abschnitt 8 dort: „eine quelloffene Prüf-App ist geplant“ wird durch Name und Adresse ersetzt).
+- Die Technische Erläuterung nennt WATTest in Abschnitt 8, Schritt 3 mit Adresse, Quelltext und Lizenz (Stand 25.10.2026).
 - Jede Änderung an Kette, Datenformat oder Prüfvermerk in WATT braucht eine passende Version von WATTest; die Testvektoren sind die gemeinsame Grundlage.
 
 ## 11. Entscheidungen und offene Punkte
@@ -128,12 +128,13 @@ Ziel: Statt des vollständigen Klartexts nur einen Zeitraum weitergeben und trot
 - Sichtbar bleibt nur die Gesamtzahl der Glieder. Ein Anker auf ein verdecktes Glied prüft nur die Prüfsumme, nicht den Zeitpunkt.
 - Voraussetzung in WATT: Erweiterung der Buchungsdaten (JSON/XML im Export-Dialog) um diesen Auszug der Kette samt Signaturen und Zertifikaten; neue Formatversion bzw. Erweiterung von 19.
 
-## 13. Stand der Umsetzung (WATTest 0.1.0, 25.10.2026)
+## 13. Stand der Umsetzung (WATTest 0.1.1, 25.10.2026)
 
 - P1 bis P9 umgesetzt wie in Abschnitt 5; Einzelheiten der Deutung in `docs/ENTSCHEIDUNGEN.md` und `docs/UNKLARHEITEN.md`.
 - Abweichend von Abschnitt 9 sind PWA (Service Worker, installierbar) und QR mit der Kamera (über `BarcodeDetector`, nur wo vorhanden) schon in 0.1.0 enthalten.
 - Content Security Policy: `default-src none`, Skripte und Stile über Hashes, `worker-src self blob:`, `connect-src self` (Einzeldatei `none`), `img-src self data: blob:`, `manifest-src self`, `base-uri none`, `form-action none`.
-- Fußzeile: „WATTest 0.1.0 · © 2026 Hans-Joachim Steudel · EUPL-1.2 · Quelltext · Impressum · Datenschutz“.
-- Der Fingerabdruck des App-Signaturzertifikats steht in `daten/app-signatur.json`; bis zur Veröffentlichung leer, die Teilaussage ist dann „?“.
+- Fußzeile: „WATTest 0.1.1 · © 2026 Hans-Joachim Steudel · EUPL-1.2 · Quelltext · Impressum · Datenschutz“.
+- Der Fingerabdruck des App-Signaturzertifikats steht in `daten/app-signatur.json` (TE 4.7, Schritt 3); die Teilaussage zur App-Signatur in P7 ist damit ✓ oder ✗.
+- Die Klarstellungen der Technischen Erläuterung vom 25.10.2026 sind übernommen (`docs/UNKLARHEITEN.md`, U-1 bis U-13); die Rechenbeispiele B1 bis B12 liest `scripts/vektoren-holen.mjs` aus den Codeblöcken der TE.
 - P1 prüft Pflichtfelder und Typen der gelesenen Teile gegen einen Auszug der Schemas, keinen vollständigen Schema-Validator.
 - Formatversionen 16 bis 18: P6 und P7 „?“ mit „Diese Version von WATT signiert noch nicht.“

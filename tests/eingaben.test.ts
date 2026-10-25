@@ -23,8 +23,15 @@ for (const name of ["bergamotte-17.json", "cherimoya-18.json"]) {
     assert.ok(a.ok);
     const xml = { name: name.replace(".json", ".xml"), bytes: utf8(alsXml(d)) };
     const b = await befund([xml], { anker: [a.anker] });
-    for (const s of ["P1", "P2", "P3", "P4", "P5", "P8", "P9"] as const) assert.equal(zeichen(b, s), "bestaetigt", `${s}:\n${texte(b)}`);
-    assert.match(texte(b, "P1"), /\(XML\)/);
+    for (const s of ["P2", "P3", "P4", "P5", "P8", "P9"] as const) assert.equal(zeichen(b, s), "bestaetigt", `${s}:\n${texte(b)}`);
+    if (name === "cherimoya-18.json") {
+      assert.equal(zeichen(b, "P1"), "bestaetigt", texte(b, "P1"));
+      assert.match(texte(b, "P1"), /\(XML\)/);
+    } else {
+      // TE 8., Schritt 1: WATT exportiert XML erst ab Formatversion 18.
+      assert.equal(zeichen(b, "P1"), "offen", texte(b, "P1"));
+      assert.match(texte(b, "P1"), /WATT exportiert XML erst ab Formatversion 18\./);
+    }
   });
 }
 

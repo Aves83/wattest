@@ -10,9 +10,8 @@ import { gliedName, type Glied } from "./klartext.js";
 import { dateiFundstelle, sage, type Kontext } from "./kontext.js";
 import { berlinMinute, deutsch, zeitpunktMs } from "./zeit.js";
 
-function zaehler(g: Glied[], bis: number): { r: number; w: number; wa: number; i: number; iEintrag: number } {
+function zaehler(g: Glied[], bis: number): { r: number; w: number; wa: number; i: number } {
   let r = 0;
-  let iEintrag = 0;
   let w = 0;
   let wa = 0;
   let i = 0;
@@ -23,12 +22,10 @@ function zaehler(g: Glied[], bis: number): { r: number; w: number; wa: number; i
       w++;
       if (x.json?.["vorgeschichte"] !== "UEBEREINSTIMMEND") wa++;
     }
-    if (x.aktion === "ANGELEGT" && (x.objektArt === "eintrag" || x.objektArt === "abwesenheit") && typeof x.json?.["importDatei"] === "string") {
-      i++;
-      if (x.objektArt === "eintrag") iEintrag++;
-    }
+    // i: Anlage-Glieder eintrag und abwesenheit mit importDatei (6.2, 4.1).
+    if (x.aktion === "ANGELEGT" && (x.objektArt === "eintrag" || x.objektArt === "abwesenheit") && typeof x.json?.["importDatei"] === "string") i++;
   }
-  return { r, w, wa, i, iEintrag };
+  return { r, w, wa, i };
 }
 
 function quelleText(a: Anker): string {
@@ -119,8 +116,7 @@ export function pruefeAnker(k: Kontext): void {
       pruefe("r", a.r, z.r, "Vermerke zur Geräteuhr");
       pruefe("w", a.w, z.w, "Wiederherstellungen");
       pruefe("wa", a.wa, z.wa, "Wiederherstellungen ohne übereinstimmende Vorgeschichte");
-      // i: Technische Erläuterung 6.2 zählt Glieder eintrag, das Datenformat auch abwesenheit (docs/UNKLARHEITEN.md).
-      if ((a.i ?? 0) !== z.iEintrag) pruefe("i", a.i, z.i, "eingelesene Buchungen");
+      pruefe("i", a.i, z.i, "aus einer Datei eingelesene Einträge und Abwesenheiten");
     }
     if (probleme.length) {
       sage(k, "P5", "widerlegt", `Der Anker vom ${name} passt nicht zur Kette.`, `Glied ${a.n} trägt die Prüfsumme des Ankers, aber nicht alles stimmt überein.`, { fundstelle: fund(glied), grenze: GRENZE.anker, details: probleme });

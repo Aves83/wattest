@@ -132,6 +132,14 @@ export interface KettenAngaben {
   /** die letzten n Glieder bleiben unsigniert */
   ohneSignaturAmEnde?: number;
   beginn?: number;
+  /** Anzahl der Einträge vor dem Glied schluessel; 0 (Vorgabe): leere Kette, Schlüssel ist Glied 1 mit Zufalls-Challenge */
+  schluesselNach?: number;
+  /** zwischen dem Kopf und dem Glied schluessel ein Glied uhr_verstellt mit objektId glied (4.7) */
+  verstelltVorSchluessel?: boolean;
+}
+
+function ausHexTest(h: string): Uint8Array<ArrayBuffer> {
+  return new Uint8Array(h.match(/../g)!.map((b) => parseInt(b, 16)));
 }
 
 export const APP_DIGEST = new Uint8Array(32).map((_, i) => i * 7 + 3);
@@ -159,38 +167,10 @@ export async function erzeugeKette(a: KettenAngaben): Promise<Erzeugt> {
   let blatt: Paar | null = null;
   const z = a.zertifikate ?? null;
   let kettenschluessel: Record<string, unknown>[] = [];
-  if (z) {
-    blatt = await schluessel("ec256");
-    const challenge = new Uint8Array(32).map((_, i) => (i * 31 + 5) & 0xff);
-    const b: Bestaetigung = { challenge, sicherheitsstufe: 1, paket: "de.achim.watt", appDigest: APP_DIGEST, bootzustand: 0, gesperrt: true, mitRootOfTrust: true, ...a.bestaetigung };
-    const blattDer = await zertifikat({
-      seriennummer: 1n,
-      aussteller: ZWISCHEN_NAME,
-      inhaber: name("Android Keystore Key", "Android"),
-      nichtVor: t0,
-      nichtNach: Date.parse("2048-01-01T00:00:00Z"),
-      spki: blatt.spki,
-      signierer: z.zwischen,
-      erweiterungen: [{ oid: "1.3.6.1.4.1.11129.2.1.17", wert: schluesselbeschreibung(b) }],
-    });
-    const der = [blattDer, z.zwischenDer, z.wurzelDer];
-    const fp = hex(new Uint8Array(await subtle.digest("SHA-256", puffer(blatt.spki))));
-    const zs = hex(new Uint8Array(await subtle.digest("SHA-256", puffer(verbinde(der)))));
-    kettenschluessel = [{ fingerabdruck: fp, zertifikate: der.map(base64) }];
-    protokoll.push({
-      seq: 1,
-      zeitpunkt: iso(t0),
-      aktion: "ANGELEGT",
-      objektArt: "schluessel",
-      objektId: fp,
-      daten: JSON.stringify({ status: "verfuegbar", fingerabdruck: fp, zertifikateSha256: zs, sicherheitsstufe: b.sicherheitsstufe === 2 ? "STRONGBOX" : b.sicherheitsstufe === 1 ? "TEE" : "SOFTWARE", challenge: hex(challenge) }),
-      neustarts: 0,
-      autoZeit: true,
-    });
-  }
   const eintraege: Record<string, unknown>[] = [];
-  for (let i = 0; i < a.eintraege; i++) {
-    const t = t0 + (i + 1) * 60000;
+  let versatz = 0;
+  const eintrag = (i: number): void => {
+    const t = t0 + (i + 1) * 60000 + versatz;
     const tag = iso(t).slice(0, 10);
     const e = {
       tag,
@@ -216,13 +196,74 @@ export async function erzeugeKette(a: KettenAngaben): Promise<Erzeugt> {
       autoZeit: true,
     });
     eintraege.push({ id: `e${i + 1}`, ...e, fach: "", klasse: "", plausibilitaetBestaetigt: false, importiertAm: null });
+  };
+  const vorSchluessel = z ? Math.min(a.schluesselNach ?? 0, a.eintraege) : 0;
+  for (let i = 0; i < vorSchluessel; i++) eintrag(i);
+  if (z) {
+    blatt = await schluessel("ec256");
+    // Challenge (4.7): leere Kette 32 Zufallsbytes im Glied, sonst der hash des Kopfs; ein Glied uhr_verstellt
+    // mit objektId glied dazwischen ändert daran nichts.
+    let challenge: Uint8Array<ArrayBuffer> = new Uint8Array(32).map((_, i) => (i * 31 + 5) & 0xff);
+    let zeitSchluessel = t0;
+    const leer = protokoll.length === 0;
+    if (!leer) {
+      await neuVerketten(protokoll);
+      const kopf = protokoll[protokoll.length - 1]!;
+      challenge = ausHexTest(String(kopf["hash"]));
+      zeitSchluessel = Date.parse(String(kopf["zeitpunkt"])) + 30000;
+      if (a.verstelltVorSchluessel) {
+        const vorher = zeitSchluessel;
+        const nachher = vorher + 600000;
+        protokoll.push({
+          seq: protokoll.length + 1,
+          zeitpunkt: iso(nachher),
+          aktion: "ANGELEGT",
+          objektArt: "uhr_verstellt",
+          objektId: "glied",
+          daten: JSON.stringify({ vorher: iso(vorher), nachher: iso(nachher), abweichungSekunden: 600, richtung: "vor" }),
+          neustarts: 0,
+          autoZeit: true,
+        });
+        zeitSchluessel = nachher;
+        versatz = 600000;
+      }
+    }
+    const b: Bestaetigung = { challenge, sicherheitsstufe: 1, paket: "de.achim.watt", appDigest: APP_DIGEST, bootzustand: 0, gesperrt: true, mitRootOfTrust: true, ...a.bestaetigung };
+    const blattDer = await zertifikat({
+      seriennummer: 1n,
+      aussteller: ZWISCHEN_NAME,
+      inhaber: name("Android Keystore Key", "Android"),
+      nichtVor: t0,
+      nichtNach: Date.parse("2048-01-01T00:00:00Z"),
+      spki: blatt.spki,
+      signierer: z.zwischen,
+      erweiterungen: [{ oid: "1.3.6.1.4.1.11129.2.1.17", wert: schluesselbeschreibung(b) }],
+    });
+    const der = [blattDer, z.zwischenDer, z.wurzelDer];
+    const fp = hex(new Uint8Array(await subtle.digest("SHA-256", puffer(blatt.spki))));
+    const zs = hex(new Uint8Array(await subtle.digest("SHA-256", puffer(verbinde(der)))));
+    kettenschluessel = [{ fingerabdruck: fp, zertifikate: der.map(base64) }];
+    const angaben: Record<string, unknown> = { status: "verfuegbar", fingerabdruck: fp, zertifikateSha256: zs, sicherheitsstufe: b.sicherheitsstufe === 2 ? "STRONGBOX" : b.sicherheitsstufe === 1 ? "TEE" : "SOFTWARE" };
+    if (leer) angaben["challenge"] = hex(challenge);
+    protokoll.push({
+      seq: protokoll.length + 1,
+      zeitpunkt: iso(zeitSchluessel),
+      aktion: "ANGELEGT",
+      objektArt: "schluessel",
+      objektId: fp,
+      daten: JSON.stringify(angaben),
+      neustarts: 0,
+      autoZeit: true,
+    });
   }
+  for (let i = vorSchluessel; i < a.eintraege; i++) eintrag(i);
   await neuVerketten(protokoll);
   const signaturen: Record<string, unknown>[] = [];
   if (blatt && kettenschluessel.length) {
     const jedes = a.signiereJedes ?? 1;
     const bis = protokoll.length - (a.ohneSignaturAmEnde ?? 0);
-    for (let i = 0; i < bis; i++) {
+    const ab = protokoll.findIndex((x) => x["objektArt"] === "schluessel");
+    for (let i = ab; i < bis; i++) {
       if ((i + 1) % jedes !== 0 && i !== bis - 1) continue;
       const g = protokoll[i]!;
       const sig = await signiere(blatt, utf8(`watt-kopf-1:${g["hash"]}`));

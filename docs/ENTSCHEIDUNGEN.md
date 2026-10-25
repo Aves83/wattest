@@ -1,12 +1,12 @@
 # Entscheidungen
 
-Entscheidungen, die der Auftrag für WATTest 0.1.0 offenließ: Frage, Entscheidung, Begründung.
+Entscheidungen, die die Aufträge für WATTest 0.1.0 und 0.1.1 offenließen: Frage, Entscheidung, Begründung.
 
 | Nr. | Frage | Entscheidung | Begründung |
 | --- | --- | --- | --- |
 | E-1 | Wie erscheinen reine Informationen wie „Das Gerät wurde 14-mal neu gestartet.“? | Als vierte Art „Hinweis“ (Zeichen i, grau). Hinweise zählen nicht für die Gesamtzeile. | Der Auftrag nennt den Neustart „(Hinweis)“. Ein ✓ wäre eine Bestätigung, ein ? eine Einschränkung; beides passt nicht. |
 | E-2 | Was meldet P5 ohne Anker? | „?“ – „Es liegt kein Anker vor.“ | Ohne Anker ist eine vollständig neue, stimmige Kette nicht erkennbar (TE 9). Die Gesamtzeile soll das nicht als ✓ ausweisen. |
-| E-3 | Fingerabdruck des App-Signaturzertifikats, obwohl die TE ihn schon nennt? | `daten/app-signatur.json` bleibt leer mit „noch nicht veröffentlicht“; Teilaussage „?“. | So verlangt es der Auftrag; die TE liegt noch auf einem Branch von WATT. Achim trägt den Wert nach der Veröffentlichung ein (U-12). |
+| E-3 | Fingerabdruck des App-Signaturzertifikats | Seit 0.1.1 steht der Wert aus TE 4.7, Schritt 3 in `daten/app-signatur.json`; die Teilaussage ist ✓ oder ✗. Ohne Wert (leer) bleibt sie „?“. | Entscheidung Achim 25.10.2026 (U-12). In 0.1.0 blieb die Datei nach dem damaligen Auftrag leer. |
 | E-4 | Welche Befunde der Attestierung sind ✗? | ✗: ungültige Signatur, Kette nicht bis zu einer Wurzel, gesperrtes Zertifikat, falscher Paketname, falsches Signaturzertifikat der App, falsche Challenge, Fingerabdruck oder `zertifikateSha256` passen nicht. | Die TE (4.7) nennt genau diese als „widerlegt“. |
 | E-5 | Und welche sind „?“? | Sicherheitsstufe Software, RootOfTrust nicht Verified oder Bootloader offen, Zertifikate zum Zeitpunkt des Glieds nicht gültig, keine Erweiterung, keine Sperrliste, keine Wurzeln, Fingerabdruck der App unbekannt. | TE 4.7: „nicht bestätigbar (z. B. keine Signaturen, Software-Attestierung, Sperrliste nicht erreichbar)“; die übrigen Fälle stehen nicht in der Liste „widerlegt“ (U-9, U-10). |
 | E-6 | QR-Code mit `s=1`, aber keine Signatur zu diesem Glied in der Datei? | „?“ | Kein Prüffehler, aber auch kein sicherer Widerspruch (die Datei kann Signaturen verlieren, ohne dass die Kette sich ändert). |
@@ -20,7 +20,7 @@ Entscheidungen, die der Auftrag für WATTest 0.1.0 offenließ: Frage, Entscheidu
 | E-14 | Versionen der Werkzeuge | `typescript` 6.0.3, `esbuild` 0.28.2. | TypeScript 7 ist der neue native Compiler; 6.0.3 ist die letzte Fassung der bewährten Reihe und älter als zwei Wochen. |
 | E-15 | Links von Impressum und Datenschutz in der Einzeldatei | Absolut auf `https://aves83.github.io/wattest/…`. | Ohne Netz gibt es die Seiten nicht; ein Link lädt nichts. |
 | E-16 | Was erscheint im Druck? | Glied-Nummern, Zeitpunkte, Tage, Kennungen, Feldnamen, Prüfsummen. Begründungen von Löschungen, Kommentare und Namen von Anhängen nur am Bildschirm. | Auftrag: „keine Inhalte außer Glied-Nummern und Zeitpunkten“. Kennungen (z. B. UUIDs) sind keine Inhalte; Art einer Abwesenheit erscheint nirgends in den Aussagen. |
-| E-17 | Ende eines Tagesblocks für die Nachtrag-Regel | Ende des Kalendertags in deutscher Zeit. | Datenformat: „bei Tagesblöcken dem Ende des Tages“. |
+| E-17 | Ende eines Tagesblocks für die Nachtrag-Regel | Ende des Kalendertags in deutscher Zeit. | Datenformat: „bei Tagesblöcken dem Ende des Tages“; seit 25.10.2026 ausdrücklich in TE 4.5 („00:00 Uhr deutscher Zeit (Europe/Berlin) des folgenden Kalendertags“). |
 | E-18 | Woran erkennt WATTest einen Aktenauszug? | ZIP mit `SHA256SUMS.txt`; Pfade gelten relativ zum Ordner der Liste. Ein ZIP mit genau einer JSON- oder XML-Datei außerhalb von `anhaenge/` ist ein Klartext. | Der Aufbau des Aktenauszugs ist nur über `SHA256SUMS.txt` beschrieben (TE 5.1). |
 | E-19 | Wann gilt die Zertifikatskette als bei einer Wurzel angekommen? | Wenn das letzte Zertifikat denselben öffentlichen Schlüssel wie eine Wurzel hat oder von einer Wurzel signiert ist. | Google hat die RSA-Wurzel mehrfach mit demselben Schlüssel neu ausgestellt; ältere Ketten enden mit einer früheren Ausgabe. |
 | E-20 | Woher stammen die Wurzeln? | `https://android.googleapis.com/attestation/root` (JSON-Liste der beiden Wurzeln, auf der Seite von Google verlinkt); der Pages-Lauf holt sie wie die Sperrliste neu. | Dieselben Zertifikate wie auf der Seite, ohne HTML zu zerlegen. |
@@ -30,3 +30,11 @@ Entscheidungen, die der Auftrag für WATTest 0.1.0 offenließ: Frage, Entscheidu
 | E-24 | Pages-Lauf | Holt Sperrliste und Wurzeln, testet, baut, veröffentlicht; täglich um 03:17 UTC, ohne Commit. | Auftrag; die Tests laufen mit, damit nur Geprüftes veröffentlicht wird. |
 | E-25 | Wortlaut des Prüfvermerks als Anker | Das Feld für den QR-Inhalt nimmt auch den eingefügten Wortlaut des Prüfvermerks (6.2). | Bequemer als drei Felder, wenn der Vermerk aus einer Mail kopiert wird. |
 | E-26 | `sicherheitsstufe` im Glied `schluessel` weicht von der Sicherheitsstufe im Zertifikat ab | „?“. | Nicht Teil von Schritt 6 der TE. |
+| E-27 | Ein Glied `uhr_verstellt` passt nicht zur Zerlegung in 4.7 | „?“ mit den Abweichungen, nicht ✗. | Die TE nennt dafür keinen Fall „widerlegt“; die Prüfsummen prüft P2. Ein solcher Vermerk erklärt den Sprung nur nicht wie beschrieben. |
+| E-28 | Erster Teil der Zerlegung (vorher − zeitpunkt des vorigen Glieds) | Bis zu −2 Minuten gelten als stimmig. | TE 4.7: „bis auf unvermerkte Abweichungen von höchstens 2 Minuten“ (U-15). |
+| E-29 | `challenge` in einem Glied `schluessel`, das nicht Glied 1 einer leeren Kette ist | „?“; geprüft wird die Challenge gegen den `hash` des Kopfs. | TE 4.7: „Nur dieser Eintrag schluessel hat das Feld challenge.“ Ein überzähliges Feld widerlegt die Herkunft nicht. |
+| E-30 | XML der Formatversion 17 | Wird weiter gelesen (Typtabelle aus der XSD 17); P1 „?“, kein ✓ für das Format. | TE 8., Schritt 1: WATT exportiert XML erst ab 18 (U-2). Die übrigen Schritte können trotzdem nützen (wie E-22). |
+| E-31 | Prüfsumme des Bestands beim Neubeginn | Aus einem JSON-Export nachgerechnet: passt sie, ✓; sonst nur ein Hinweis, nie ✗ oder „?“. | TE 4.6: Ein späterer Export ergibt eine andere Prüfsumme, „ohne dass das auf eine Manipulation hindeutet“ (U-13). |
+| E-32 | Schwelle von 24 Stunden bei Sekundenbruchteilen | Verglichen wird in ganzen Sekunden: Erst 24 Stunden und 1 Sekunde sind ein Nachtrag. | TE 4.5: „kaufmännisch auf ganze Sekunden des Abstands gerechnet; Sekundenbruchteile entfallen“; „genau 24 Stunden bleiben ohne Kennzeichnung“. |
+| E-33 | Rechenbeispiele aus der TE | `scripts/vektoren-holen.mjs` liest Eingabe, SHA-256 und Zusatzwerte aus den Codeblöcken der Markdown-TE; die Zerlegung `objekt` bleibt von WATTest. | Die TE ist seit 25.10.2026 Markdown; so lässt sich jede neue Fassung mechanisch abgleichen. |
+| E-34 | Version 0.1.1 als erste veröffentlichte | Release v0.1.0 und sein Tag sind gelöscht; v0.1.1 ist das erste Release. | Entscheidung Achim 25.10.2026 (Historie ohne interne Arbeitsdatei). |
