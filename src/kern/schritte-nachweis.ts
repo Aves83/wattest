@@ -83,14 +83,7 @@ export async function pruefeNachweise(k: Kontext): Promise<Dokumentbindung> {
       docs.push({ art: d["art"], dateiname: d["dateiname"], sha256: await sha256Hex(b) });
     }
     dokumente += docs.length;
-    let berechnet = await sha256Hex(anzeigeEingabe(a as AnzeigeRoh, docs, "fest"));
-    if (berechnet !== a["pruefsumme"]) {
-      const alt = await sha256Hex(anzeigeEingabe(a as AnzeigeRoh, docs, "vorVersand"));
-      if (alt === a["pruefsumme"]) {
-        berechnet = alt;
-        hinweise.push(`Anzeige ${id}: Die Prüfsumme stimmt, wenn alle Notizen vor dem Versand eingehen statt der als fest markierten (docs/UNKLARHEITEN.md, U-3).`);
-      }
-    }
+    const berechnet = await sha256Hex(anzeigeEingabe(a as AnzeigeRoh, docs));
     if (lesbar && berechnet !== a["pruefsumme"]) abw.push({ text: `Anzeige ${id}: Die gespeicherte Prüfsumme passt nicht zum Inhalt der Anzeige (Verfahren ${String(a["pruefverfahren"] ?? 1)}).` });
     inhalt.set(id, { art: "anzeige", pruefsumme: a["pruefsumme"] as string, berechnet, dokumente: docs });
   }

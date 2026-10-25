@@ -1,6 +1,5 @@
 {
   "paketname": "de.achim.watt",
-  "sha256": "",
-  "hinweis": "noch nicht veröffentlicht",
-  "quelle": "Fingerabdruck (SHA-256) des App-Signaturzertifikats von WATT, sobald WATT ihn veröffentlicht (Technische Erläuterung 4.7, Prüfverfahren Schritt 3). Solange der Wert leer ist, ist diese Teilaussage von P7 nicht bestätigbar (?)."
+  "sha256": "4accbc1ff7bb15f57a2364e39906568e01c4e4b53e4e5d63e77148eb3bfa99d9",
+  "quelle": "Technische Erläuterung von WATT, Abschnitt 4.7 (Prüfverfahren für die Signaturen, Schritt 3): SHA-256 des App-Signaturzertifikats; dasselbe Zertifikat signiert die Installationen aus Google Play."
 }

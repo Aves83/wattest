@@ -1,81 +1,105 @@
 # Unklarheiten in den Unterlagen von WATT
 
-Stellen, an denen die Unterlagen (Technische Erläuterung, Datenformat, Schemas, Beispieldateien) unklar sind oder einander widersprechen. WATTest entscheidet nach dem Wortlaut der Technischen Erläuterung (TE); jede Stelle nennt Zitat, Deutung und Folge. Stand: WATTest 0.1.0, Unterlagen vom 25.10.2026 (Branch `feat/attestierte-kette` von WATT).
+Stellen, an denen die Unterlagen (Technische Erläuterung, Datenformat, Schemas, Beispieldateien) unklar sind oder einander widersprechen. WATTest entscheidet nach dem Wortlaut der Technischen Erläuterung (TE); jede Stelle nennt Zitat, Deutung und Folge.
 
-Keine der drei Beispieldateien (`apfel-16`, `bergamotte-17`, `cherimoya-18`) weicht von der Beschreibung ab: Alle Prüfsummen der Arbeitszeitkette, der Nachweiskette, der Anzeige, der Gesprächsnotiz und des Nachtrags lassen sich nach 4.2 und 5.1 nachrechnen, und der Abgleich nach 7. ergibt keine Abweichung.
+Stand: WATTest 0.1.1, Unterlagen vom 25.10.2026 (Branch `feat/attestierte-kette` von WATT, Commit 97d9f96; TE jetzt `docs/app-texte/technische-erlaeuterung.md`). Die TE vom 25.10.2026 klärt U-1 bis U-13; WATTest folgt jeweils nur noch der Lesart der TE, Ersatz-Lesarten sind gestrichen.
 
-## U-1 Zähler `i` im QR-Code: nur Einträge oder auch Abwesenheiten?
+Keine der drei Beispieldateien (`apfel-16`, `bergamotte-17`, `cherimoya-18`) weicht von der Beschreibung ab: Alle Prüfsummen der Arbeitszeitkette, der Nachweiskette, der Anzeige, der Gesprächsnotiz und des Nachtrags lassen sich nach 4.2 und 5.1 nachrechnen, und der Abgleich nach 7. ergibt keine Abweichung. Die Rechenbeispiele B1 bis B12 aus den Codeblöcken der TE sind unverändert.
 
-- TE 6.2: „gegebenenfalls ‚Aus einer Datei eingelesene Einträge: <Anzahl>.‘ – gezählt werden die Anlage-Einträge eintrag mit importDatei (4.1)“; zum QR-Code nur „bei eingelesenen Buchungen ;i=<Anzahl>“. TE 7.1: „der QR-Code des Prüfvermerks ihre Anzahl (i=…)“ (gemeint: der eingelesenen Einträge).
-- Datenformat, QR-Code: „`i`: Anzahl der aus einer Datei eingelesenen Einträge und Abwesenheiten mit Gutschrift (Anlage-Glieder mit `importDatei`)“.
-- Deutung: Der Wortlaut der TE zählt Glieder `eintrag`, das Datenformat zusätzlich `abwesenheit`.
-- Folge: WATTest lässt beide Zählweisen gelten; erst wenn `i` zu keiner passt, ist der Anker widerlegt. WATT sollte eine Fassung festlegen.
+## Geklärt
 
-## U-2 Seit welcher Formatversion gibt es XML?
+### U-1 Zähler `i` im QR-Code
 
-- `docs/schnittstelle/README.md`, Version 18: „Erste Version mit XML-Export; dazu das XML Schema `watt-daten-18.xsd`.“ Die Tabelle nennt für Version 17 nur `watt-daten-17.schema.json`.
-- Datenformat: „XML Schema `watt-daten-<Version>.xsd` je Formatversion ab 17“; `watt-daten-17.xsd` liegt im Ordner; „Seit dem 16.10.2026 (F-223) exportiert WATT den Klartext wahlweise als XML“.
-- Folge: WATTest liest XML der Versionen 17 bis 19 (wie der Auftrag). Bei XML der Version 16 meldet P1 „?“.
+- Früher: Die TE zählte nur Glieder `eintrag`, das Datenformat auch `abwesenheit`; WATTest ließ beide Zählweisen gelten.
+- **Geklärt durch TE Abschnitt 6.2 und 4.1, Stand 25.10.2026:** „gezählt werden die Anlage-Einträge (aktion ANGELEGT) der Arten eintrag und abwesenheit, deren daten importDatei enthalten“.
+- Folge: P5 zählt nur noch so; passt `i` nicht, ist der Anker widerlegt.
 
-## U-3 Welche Notizen gehen in die Prüfsumme einer Anzeige ein?
+### U-2 Seit welcher Formatversion gibt es XML?
 
-- TE 5.1: „Anzahl der Notizen, die beim Markieren als gesendet vorhanden waren, danach je Notiz Zeitpunkt und Text“.
-- Datenformat: `notizen` mit `fest` („`fest` gehören zum Nachweis“) und `nachVersand`.
-- Deutung: Die Notizen mit `fest` true. Ebenso denkbar: alle mit `nachVersand` false.
-- Folge: WATTest rechnet mit `fest`. Stimmt die Prüfsumme nur mit der anderen Lesart, gilt sie als bestätigt, und der Befund nennt das. In `cherimoya-18` gibt es eine Notiz, auf die beide Lesarten passen.
+- Früher: Datenformat und XSD nannten Version 17, die README der Schnittstelle Version 18; WATTest las XML 17 bis 19.
+- **Geklärt durch TE Abschnitt 8, Schritt 1, Stand 25.10.2026** (ebenso Datenformat, „XML-Darstellung“, und README der Schnittstelle): „Ausgelieferte Fassungen exportieren XML ab Formatversion 18 (WATT 0.8.109 „Cherimoya“), das XML Schema ist ab Version 18 veröffentlicht.“ Die XSD 17 stammt laut Datenformat aus der Entwicklung und ist nicht veröffentlicht.
+- Folge: XML der Versionen 16 und 17 ergibt in P1 „?“ mit „WATT exportiert XML erst ab Formatversion 18.“; die übrigen Schritte rechnen trotzdem (Typtabelle für Version 17 weiter aus der XSD 17). Version 18 und 19 wie bisher.
 
-## U-4 Nachtrag nach 4.5: Erfassung oder letzte Änderung?
+### U-3 Welche Notizen gehen in die Prüfsumme einer Anzeige ein?
 
-- TE 4.5: „Jeder Eintrag speichert, wann er erfasst und zuletzt geändert wurde. Liegt dieser Zeitpunkt mehr als 24 Stunden nach dem Ende der Tätigkeit, kennzeichnet WATT den Eintrag mit dem Abstand („ca. x Stunden“ bzw. „ca. x Tage“).“
-- Deutung: „dieser Zeitpunkt“ kann die Erfassung oder die letzte Änderung meinen. Ab wann „Tage“ statt „Stunden“ gilt, steht nicht da.
-- Folge: P9 nennt „erfasst … nach Ende“ und, wenn die Erfassung rechtzeitig war, „zuletzt geändert … nach Ende“; bis 48 Stunden in Stunden, darüber in Tagen (gerundet). P9 gibt hier nur Hinweise.
+- Früher: „beim Markieren als gesendet vorhanden“ ließ `fest` oder `nachVersand` false zu; WATTest nahm hilfsweise beide.
+- **Geklärt durch TE Abschnitt 5.1, Stand 25.10.2026:** „Anzahl der Notizen mit fest true, danach je solche Notiz Zeitpunkt (erstelltAm) und Text, sortiert nach erstelltAm und Kennung wie im Datenformat“; Notizen mit `fest` false „gehen nicht ein und zählen nicht mit“.
+- Folge: P8 rechnet nur so, die Notizen sortiert nach `erstelltAm` und `id`.
 
-## U-5 Rücksprung beim Festhalten eines Nachweises
+### U-4 Nachtrag nach 4.5
 
-- TE 8., Schritt 5: Nach einem Rücksprung muss ein `uhr_ruecksprung` folgen, „außer der Eintrag ist selbst ein uhr_ruecksprung mit objektId timer“.
-- TE 4.1 beschreibt dasselbe für `objektId` `nachweis` („folgt in der Arbeitszeitkette der Vermerk uhr_ruecksprung mit objektId nachweis“).
-- Folge: WATTest behandelt `nachweis` wie `timer`.
+- Früher: offen, ob Erfassung oder letzte Änderung zählt und ab wann „Tage“ gilt; WATTest nahm 48 Stunden.
+- **Geklärt durch TE Abschnitt 4.5, Stand 25.10.2026:** Erfassung und letzte Änderung getrennt; erst ab mehr als 24 Stunden; bis einschließlich 96 Stunden in ganzen Stunden, darüber in ganzen Tagen; Rundung über ganze Sekunden: Stunden = (Sekunden + 1800) div 3600, Tage = (Sekunden + 43200) div 86400; bei Tagesblöcken Ende 00:00 Uhr deutscher Zeit des folgenden Tags; eingelesene Einträge mit „(laut Datei)“, dem Abstand bis zum Einlesen („Eingelesen ca. …“) und „Importiert am …“.
+- Folge: P9 nennt je Eintrag „Nachgetragen …“, „Geändert …“, „Eingelesen …“ und „Importiert am …“ nach dieser Regel (Hinweise).
 
-## U-6 Zeitpunkt eines Glieds `uhr_verstellt`
+### U-5 Rücksprung beim Festhalten eines Nachweises
 
-- TE 8., Schritt 5: „eine Verstellung in beide Richtungen als uhr_verstellt vor dem auslösenden Eintrag bzw. an ihrem eigenen Zeitpunkt“.
-- Deutung: Ob das Glied `uhr_verstellt` die Zeit vor oder nach der Verstellung trägt, steht nicht da.
-- Folge: Ein Rücksprung gilt als vermerkt, wenn das springende Glied selbst oder sein Vorgänger ein `uhr_verstellt` ist.
+- Früher: 8., Schritt 5 nannte nur `uhr_ruecksprung` mit `objektId` `timer`.
+- **Geklärt durch TE Abschnitt 8, Schritt 5, Stand 25.10.2026:** Erklärt ist ein Rücksprung, wenn unmittelbar `uhr_ruecksprung` folgt oder das Glied selbst ein Vermerk zur Uhr ist: `uhr_ruecksprung` mit `objektId` `timer` oder `nachweis`, oder `uhr_verstellt` mit `richtung` `zurueck`.
+- Folge: P4 prüft genau diese Fälle. Ein Glied nach einem `uhr_verstellt` erklärt dessen Vorgänger nicht mehr (früher hilfsweise angenommen).
 
-## U-7 Abschnitte bei einem Glied `schluessel` ohne Schlüssel
+### U-6 Zeitpunkt eines Glieds `uhr_verstellt`
 
-- TE 4.7, Schritt 7: „Jede Signatur mit dem Schlüssel ihres Abschnitts (vom Eintrag schluessel bis vor den nächsten)“.
-- Deutung: Ein Glied `schluessel` mit `status` `nicht_verfuegbar` beendet den Abschnitt des vorigen Schlüssels.
-- Folge: Danach gilt der Abschnitt als ohne Schlüssel; eine Signatur dort ist ungültig.
+- Früher: offen, ob das Glied die Zeit vor oder nach der Verstellung trägt.
+- **Geklärt durch TE Abschnitt 4.7 („Zeitpunkt des Eintrags uhr_verstellt“) und 8., Schritt 5, Stand 25.10.2026:** zeitpunkt gleicht `nachher`; bei `objektId` `glied` ist das zugleich der Zeitpunkt des unmittelbar folgenden Glieds; zeitpunkt(uhr_verstellt) − zeitpunkt(voriges) = (vorher − zeitpunkt(voriges)) + (nachher − vorher), der zweite Teil gleicht `abweichungSekunden` (ganze Sekunden, zur Null hin gekürzt), bei `schritte` der Summe mit Vorzeichen.
+- Folge: P4 rechnet die Zerlegung je Glied `uhr_verstellt` nach; passt sie nicht, ist die Aussage „?“ (Entscheidung E-27).
 
-## U-8 Challenge „bei einer leeren Kette“
+### U-7 Abschnitte bei einem Glied `schluessel` ohne Schlüssel
 
-- TE 4.7: „Challenge ist der Hash des Eintrags vor dem Eintrag schluessel als 32 Bytes, bei einer leeren Kette 32 Zufallsbytes, die im Eintrag stehen.“
-- Deutung: Der gespeicherte `hash` des Vorgängers, hexadezimal in 32 Bytes gewandelt; „leere Kette“ heißt, das Glied `schluessel` ist Glied 1.
-- Folge: So prüft P7.
+- **Geklärt durch TE Abschnitt 4.7, Stand 25.10.2026:** „Ein Eintrag nicht_verfuegbar beendet den Abschnitt des vorigen Schlüssels … eine Signatur über einen Kopf in diesem Bereich gilt als ungültig, auch wenn sie mit dem früheren Schlüssel rechnerisch stimmt.“ Schritt 7: „bis vor den nächsten Eintrag schluessel, gleich mit welchem Status“.
+- Folge: wie bisher in P6.
 
-## U-9 Gültigkeit der Zertifikate „zum Zeitpunkt der Erzeugung“
+### U-8 Challenge
 
-- TE 4.7, Schritt 1: „jedes Zertifikat muss vom nächsten signiert und zum Zeitpunkt der Erzeugung gültig gewesen sein.“ Die Liste „widerlegt“ nennt diesen Fall nicht.
-- Deutung: Der Zeitpunkt der Erzeugung ist der des Glieds `schluessel` nach der Geräteuhr.
-- Folge: Liegt er außerhalb der Gültigkeit, ist die Teilaussage „?“ (die Uhr des Geräts kann falsch gehen), nicht „✗“.
+- Früher: „leere Kette“ und Form der Challenge gedeutet.
+- **Geklärt durch TE Abschnitt 4.7 („Schlüssel“, Schritt 6), Stand 25.10.2026:** Challenge ist der `hash` des Kopfs beim Erzeugen, hexadezimal zu 32 Bytes dekodiert, also des Glieds unmittelbar vor `schluessel`. **Ausnahme:** Steht dazwischen ein `uhr_verstellt` mit `objektId` `glied`, ist es der `hash` des Glieds vor diesem. Bei leerer Kette ist `schluessel` Glied 1 und trägt die 32 Zufallsbytes als `challenge` (64 Zeichen Hex klein); nur dieser Eintrag hat das Feld.
+- Folge: P7 prüft beide Fälle und die Ausnahme (Tests mit dem Erzeuger). `challenge` in einem anderen Glied `schluessel` ergibt „?“ (E-29).
 
-## U-10 RootOfTrust nicht „Verified“
+### U-9 Gültigkeit der Zertifikate zum Zeitpunkt der Erzeugung
 
-- TE 4.7, Schritt 4 verlangt `verifiedBootState` Verified und `deviceLocked` true; die Liste „widerlegt“ nennt den Fall nicht.
-- Folge: WATTest meldet „?“ (nicht bestätigt), nicht „✗“. Siehe auch `docs/ENTSCHEIDUNGEN.md`, E-5.
+- **Geklärt durch TE Abschnitt 4.7, „Befund in drei Stufen“, Stand 25.10.2026:** nicht bestätigbar, wenn „ein Zertifikat war zum Zeitpunkt der Erzeugung nach der Geräteuhr nicht gültig“.
+- Folge: wie bisher „?“.
 
-## U-11 Name des Listenelements `anhaenge` im XML
+### U-10 RootOfTrust nicht „Verified“
 
-- Datenformat, XML-Darstellung: Die Liste der Singularformen nennt `anhaenge` nicht; `watt-daten-19.xsd` nutzt `anhang`.
-- Folge: WATTest liest `anhang` (Typtabelle aus der XSD).
+- **Geklärt durch TE Abschnitt 4.7, „Befund in drei Stufen“, Stand 25.10.2026:** nicht bestätigbar bei „verifiedBootState nicht Verified oder deviceLocked false“.
+- Folge: wie bisher „?“. Die übrige Zuordnung in E-4 und E-5 stimmt mit der dreistufigen Liste überein.
 
-## U-12 Fingerabdruck des App-Signaturzertifikats
+### U-11 Name des Listenelements `anhaenge` im XML
 
-- TE 4.7, Schritt 3 nennt bereits „SHA-256 des App-Signaturzertifikats 4accbc1ff7bb15f57a2364e39906568e01c4e4b53e4e5d63e77148eb3bfa99d9“. Die Spezifikation von WATTest sieht vor, ihn aus der Veröffentlichung in watt_public zu übernehmen.
-- Folge: `daten/app-signatur.json` bleibt nach dem Auftrag leer („noch nicht veröffentlicht“), bis WATT ihn veröffentlicht; die Teilaussage ist bis dahin „?“. Siehe `docs/ENTSCHEIDUNGEN.md`, E-3.
+- **Geklärt durch Datenformat, „XML-Darstellung“, Stand 25.10.2026:** `anhaenge` → `anhang` steht jetzt in der Liste der Singularformen.
+- Folge: wie bisher.
 
-## U-13 Prüfsumme des Datenbestands beim Neubeginn
+### U-12 Fingerabdruck des App-Signaturzertifikats
 
-- TE 4.6: „Nachrechnen lässt sich das mit einem Klartext-Export als JSON (nicht XML), der unmittelbar nach dem Neubeginn entstand“.
-- Folge: WATTest rechnet `bestand` nicht aus einem späteren Export nach (das geht nach der TE nicht); es zeigt den Wert in P9. Die kanonische Form ist mit Rechenbeispiel B3 getestet (`bestandDatenEingabe`).
+- **Geklärt durch Entscheidung Achim 25.10.2026:** Der Wert aus TE Abschnitt 4.7, Schritt 3 (`4accbc1ff7bb15f57a2364e39906568e01c4e4b53e4e5d63e77148eb3bfa99d9`) steht in `daten/app-signatur.json`.
+- Folge: Die Teilaussage zur App-Signatur in P7 ist ✓ oder ✗ (E-3).
+
+### U-13 Prüfsumme des Datenbestands beim Neubeginn
+
+- **Geklärt durch TE Abschnitt 4.6, Stand 25.10.2026:** `bestand` lässt sich nur mit einem JSON-Export unmittelbar nach dem Neubeginn nachrechnen; jeder spätere Export ergibt eine andere Prüfsumme, ohne dass das auf eine Manipulation hindeutet. Nachprüfbar bleiben die Bestandsprüfsummen je Eintrag und Abwesenheit sowie `vorherAnzahl`, `vorherLetzterHash` und `vorherZeitpunkt`.
+- Folge: P9 rechnet `bestand` aus einem JSON-Export nach; passt er, ✓, sonst nur ein Hinweis (E-31). Die Bestandsprüfsummen prüft P3, die Angaben zur alten Kette P5 (E-7).
+
+## Offen
+
+### U-14 Vorzeichen von `abweichungSekunden` bei `richtung` `zurueck`
+
+- TE 4.7: „die Abweichung ist positiv bei vorgestellter Uhr“; ob sie bei zurückgestellter Uhr negativ ist oder als Betrag steht, sagt die TE nicht ausdrücklich. Bei `schritte` nennt `abweichungSekunden` „die Summe der Beträge“.
+- Folge: WATTest vergleicht Beträge und prüft die Richtung über `richtung` und das Vorzeichen von nachher − vorher. Bei `schritte` darf |nachher − vorher| die Summe der Beträge nicht übersteigen.
+
+### U-15 Erster Teil der Zerlegung „nie negativ“
+
+- TE 4.7: Der erste Teil (vorher − zeitpunkt(voriges)) ist „die tatsächlich verstrichene Zeit nach der Monotonuhr, bis auf unvermerkte Abweichungen von höchstens 2 Minuten …; er ist nie negativ.“
+- Deutung: Unvermerkte Korrekturen bis 2 Minuten (z. B. der Netzzeit) können `vorher` knapp vor das vorige Glied legen.
+- Folge: WATTest lässt bis zu 2 Minuten zu (E-28).
+
+### U-16 Zeitpunkt der Erzeugung: Glied oder `creationDateTime`?
+
+- TE 4.7, Schritt 1: „Die Gültigkeitszeiträume zum Zeitpunkt der Erzeugung prüfen (Zeitpunkt des Eintrags schluessel bzw. creationDateTime, beide nach der Geräteuhr).“
+- Deutung: Beide Angaben stammen von der Geräteuhr und sollten nahe beieinander liegen.
+- Folge: WATTest prüft am Zeitpunkt des Glieds `schluessel`, wie bisher.
+
+### U-17 Maskierung in der Eingabe der Bestandsprüfsumme
+
+- TE 4.6 legt Einrückung, Zeilenende und Feldreihenfolge fest, nicht aber die Maskierung von Zeichen in Texten (etwa Nicht-ASCII-Zeichen oder `/`).
+- Folge: WATTest schreibt wie `JSON.stringify` (keine Maskierung von Nicht-ASCII und `/`). Rechenbeispiel B3 enthält keine solchen Zeichen. Weicht WATT ab, bleibt ein passender Export unbestätigt (Hinweis), nie ✗.

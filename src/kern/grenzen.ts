@@ -17,7 +17,7 @@ export const GRENZE = {
   inhalt:
     "Die Kette belegt, wann etwas erfasst wurde, nicht, ob es stimmt; es handelt sich um eine Selbstaufzeichnung (Technische Erläuterung, Abschnitt 9).",
   signatur:
-    "Eine Signatur trägt keinen Zeitstempel eines Dritten und belegt die Herkunft aus WATT auf einem Gerät, nicht die Person, die es bediente. Eine Kette vor dem ersten Anker bleibt ohne äußeren Vergleich (Technische Erläuterung, 4.7).",
+    "Eine Signatur trägt keinen Zeitstempel eines Dritten und belegt die Herkunft aus dem echten WATT auf einem bestätigten Gerät, nicht die Person, die es bediente. Eine Kette vor dem ersten Anker bleibt ohne äußeren Vergleich (Technische Erläuterung, 4.7 und 10.).",
   attestierung:
     "Die Bestätigung beruht auf dem Vertrauen in Google und die Gerätehersteller, deren Schlüssel die Zertifikate ausstellen (Technische Erläuterung, 4.7).",
   nachweis:

@@ -6,9 +6,9 @@
 import assert from "node:assert/strict";
 import { before, test } from "node:test";
 import { leseQr } from "../src/kern/anker.js";
-import { ausBase64, base64 } from "../src/kern/bytes.js";
+import { ausBase64, ausHex, base64 } from "../src/kern/bytes.js";
 import { APP_DIGEST_HEX, erzeugeKette, neuVerketten, signiereNeu, testzertifikate, type Testzertifikate } from "./erzeuger.js";
-import { befund, json, qrAus, texte, zeichen } from "./hilfen.js";
+import { befund, json, liesText, qrAus, texte, zeichen } from "./hilfen.js";
 
 let z: Testzertifikate;
 let fremd: Testzertifikate;
@@ -38,11 +38,94 @@ test("RSA-Wurzel wie die alte Wurzel von Google wird angenommen", async () => {
   assert.equal(zeichen(b, "P7"), "bestaetigt", texte(b, "P7"));
 });
 
-test("ohne veröffentlichten Fingerabdruck der App ist P7 nicht bestätigbar", async () => {
+test("ohne Fingerabdruck der App ist P7 nicht bestätigbar", async () => {
   const e = await erzeugeKette({ eintraege: 2, zertifikate: z });
   const b = await befund([json("a.json", e.daten)], opt({ appSignatur: "" }));
   assert.equal(zeichen(b, "P7"), "offen");
-  assert.match(texte(b, "P7"), /noch nicht veröffentlicht/);
+  assert.match(texte(b, "P7"), /liegt WATTest nicht vor/);
+});
+
+// Fingerabdruck des App-Signaturzertifikats aus daten/app-signatur.json (TE 4.7, Schritt 3).
+const APP_WATT = JSON.parse(liesText("daten/app-signatur.json")) as { paketname: string; sha256: string };
+
+test("daten/app-signatur.json nennt den Fingerabdruck aus TE 4.7", () => {
+  assert.equal(APP_WATT.paketname, "de.achim.watt");
+  assert.equal(APP_WATT.sha256, "4accbc1ff7bb15f57a2364e39906568e01c4e4b53e4e5d63e77148eb3bfa99d9");
+});
+
+test("App mit dem Signaturzertifikat von WATT: Teilaussage und P7 bestätigt", async () => {
+  const e = await erzeugeKette({ eintraege: 2, zertifikate: z, bestaetigung: { appDigest: ausHex(APP_WATT.sha256)! } });
+  const b = await befund([json("a.json", e.daten)], opt({ appSignatur: APP_WATT.sha256 }));
+  assert.equal(zeichen(b, "P7"), "bestaetigt", texte(b, "P7"));
+  assert.match(texte(b, "P7"), /✓ Das Signaturzertifikat der App ist das von WATT\./);
+});
+
+test("App mit fremdem Signaturzertifikat gegen den Fingerabdruck von WATT: P7 widerlegt", async () => {
+  const e = await erzeugeKette({ eintraege: 2, zertifikate: z });
+  const b = await befund([json("a.json", e.daten)], opt({ appSignatur: APP_WATT.sha256 }));
+  assert.equal(zeichen(b, "P7"), "widerlegt");
+  assert.match(texte(b, "P7"), /✗ Die App ist mit einem anderen Zertifikat signiert/);
+});
+
+// Challenge (TE 4.7): hash des Kopfs vor dem Glied schluessel; Ausnahme uhr_verstellt mit objektId glied.
+
+test("Schlüssel nach vorhandenen Gliedern: Challenge ist der hash des Kopfs", async () => {
+  const e = await erzeugeKette({ eintraege: 4, zertifikate: z, schluesselNach: 2 });
+  assert.equal(e.daten.protokoll[2]!["objektArt"], "schluessel");
+  assert.equal(JSON.parse(String(e.daten.protokoll[2]!["daten"]))["challenge"], undefined);
+  const b = await befund([json("a.json", e.daten)], opt());
+  for (const s of ["P2", "P3", "P4", "P6", "P7"] as const) assert.equal(zeichen(b, s), "bestaetigt", `${s}:\n${texte(b)}`);
+  assert.match(texte(b, "P7"), /✓ Die Challenge ist die Prüfsumme von Glied 2\./);
+});
+
+test("uhr_verstellt mit objektId glied zwischen Kopf und schluessel (Erzeuger): Challenge ist der hash davor", async () => {
+  const e = await erzeugeKette({ eintraege: 4, zertifikate: z, schluesselNach: 2, verstelltVorSchluessel: true });
+  assert.deepEqual(e.daten.protokoll.map((x) => x["objektArt"]), ["eintrag", "eintrag", "uhr_verstellt", "schluessel", "eintrag", "eintrag"]);
+  const b = await befund([json("a.json", e.daten)], opt());
+  for (const s of ["P2", "P3", "P4", "P6", "P7"] as const) assert.equal(zeichen(b, s), "bestaetigt", `${s}:\n${texte(b)}`);
+  assert.match(texte(b, "P7"), /✓ Die Challenge ist die Prüfsumme von Glied 2 \(vor dem Vermerk uhr_verstellt, Glied 3\)\./);
+  assert.match(texte(b, "P4"), /Der Vermerk uhr_verstellt erklärt seinen Zeitsprung nach der Rechnung in 4\.7\./);
+});
+
+/** Fügt vor dem Glied schluessel ein Glied uhr_verstellt ein, verkettet neu und signiert neu. */
+async function verstelltEinfuegen(e: Awaited<ReturnType<typeof erzeugeKette>>, objektId: string): Promise<void> {
+  const p = e.daten.protokoll;
+  const i = p.findIndex((x) => x["objektArt"] === "schluessel");
+  const t = String(p[i]!["zeitpunkt"]);
+  const vorher = new Date(Date.parse(t) - 20000).toISOString().replace(".000Z", "Z");
+  p.splice(i, 0, { seq: 0, zeitpunkt: t, aktion: "ANGELEGT", objektArt: "uhr_verstellt", objektId, daten: JSON.stringify({ vorher, nachher: t, abweichungSekunden: 20, richtung: "vor" }), neustarts: 0, autoZeit: true });
+  p.forEach((x, j) => (x["seq"] = j + 1));
+  for (const s of e.daten.kettensignaturen) if (Number(s["seq"]) > i) s["seq"] = Number(s["seq"]) + 1;
+  await neuVerketten(p);
+  await signiereNeu(e);
+}
+
+test("uhr_verstellt mit objektId glied nachträglich eingefügt: Challenge weiter bestätigt", async () => {
+  const e = await erzeugeKette({ eintraege: 3, zertifikate: z, schluesselNach: 2 });
+  await verstelltEinfuegen(e, "glied");
+  const b = await befund([json("a.json", e.daten)], opt());
+  assert.equal(zeichen(b, "P6"), "bestaetigt", texte(b, "P6"));
+  assert.equal(zeichen(b, "P7"), "bestaetigt", texte(b, "P7"));
+});
+
+test("uhr_verstellt mit anderer objektId zwischen Kopf und schluessel: Challenge widerlegt", async () => {
+  const e = await erzeugeKette({ eintraege: 3, zertifikate: z, schluesselNach: 2 });
+  await verstelltEinfuegen(e, "zeitsignal");
+  const b = await befund([json("a.json", e.daten)], opt());
+  assert.equal(zeichen(b, "P6"), "bestaetigt", texte(b, "P6"));
+  assert.equal(zeichen(b, "P7"), "widerlegt");
+  assert.match(texte(b, "P7"), /✗ Die Challenge im Zertifikat \(.*\) passt nicht zu der Prüfsumme von Glied 3\./);
+});
+
+test("Challenge im Glied, obwohl die Kette nicht leer war: P7 nicht bestätigbar", async () => {
+  const e = await erzeugeKette({ eintraege: 3, zertifikate: z, schluesselNach: 1 });
+  const g = e.daten.protokoll[1]!;
+  g["daten"] = JSON.stringify({ ...JSON.parse(String(g["daten"])), challenge: "00".repeat(32) });
+  await neuVerketten(e.daten.protokoll);
+  await signiereNeu(e);
+  const b = await befund([json("a.json", e.daten)], opt());
+  assert.equal(zeichen(b, "P7"), "offen", texte(b, "P7"));
+  assert.match(texte(b, "P7"), /obwohl die Kette nicht leer war/);
 });
 
 test("geänderte Signatur: P6 widerlegt", async () => {

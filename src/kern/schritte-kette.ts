@@ -5,7 +5,7 @@
 
 import { anzahl, bereiche, zahl, type Detail } from "./befund.js";
 import { GRENZE } from "./grenzen.js";
-import { gliedEingabe } from "./kanonisch.js";
+import { bestandDatenEingabe, gliedEingabe } from "./kanonisch.js";
 import { gliedName, type Glied } from "./klartext.js";
 import { dateiFundstelle, sage, type Kontext } from "./kontext.js";
 import { sha256Hex } from "./sha.js";
@@ -101,19 +101,19 @@ export function pruefeZeit(k: Kontext): void {
       kleine++;
       continue;
     }
+    // 8., Schritt 5: Es folgt uhr_ruecksprung, oder das Glied ist selbst ein Vermerk zur Uhr.
     const naechstes = g[i + 1];
     const erklaert =
-      (b.objektArt === "uhr_ruecksprung" && (b.objektId === "timer" || b.objektId === "nachweis")) ||
       (naechstes?.objektArt === "uhr_ruecksprung" && naechstes.objektId === String(b.seq)) ||
-      b.objektArt === "uhr_verstellt" ||
-      a.objektArt === "uhr_verstellt";
+      (b.objektArt === "uhr_ruecksprung" && (b.objektId === "timer" || b.objektId === "nachweis")) ||
+      (b.objektArt === "uhr_verstellt" && b.json?.["richtung"] === "zurueck");
     if (!erklaert) {
-      unvermerkt.push({ text: `${gliedText(b)} liegt ${minuten(zurueck)} vor ${gliedText(a)}; es folgt kein Glied uhr_ruecksprung, und kein Glied uhr_verstellt erklärt den Sprung.` });
+      unvermerkt.push({ text: `${gliedText(b)} liegt ${minuten(zurueck)} vor ${gliedText(a)}; es folgt kein Glied uhr_ruecksprung, und das Glied ist selbst kein Vermerk zur Uhr (uhr_ruecksprung mit objektId timer oder nachweis, uhr_verstellt mit richtung zurueck).` });
     }
   }
   const fund = dateiFundstelle(k);
   if (unvermerkt.length) {
-    sage(k, "P4", "widerlegt", `Die Uhr sprang ${anzahl(unvermerkt.length, "Mal", "Mal")} um mehr als 2 Minuten zurück, ohne dass die Kette es vermerkt.`, "WATT hängt nach jedem Rücksprung der Geräteuhr um mehr als 2 Minuten ein Glied uhr_ruecksprung an bzw. vermerkt die Verstellung als uhr_verstellt (Technische Erläuterung 4.1, 4.7 und 8., Schritt 5). Hier fehlt dieser Vermerk.", {
+    sage(k, "P4", "widerlegt", `Die Uhr sprang ${anzahl(unvermerkt.length, "Mal", "Mal")} um mehr als 2 Minuten zurück, ohne dass die Kette es vermerkt.`, "Liegt ein Glied mehr als 2 Minuten vor seinem Vorgänger, folgt unmittelbar danach ein Glied uhr_ruecksprung, oder das Glied ist selbst ein Vermerk zur Uhr: uhr_ruecksprung mit objektId timer oder nachweis bzw. uhr_verstellt mit richtung zurueck (Technische Erläuterung 4.1, 4.7 und 8., Schritt 5). Hier fehlt dieser Vermerk.", {
       fundstelle: fund,
       grenze: GRENZE.zeit,
       details: unvermerkt,
@@ -128,6 +128,8 @@ export function pruefeZeit(k: Kontext): void {
       { fundstelle: fund, grenze: GRENZE.zeit },
     );
   }
+
+  pruefeVerstellungen(k);
 
   const vermerke = g.filter((x) => UHR.has(x.objektArt));
   const mitUhrstand = g.filter((x) => x.form === "neun");
@@ -179,6 +181,47 @@ export function pruefeZeit(k: Kontext): void {
   }
 }
 
+/**
+ * Zerlegung eines Zeitsprungs bis zu einem Glied uhr_verstellt (4.7):
+ * zeitpunkt(uhr_verstellt) − zeitpunkt(voriges) = (vorher − zeitpunkt(voriges)) + (nachher − vorher).
+ */
+function pruefeVerstellungen(k: Kontext): void {
+  const g = k.kt.glieder;
+  const verstellt = g.map((x, i) => ({ x, i })).filter(({ x }) => x.objektArt === "uhr_verstellt");
+  if (!verstellt.length) return;
+  const abweichend: Detail[] = [];
+  for (const { x, i } of verstellt) {
+    const d = x.json ?? {};
+    const vorher = zeitpunktMs(d["vorher"]);
+    const nachher = zeitpunktMs(d["nachher"]);
+    const probleme: string[] = [];
+    if (vorher === null || nachher === null) probleme.push("vorher oder nachher fehlt");
+    else {
+      if (x.ms !== null && x.ms !== nachher) probleme.push(`zeitpunkt (${deutsch(x.ms)}) gleicht nicht nachher (${deutsch(nachher)})`);
+      // Der erste Teil ist die verstrichene Zeit nach der Monotonuhr, bis auf unvermerkte Abweichungen bis 2 Minuten.
+      const voriges = g[i - 1];
+      if (voriges && voriges.ms !== null && vorher - voriges.ms < -120000) probleme.push(`vorher (${deutsch(vorher)}) liegt mehr als 2 Minuten vor ${gliedText(voriges)}`);
+      const sprung = Math.trunc((nachher - vorher) / 1000);
+      const richtung = d["richtung"];
+      if ((richtung === "vor" && sprung <= 0) || (richtung === "zurueck" && sprung >= 0)) probleme.push(`richtung ${String(richtung)} passt nicht zu nachher − vorher (${zahl(sprung)} Sekunden)`);
+      const ab = d["abweichungSekunden"];
+      if (typeof ab !== "number") probleme.push("abweichungSekunden fehlt");
+      else if (d["schritte"] === undefined ? Math.abs(sprung) !== Math.abs(ab) : Math.abs(sprung) > Math.abs(ab)) {
+        probleme.push(`nachher − vorher sind ${zahl(sprung)} Sekunden, abweichungSekunden nennt ${zahl(ab)}${d["schritte"] !== undefined ? " (Summe der Beträge der Schritte)" : ""}`);
+      }
+    }
+    const folgend = g[i + 1];
+    if (x.objektId === "glied" && folgend && folgend.ms !== null && x.ms !== null && folgend.ms !== x.ms) probleme.push(`das unmittelbar folgende Glied hat einen anderen Zeitpunkt (${gliedText(folgend)})`);
+    if (probleme.length) abweichend.push({ text: `${gliedText(x)}: ${probleme.join("; ")}.` });
+  }
+  const fund = dateiFundstelle(k, `Glied ${bereiche(verstellt.map(({ x }) => x.seq ?? 0))}`);
+  if (abweichend.length) {
+    sage(k, "P4", "offen", `${anzahl(abweichend.length, "Vermerk uhr_verstellt passt", "Vermerke uhr_verstellt passen")} nicht zur Rechnung in 4.7.`, "Nach 4.7 gleicht zeitpunkt des Glieds uhr_verstellt dem Wert nachher, vorher liegt nicht vor dem vorigen Glied (bis auf unvermerkte Abweichungen bis 2 Minuten), und nachher − vorher gleicht abweichungSekunden (ganze Sekunden, zur Null hin gekürzt; bei schritte höchstens die Summe der Beträge). Die Prüfsummen der Glieder prüft P2; hier erklärt der Vermerk den Zeitsprung nicht so, wie die Technische Erläuterung es beschreibt.", { fundstelle: fund, grenze: GRENZE.zeit, details: abweichend });
+  } else {
+    sage(k, "P4", "bestaetigt", `${verstellt.length === 1 ? "Der Vermerk uhr_verstellt erklärt seinen Zeitsprung" : `Die ${zahl(verstellt.length)} Vermerke uhr_verstellt erklären ihre Zeitsprünge`} nach der Rechnung in 4.7.`, "zeitpunkt(uhr_verstellt) − zeitpunkt(voriges Glied) = (vorher − zeitpunkt(voriges Glied)) + (nachher − vorher): Der erste Teil ist die verstrichene Zeit nach der Monotonuhr, der zweite die Verstellung; sie gleicht abweichungSekunden (4.7).", { fundstelle: fund, grenze: GRENZE.zeit });
+  }
+}
+
 function uhrBeschreibung(x: Glied): string {
   const d = x.json ?? {};
   if (x.objektArt === "uhr_ruecksprung") {
@@ -198,14 +241,20 @@ function uhrBeschreibung(x: Glied): string {
   return `Uhr ${richtung}${s !== null ? ` um ${zahl(Math.round(Math.abs(s) / 60))} Minuten` : ""} (${anlass[x.objektId] ?? x.objektId}${d["schritte"] !== undefined ? ", in kleinen Schritten" : ""})`;
 }
 
-function abstand(ms: number): string {
-  const h = ms / 3600000;
-  if (h < 48) return `ca. ${zahl(Math.round(h))} Stunden`;
-  return `ca. ${zahl(Math.round(h / 24))} Tage`;
+/** Abstand nach 4.5: ganze Sekunden, bis einschließlich 96 Stunden in Stunden, darüber in Tagen, kaufmännisch gerundet. */
+export function abstand(ms: number): string {
+  const s = Math.floor(ms / 1000);
+  if (s <= 96 * 3600) return `ca. ${zahl(Math.floor((s + 1800) / 3600))} Stunden`;
+  return `ca. ${zahl(Math.floor((s + 43200) / 86400))} Tage`;
+}
+
+/** Gekennzeichnet wird erst ab mehr als 24 Stunden (4.5). */
+export function istNachtrag(ms: number): boolean {
+  return Math.floor(ms / 1000) > 24 * 3600;
 }
 
 /** P9: Neubeginne, Wiederherstellungen, Löschungen, Änderungen mit Kommentar, Nachträge, eingelesene Buchungen. */
-export function pruefeBesondere(k: Kontext): void {
+export async function pruefeBesondere(k: Kontext): Promise<void> {
   const g = k.kt.glieder;
   const fund = dateiFundstelle(k);
   if (g.length === 0) return;
@@ -224,6 +273,21 @@ export function pruefeBesondere(k: Kontext): void {
       details.push({ text: "Älterer Neubeginn (vor dem 19.10.2026): Er nennt nur die Prüfsumme des Bestands, nicht die alte Kette." });
     }
     details.push({ text: `Prüfsumme des Datenbestands (4.6): ${String(d["bestand"] ?? "fehlt")}.` });
+    // 4.6: bestand lässt sich nur aus einem JSON-Export unmittelbar nach dem Neubeginn nachrechnen.
+    const nachgerechnet = k.kt.quelle === "json" && typeof d["bestand"] === "string" && (await sha256Hex(bestandDatenEingabe(k.kt.daten))) === d["bestand"];
+    if (nachgerechnet) {
+      sage(k, "P9", "bestaetigt", "Die Prüfsumme des Datenbestands im Neubeginn passt zu diesem Export.", "WATTest hat bestand nach 4.6 aus diesem Export nachgerechnet: JSON mit exportiertAm 1970-01-01T00:00:00Z, leerer appVersion, protokoll [] und ohne kettenschluessel und kettensignaturen. Der Export entstand also unmittelbar nach dem Neubeginn, bevor sich Daten, Einstellungen oder Nachweise änderten.", {
+        fundstelle: dateiFundstelle(k, gliedName(x)),
+        grenze: "Belegt ist der Datenbestand zum Neubeginn; über die Zeit davor sagt das nichts (Technische Erläuterung, 4.6 und 9).",
+      });
+    } else {
+      details.push({
+        text:
+          k.kt.quelle === "json"
+            ? "Aus diesem Export lässt sich bestand nicht nachrechnen: Das geht nur mit einem JSON-Export unmittelbar nach dem Neubeginn; jede spätere Änderung ergibt eine andere Prüfsumme, ohne dass das auf eine Manipulation hindeutet (4.6). Nachprüfbar bleiben die Bestandsprüfsummen je Eintrag und Abwesenheit (P3) und vorherAnzahl, vorherLetzterHash und vorherZeitpunkt gegen frühere Anker (P5)."
+            : "bestand lässt sich nur aus einem JSON-Export nachrechnen, nicht aus XML (4.6). Nachprüfbar bleiben die Bestandsprüfsummen je Eintrag und Abwesenheit (P3) und vorherAnzahl, vorherLetzterHash und vorherZeitpunkt gegen frühere Anker (P5).",
+      });
+    }
     sage(k, "P9", "hinweis", `Die Kette wurde am ${wann(x)} neu begonnen.`, "Ein Neubeginn löscht alle früheren Glieder auf dem Gerät; die neue Kette beginnt mit dem Start-Eintrag neubeginn (4.4, 4.6). Die frühere Historie ist nur über früher erzeugte Anker und Sicherungen prüfbar.", {
       fundstelle: dateiFundstelle(k, gliedName(x)),
       grenze: "Über die Zeit vor dem Neubeginn sagt diese Datei nur, was der Start-Eintrag nennt (Technische Erläuterung, Abschnitt 9).",
@@ -290,27 +354,28 @@ export function pruefeBesondere(k: Kontext): void {
     });
   }
 
-  // Nachträge nach 4.5 über die Einträge der Datei.
+  // Nachträge nach 4.5 über die Einträge der Datei: Erfassung, letzte Änderung und Einlesen getrennt.
   const nachtraege: Detail[] = [];
-  const nachtragIds = new Set<string>();
   const eintraege = Array.isArray(k.kt.daten["eintraege"]) ? (k.kt.daten["eintraege"] as Record<string, unknown>[]) : [];
   for (const e of eintraege) {
     if (!e || typeof e !== "object") continue;
     let ende = zeitpunktMs(e["ende"]);
     if (ende === null && typeof e["tag"] === "string") ende = berlinTagesende(e["tag"] as string);
     if (ende === null) continue;
-    const kenn = `Eintrag ${String(e["id"])} vom ${String(e["tag"])}`;
-    const vorher = nachtraege.length;
     const imp = zeitpunktMs(e["importiertAm"]);
     const erf = zeitpunktMs(e["erfasstAm"]);
     const geae = zeitpunktMs(e["geaendertAm"]);
-    if (imp !== null && imp - ende > 86400000) nachtraege.push({ text: `${kenn}: eingelesen ${abstand(imp - ende)} nach Ende` });
-    if (erf !== null && erf - ende > 86400000) nachtraege.push({ text: `${kenn}: erfasst ${abstand(erf - ende)} nach Ende${imp !== null ? " (laut Datei)" : ""}` });
-    else if (geae !== null && geae - ende > 86400000) nachtraege.push({ text: `${kenn}: zuletzt geändert ${abstand(geae - ende)} nach Ende${imp !== null ? " (laut Datei)" : ""}` });
-    if (nachtraege.length > vorher) nachtragIds.add(String(e["id"]));
+    const laut = imp !== null ? " (laut Datei)" : "";
+    const marken: string[] = [];
+    if (erf !== null && istNachtrag(erf - ende)) marken.push(`Nachgetragen ${abstand(erf - ende)} nach Ende${laut}`);
+    if (geae !== null && istNachtrag(geae - ende)) marken.push(`Geändert ${abstand(geae - ende)} nach Ende${laut}`);
+    if (imp !== null && istNachtrag(imp - ende)) marken.push(`Eingelesen ${abstand(imp - ende)} nach Ende`);
+    if (!marken.length) continue;
+    if (imp !== null) marken.push(`Importiert am ${deutsch(imp)}`);
+    nachtraege.push({ text: `Eintrag ${String(e["id"])} vom ${String(e["tag"])}: ${marken.join("; ")}` });
   }
   if (nachtraege.length) {
-    sage(k, "P9", "hinweis", `${anzahl(nachtragIds.size, "Eintrag ist ein Nachtrag", "Einträge sind Nachträge")} (mehr als 24 Stunden nach Ende erfasst oder geändert).`, "Nach 4.5 kennzeichnet WATT Einträge, die mehr als 24 Stunden nach dem Ende der Tätigkeit erfasst oder zuletzt geändert wurden; bei Tagesblöcken zählt das Ende des Tages (Datenformat, eintraege).", {
+    sage(k, "P9", "hinweis", `${anzahl(nachtraege.length, "Eintrag ist", "Einträge sind")} als Nachtrag gekennzeichnet (mehr als 24 Stunden nach Ende erfasst, geändert oder eingelesen).`, "Nach 4.5 kennzeichnet WATT Erfassung und letzte Änderung getrennt, wenn sie mehr als 24 Stunden nach dem Ende der Tätigkeit liegen (bei Tagesblöcken 00:00 Uhr deutscher Zeit des folgenden Tags), bis einschließlich 96 Stunden in ganzen Stunden, darüber in ganzen Tagen, kaufmännisch gerundet. Bei eingelesenen Einträgen stammen Erfassung und Änderung aus der Datei („laut Datei“); dazu kommen der Abstand bis zum Einlesen und „Importiert am“ (4.5, 7.1).", {
       fundstelle: fund,
       details: nachtraege,
     });

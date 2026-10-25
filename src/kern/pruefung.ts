@@ -125,8 +125,10 @@ function pruefeFormat(k: Kontext): void {
     sage(k, "P1", "offen", `WATTest kennt das Datenformat ${String(v)} nicht.`, `WATTest 0.1 kennt die Formatversionen 16 bis 19. ${typeof v === "number" && v < 16 ? "Dateien vor Version 16 lassen sich nach 7. nicht abgleichen." : "Eine neuere Version braucht eine neuere Fassung von WATTest."} Die folgenden Schritte rechnen trotzdem nach den bekannten Regeln.`, { fundstelle: fund, grenze });
     return;
   }
-  if (kt.quelle === "xml" && v < 17) {
-    sage(k, "P1", "offen", `Für das Datenformat ${v} gibt es keine XML-Darstellung.`, "XML-Exporte gibt es ab Formatversion 17 (XSD je Formatversion ab 17).", { fundstelle: fund, grenze });
+  // TE 8., Schritt 1: Ausgelieferte Fassungen exportieren XML ab Formatversion 18.
+  const xmlVor18 = kt.quelle === "xml" && v < 18;
+  if (xmlVor18) {
+    sage(k, "P1", "offen", "WATT exportiert XML erst ab Formatversion 18.", `Die Datei ist XML im Datenformat ${v}. Ausgelieferte Fassungen von WATT exportieren XML ab Formatversion 18 (WATT 0.8.109 „Cherimoya“); ein XML Schema ist erst ab Version 18 veröffentlicht (Technische Erläuterung 8., Schritt 1; Datenformat, XML-Darstellung). Die übrigen Schritte rechnen trotzdem nach den bekannten Regeln.`, { fundstelle: fund, grenze });
   }
   const fehler = pruefeSchema(d, v);
   const harte = fehler.filter((f) => f.art !== "unbekannt");
@@ -138,7 +140,7 @@ function pruefeFormat(k: Kontext): void {
       grenze,
       details: harte.slice(0, 100).map((f) => ({ text: f.text })),
     });
-  } else {
+  } else if (!xmlVor18) {
     const exp = typeof d["exportiertAm"] === "string" ? d["exportiertAm"] : "?";
     sage(k, "P1", "bestaetigt", `Die Datei ist ein vollständiger Klartext-Export im Datenformat ${v}${kt.quelle === "xml" ? " (XML)" : ""}.`, `format watt-daten, version ${v}, exportiert am ${exp} aus WATT ${String(d["appVersion"] ?? "")}. Pflichtfelder und Typen der gelesenen Teile entsprechen ${schema}.`, { fundstelle: fund, grenze });
   }

@@ -90,18 +90,16 @@ export interface AnzeigeRoh {
   datum?: unknown;
   gesendetAn?: unknown;
   gesendetAm?: unknown;
-  notizen?: { text?: unknown; erstelltAm?: unknown; fest?: unknown; nachVersand?: unknown }[];
+  notizen?: { id?: unknown; text?: unknown; erstelltAm?: unknown; fest?: unknown; nachVersand?: unknown }[];
   kettenkopf?: { anzahl?: unknown; hash?: unknown; zeitpunkt?: unknown } | null;
   pruefverfahren?: unknown;
 }
 
-export type NotizAuswahl = "fest" | "vorVersand";
-
 /**
  * Eingabe der Inhaltsprüfsumme einer Anzeige (5.1, Verfahren 1 und 2).
- * Welche Notizen eingehen, ist in den Unterlagen nicht ganz eindeutig (docs/UNKLARHEITEN.md, U-3).
+ * Notizen: nur die mit fest true, sortiert nach erstelltAm und Kennung.
  */
-export function anzeigeEingabe(a: AnzeigeRoh, dokumente: DokumentFeld[], auswahl: NotizAuswahl = "fest"): string {
+export function anzeigeEingabe(a: AnzeigeRoh, dokumente: DokumentFeld[]): string {
   const verfahren = a.pruefverfahren === 2 || a.pruefverfahren === "2" ? 2 : 1;
   const werte: unknown[] = [];
   if (verfahren === 2) werte.push(2);
@@ -116,7 +114,11 @@ export function anzeigeEingabe(a: AnzeigeRoh, dokumente: DokumentFeld[], auswahl
   werte.push(a.betreff, a.anschreiben, a.datum, a.gesendetAn, zeitpunktKanonisch(a.gesendetAm));
   werte.push(dokumente.length);
   for (const d of dokumente) werte.push(d.art, d.dateiname, d.sha256);
-  const notizen = (a.notizen ?? []).filter((n) => (auswahl === "fest" ? n.fest === true || n.fest === "true" : !(n.nachVersand === true || n.nachVersand === "true")));
+  const notizen = (a.notizen ?? [])
+    .filter((n) => n.fest === true || n.fest === "true")
+    .map((n, i) => ({ n, i, ms: zeitpunktMs(n.erstelltAm) ?? 0, id: Number(n.id) }))
+    .sort((x, y) => x.ms - y.ms || (Number.isFinite(x.id) && Number.isFinite(y.id) ? x.id - y.id : 0) || x.i - y.i)
+    .map((x) => x.n);
   werte.push(notizen.length);
   for (const n of notizen) werte.push(zeitpunktKanonisch(n.erstelltAm), n.text);
   if (verfahren === 2) {
