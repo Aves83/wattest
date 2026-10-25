@@ -3,7 +3,8 @@
 
 // Erzeugt src/kern/xml-typen.ts aus den XSDs von WATT (Versionen 17 bis 19).
 // Aufruf: node scripts/xml-typen.mjs <Ordner mit watt-daten-<Version>.xsd>
-// Die XSDs liegen nicht im Repository; sie stammen aus docs/schnittstelle/ von WATT.
+// Die XSDs liegen nicht im Repository. Veröffentlicht ist in Aves83/watt_public (schema/) die XSD 18;
+// die XSDs 17 und 19 stammen aus dem früheren Stand der Unterlagen (docs/UNKLARHEITEN.md, U-19).
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";

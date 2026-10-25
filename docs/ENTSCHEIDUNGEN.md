@@ -1,6 +1,6 @@
 # Entscheidungen
 
-Entscheidungen, die die Aufträge für WATTest 0.1.0 und 0.1.1 offenließen: Frage, Entscheidung, Begründung.
+Entscheidungen, die die Aufträge für WATTest 0.1.0 bis 0.1.2 offenließen: Frage, Entscheidung, Begründung.
 
 | Nr. | Frage | Entscheidung | Begründung |
 | --- | --- | --- | --- |
@@ -38,3 +38,6 @@ Entscheidungen, die die Aufträge für WATTest 0.1.0 und 0.1.1 offenließen: Fra
 | E-32 | Schwelle von 24 Stunden bei Sekundenbruchteilen | Verglichen wird in ganzen Sekunden: Erst 24 Stunden und 1 Sekunde sind ein Nachtrag. | TE 4.5: „kaufmännisch auf ganze Sekunden des Abstands gerechnet; Sekundenbruchteile entfallen“; „genau 24 Stunden bleiben ohne Kennzeichnung“. |
 | E-33 | Rechenbeispiele aus der TE | `scripts/vektoren-holen.mjs` liest Eingabe, SHA-256 und Zusatzwerte aus den Codeblöcken der Markdown-TE; die Zerlegung `objekt` bleibt von WATTest. | Die TE ist seit 25.10.2026 Markdown; so lässt sich jede neue Fassung mechanisch abgleichen. |
 | E-34 | Version 0.1.1 als erste veröffentlichte | Release v0.1.0 und sein Tag sind gelöscht; v0.1.1 ist das erste Release. | Entscheidung Achim 25.10.2026 (Historie ohne interne Arbeitsdatei). |
+| E-35 | Woher liest WATTest die Unterlagen? | Seit 0.1.2 aus Aves83/watt_public; `scripts/vektoren-holen.mjs` holt ohne Pfadangabe die TE über `raw.githubusercontent.com` zum aktuellen Commit von `main` und nennt diesen in `tests/vektoren/technische-erlaeuterung.json`. | Öffentliche Quelle seit 25.10.2026 (Auftrag 0.1.2); der Commit macht den Abgleich nachvollziehbar. Die Beispieldateien bleiben unverändert. |
+| E-36 | `uhr_ruecksprung` trotz Bezug | Nur Hinweis (i) in P4, nie ✗ oder „?“. | Auftrag 0.1.2; der Bezug steht nicht in der Datei, und die TE nennt die Fälle ohne Bezug nur beispielhaft (U-18). |
+| E-37 | „WATT“ in der Fußzeile | Auf allen drei Seiten (Startseite, Impressum, Datenschutz), weil sie dieselbe Fußzeile tragen; Inhalt von Impressum und Datenschutz sonst nur wie entschieden geändert. Die Links der Fußzeile öffnen wie bisher im selben Tab, die im Absatz „Über WATT“ in neuem Tab (`target="_blank" rel="noopener"`). | Entscheidung Achim 25.10.2026 nennt neuen Tab nur für den Absatz „Über WATT“. |

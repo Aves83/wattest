@@ -2,7 +2,7 @@
 
 Stellen, an denen die Unterlagen (Technische Erläuterung, Datenformat, Schemas, Beispieldateien) unklar sind oder einander widersprechen. WATTest entscheidet nach dem Wortlaut der Technischen Erläuterung (TE); jede Stelle nennt Zitat, Deutung und Folge.
 
-Stand: WATTest 0.1.1, Unterlagen vom 25.10.2026 (Branch `feat/attestierte-kette` von WATT, Commit 97d9f96; TE jetzt `docs/app-texte/technische-erlaeuterung.md`). Die TE vom 25.10.2026 klärt U-1 bis U-13; WATTest folgt jeweils nur noch der Lesart der TE, Ersatz-Lesarten sind gestrichen.
+Stand: WATTest 0.1.2, Unterlagen vom 25.10.2026 aus dem öffentlichen Repository [Aves83/watt_public](https://github.com/Aves83/watt_public) (Commit 1b52ef6: `doc/technische-erlaeuterung.md`, `doc/datenformat.md`, `schema/`; Inhalt gleich dem Stand des Branchs `feat/attestierte-kette` von WATT, Commit 97d9f96, Kopfzeile „WATT-Version: Vorabfassung“). Die TE vom 25.10.2026 klärt U-1 bis U-13; WATTest folgt jeweils nur noch der Lesart der TE, Ersatz-Lesarten sind gestrichen.
 
 Keine der drei Beispieldateien (`apfel-16`, `bergamotte-17`, `cherimoya-18`) weicht von der Beschreibung ab: Alle Prüfsummen der Arbeitszeitkette, der Nachweiskette, der Anzeige, der Gesprächsnotiz und des Nachtrags lassen sich nach 4.2 und 5.1 nachrechnen, und der Abgleich nach 7. ergibt keine Abweichung. Die Rechenbeispiele B1 bis B12 aus den Codeblöcken der TE sind unverändert.
 
@@ -103,3 +103,15 @@ Keine der drei Beispieldateien (`apfel-16`, `bergamotte-17`, `cherimoya-18`) wei
 
 - TE 4.6 legt Einrückung, Zeilenende und Feldreihenfolge fest, nicht aber die Maskierung von Zeichen in Texten (etwa Nicht-ASCII-Zeichen oder `/`).
 - Folge: WATTest schreibt wie `JSON.stringify` (keine Maskierung von Nicht-ASCII und `/`). Rechenbeispiel B3 enthält keine solchen Zeichen. Weicht WATT ab, bleibt ein passender Export unbestätigt (Hinweis), nie ✗.
+
+### U-18 `uhr_ruecksprung` in einem Abschnitt mit Bezug
+
+- TE 8., Schritt 5: „Seit dem 24.10.2026 (4.7) steht bei Einträgen mit Uhrstand eine Verstellung in beide Richtungen als uhr_verstellt vor dem auslösenden Eintrag bzw. an ihrem eigenen Zeitpunkt; uhr_ruecksprung folgt dann nur noch, wenn kein Bezug bestand (neustarts größer als 0 oder -1).“ TE 4.7: „Schreibt ein Vorgang mehrere Einträge, nennt der erste die Neustarts, die folgenden 0.“ Die Fälle ohne Bezug nennt 4.7 nur beispielhaft („etwa beim ersten Eintrag nach dem Update, nach einer Wiederherstellung oder ohne Zähler“), und der Bezug selbst steht nie in der Datei.
+- Deutung: Auslösend ist bei `objektId` `timer` oder `nachweis` der Vermerk selbst, sonst das Glied unmittelbar davor (`objektId` nennt dessen `seq`). Ein Bezug bestand, wenn das Glied vor dem auslösenden den Uhrstand trägt und jedes Glied vom auslösenden bis zum Vermerk den Uhrstand mit `neustarts` 0 trägt (kein Neustart dazwischen).
+- Folge: P4 gibt dann einen Hinweis (i) mit den betroffenen Gliedern, nie ✗ oder „?“: Aus der Datei lässt sich nicht ausschließen, dass der Bezug auf einem anderen Weg fehlte; der Rücksprung selbst ist vermerkt.
+
+### U-19 Schemas der Formatversion 19 und XSD 17 nicht in watt_public
+
+- watt_public `schema/` enthält `watt-daten-16.schema.json` bis `watt-daten-18.schema.json` und `watt-daten-18.xsd`, inhaltlich gleich dem bisherigen Stand. Das Datenformat (Kopf „Format watt-daten, Version 19“, „Schemas in docs/schnittstelle/“) beschreibt Version 19; veröffentlicht sind nach dem Datenformat nur die Formatversionen ausgelieferter Fassungen, die XSD 17 ist ausdrücklich nicht veröffentlicht. Die Pfadangabe `docs/schnittstelle/` bezieht sich auf das Repository von WATT, in watt_public heißt der Ordner `schema/`.
+- Deutung: Version 19 ist noch in keiner ausgelieferten Fassung; ihr Schema erscheint mit der ersten.
+- Folge: Der Schema-Auszug (`src/kern/schema-auszug.ts`) und die Typtabelle für XML (`src/kern/xml-typen.ts`) behalten für 19 (und für XML 17) den früheren Stand. Sobald `watt-daten-19.schema.json` und `watt-daten-19.xsd` in watt_public liegen, werden beide Dateien daraus neu erzeugt und verglichen.

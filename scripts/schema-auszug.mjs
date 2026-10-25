@@ -3,6 +3,8 @@
 
 // Erzeugt src/kern/schema-auszug.ts aus den JSON-Schemas von WATT (Versionen 16 bis 19):
 // die Teile, die WATTest liest, ohne Beschreibungen. Andere Definitionen werden nur auf ihren Typ geprüft.
+// Veröffentlicht sind in Aves83/watt_public (schema/) die Versionen 16 bis 18; die Version 19 stammt aus dem
+// früheren Stand der Unterlagen (docs/UNKLARHEITEN.md, U-19).
 // Aufruf: node scripts/schema-auszug.mjs <Ordner mit watt-daten-<Version>.schema.json>
 
 import { readFileSync, writeFileSync } from "node:fs";

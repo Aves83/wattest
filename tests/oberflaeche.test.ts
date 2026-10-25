@@ -74,6 +74,23 @@ test("die Seite nennt Überschrift und Zweck und hat beschriftete Eingaben", () 
   assert.match(seite, /<html lang="de">/);
 });
 
+test("die Startseite erklärt unter der Einleitung, was WATT ist", () => {
+  const absatz = /<\/p>\s*<p class="unterzeile ueber">([\s\S]*?)<\/p>\s*<\/header>/.exec(seite);
+  assert.ok(absatz, "Absatz „Über WATT“ unmittelbar nach der Einleitung");
+  assert.match(absatz[1]!, /^<strong>Über WATT\.<\/strong> /);
+  assert.equal(
+    absatz[1]!.replace(/<[^>]+>/g, ""),
+    "Über WATT. WATT ist eine kostenlose Android-App (Beta), mit der verbeamtete Lehrkräfte ihre Arbeitszeit erfassen und nachweisen. Mehr zu WATT. WATTest stammt vom selben Anbieter, ist aber quelloffen und prüft allein nach den veröffentlichten Unterlagen von WATT. Den Quelltext kann jede:r nachprüfen.",
+  );
+  for (const m of absatz[1]!.matchAll(/<a [^>]*>/g)) assert.match(m[0], /target="_blank" rel="noopener"/);
+});
+
+test("der Datenschutzhinweis nennt den Verantwortlichen ohne Anschrift", () => {
+  const ds = liesText("src/ui/datenschutz.html");
+  assert.match(ds, /<h1>Datenschutzhinweis<\/h1>\n<p>Verantwortlich ist Hans-Joachim Steudel, <a href="mailto:hans-joachim\.steudel@tum\.de">hans-joachim\.steudel@tum\.de<\/a>\.<\/p>/);
+  assert.doesNotMatch(ds, /Manzostr/);
+});
+
 test("Fokus ist sichtbar, und nichts scrollt bei 360 px waagerecht", () => {
   assert.match(css, /:focus-visible\s*\{\s*outline: 3px solid/);
   assert.match(css, /overflow-wrap: anywhere/);

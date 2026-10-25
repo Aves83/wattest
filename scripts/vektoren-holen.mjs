@@ -4,13 +4,38 @@
 // Liest die Rechenbeispiele B1 bis B12 aus den Codeblöcken der Technischen Erläuterung (Markdown)
 // und schreibt tests/vektoren/technische-erlaeuterung.json. Die Zerlegung in Felder (objekt) gehört
 // WATTest und bleibt aus der bisherigen Datei erhalten.
-// Aufruf: node scripts/vektoren-holen.mjs [<technische-erlaeuterung.md>] [<Stand>]
+// Ohne Pfad holt das Skript die öffentliche Fassung aus Aves83/watt_public (doc/technische-erlaeuterung.md);
+// mit Pfad liest es eine lokale Kopie, etwa zum Abgleich einer neuen Fassung.
+// Aufruf: node scripts/vektoren-holen.mjs [<technische-erlaeuterung.md>]
 
 import { readFileSync, writeFileSync } from "node:fs";
 
-const quelle = process.argv[2] ?? "referenz/technische-erlaeuterung.md";
-const stand = process.argv[3] ?? "25.10.2026";
+const REPO = "Aves83/watt_public";
+const PFAD = "doc/technische-erlaeuterung.md";
 const ziel = "tests/vektoren/technische-erlaeuterung.json";
+
+async function hole(url, art) {
+  const r = await fetch(url, { headers: { "User-Agent": "wattest-vektoren-holen" } });
+  if (!r.ok) throw new Error(`${url}: HTTP ${r.status}`);
+  return art === "json" ? r.json() : r.text();
+}
+
+let quelle;
+let herkunft;
+let text;
+if (process.argv[2]) {
+  quelle = process.argv[2];
+  herkunft = `lokale Kopie ${quelle}`;
+  text = readFileSync(quelle, "utf8");
+} else {
+  const commit = (await hole(`https://api.github.com/repos/${REPO}/commits/main`, "json")).sha;
+  quelle = `${REPO}/${PFAD}`;
+  herkunft = `${REPO}, ${PFAD}, Commit ${commit.slice(0, 7)}`;
+  text = await hole(`https://raw.githubusercontent.com/${REPO}/${commit}/${PFAD}`, "text");
+}
+// Kopfzeile der TE: „WATT-Version: … · Stand: TT.MM.JJJJ“.
+const stand = /^WATT-Version: .* · Stand: (\d{2}\.\d{2}\.\d{4})$/m.exec(text)?.[1];
+if (!stand) throw new Error(`${quelle}: Kopfzeile mit Stand fehlt`);
 
 const FELD = {
   Eingabe: "eingabe",
@@ -21,7 +46,7 @@ const FELD = {
   Signatur: "signaturBase64",
 };
 
-const zeilen = readFileSync(quelle, "utf8").split("\n");
+const zeilen = text.replace(/\r\n/g, "\n").split("\n");
 const gefunden = new Map();
 let abschnitt = "";
 for (let i = 0; i < zeilen.length; i++) {
@@ -52,7 +77,7 @@ const vektoren = [...gefunden.values()].map((v) => {
 for (const a of alt.vektoren) if (!gefunden.has(a.id)) throw new Error(`${a.id} fehlt in ${quelle}`);
 
 const aus = {
-  quelle: `Technische Erläuterung für Gutachter:innen aus WATT (Branch feat/attestierte-kette, docs/app-texte/technische-erlaeuterung.md), Codeblöcke der Rechenbeispiele, Stand ${stand}`,
+  quelle: `Technische Erläuterung für Gutachter:innen von WATT (${herkunft}), Codeblöcke der Rechenbeispiele, Stand ${stand}`,
   vektoren,
   hinweis: alt.hinweis,
 };
