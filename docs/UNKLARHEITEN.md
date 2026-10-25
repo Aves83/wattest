@@ -2,9 +2,9 @@
 
 Stellen, an denen die Unterlagen (Technische Erläuterung, Datenformat, Schemas, Beispieldateien) unklar sind oder einander widersprechen. WATTest entscheidet nach dem Wortlaut der Technischen Erläuterung (TE); jede Stelle nennt Zitat, Deutung und Folge.
 
-Stand: WATTest 0.1.2, Unterlagen vom 25.10.2026 aus dem öffentlichen Repository [Aves83/watt_public](https://github.com/Aves83/watt_public) (Commit 1b52ef6: `doc/technische-erlaeuterung.md`, `doc/datenformat.md`, `schema/`; Inhalt gleich dem Stand des Branchs `feat/attestierte-kette` von WATT, Commit 97d9f96, Kopfzeile „WATT-Version: Vorabfassung“). Die TE vom 25.10.2026 klärt U-1 bis U-13; WATTest folgt jeweils nur noch der Lesart der TE, Ersatz-Lesarten sind gestrichen.
+Stand: WATTest 0.1.3, Unterlagen vom 25.10.2026 aus dem öffentlichen Repository [Aves83/watt_public](https://github.com/Aves83/watt_public) (Commit 4828c89: `doc/technische-erlaeuterung.md`, `doc/datenformat.md`, `schema/` mit den Schemas der Version 19 als Vorabfassung; TE und Datenformat auf dem Stand 85a7f6e von WATT, Kopfzeile „WATT-Version: Vorabfassung“). Die TE vom 25.10.2026 klärt U-1 bis U-17, die Schemas in watt_public klären U-19; WATTest folgt jeweils nur noch der Lesart der TE, Ersatz-Lesarten sind gestrichen. Offen sind U-18 (TE 8., Schritt 5 ist in 4828c89 unverändert) und die neuen Punkte U-20 und U-21.
 
-Keine der drei Beispieldateien (`apfel-16`, `bergamotte-17`, `cherimoya-18`) weicht von der Beschreibung ab: Alle Prüfsummen der Arbeitszeitkette, der Nachweiskette, der Anzeige, der Gesprächsnotiz und des Nachtrags lassen sich nach 4.2 und 5.1 nachrechnen, und der Abgleich nach 7. ergibt keine Abweichung. Die Rechenbeispiele B1 bis B12 aus den Codeblöcken der TE sind unverändert.
+Keine der drei Beispieldateien (`apfel-16`, `bergamotte-17`, `cherimoya-18`) weicht von der Beschreibung ab: Alle Prüfsummen der Arbeitszeitkette, der Nachweiskette, der Anzeige, der Gesprächsnotiz und des Nachtrags lassen sich nach 4.2 und 5.1 nachrechnen, und der Abgleich nach 7. ergibt keine Abweichung. Die Rechenbeispiele B1 bis B12 aus den Codeblöcken der TE sind unverändert; neu ist B13 (4.6, Maskierung).
 
 ## Geklärt
 
@@ -80,29 +80,37 @@ Keine der drei Beispieldateien (`apfel-16`, `bergamotte-17`, `cherimoya-18`) wei
 - **Geklärt durch TE Abschnitt 4.6, Stand 25.10.2026:** `bestand` lässt sich nur mit einem JSON-Export unmittelbar nach dem Neubeginn nachrechnen; jeder spätere Export ergibt eine andere Prüfsumme, ohne dass das auf eine Manipulation hindeutet. Nachprüfbar bleiben die Bestandsprüfsummen je Eintrag und Abwesenheit sowie `vorherAnzahl`, `vorherLetzterHash` und `vorherZeitpunkt`.
 - Folge: P9 rechnet `bestand` aus einem JSON-Export nach; passt er, ✓, sonst nur ein Hinweis (E-31). Die Bestandsprüfsummen prüft P3, die Angaben zur alten Kette P5 (E-7).
 
-## Offen
-
 ### U-14 Vorzeichen von `abweichungSekunden` bei `richtung` `zurueck`
 
-- TE 4.7: „die Abweichung ist positiv bei vorgestellter Uhr“; ob sie bei zurückgestellter Uhr negativ ist oder als Betrag steht, sagt die TE nicht ausdrücklich. Bei `schritte` nennt `abweichungSekunden` „die Summe der Beträge“.
-- Folge: WATTest vergleicht Beträge und prüft die Richtung über `richtung` und das Vorzeichen von nachher − vorher. Bei `schritte` darf |nachher − vorher| die Summe der Beträge nicht übersteigen.
+- Früher: TE 4.7 sagte nur „die Abweichung ist positiv bei vorgestellter Uhr“; WATTest verglich Beträge.
+- **Geklärt durch TE Abschnitt 4.7 („Verstellung der Geräteuhr“), Stand 25.10.2026 (watt_public 4828c89), ebenso Datenformat (`objektArt`):** „abweichungSekunden trägt ein Vorzeichen: Es ist nachher − vorher in ganzen Sekunden, zur Null hin gekürzt, also positiv bei richtung vor und negativ bei richtung zurueck … der Betrag ist immer mindestens 120. richtung ist genau dann vor, wenn abweichungSekunden positiv ist. Bei summierten kleinen Schritten (schritte) nennt abweichungSekunden die Summe ihrer Beträge mit dem Vorzeichen der Gesamtrichtung …; heben sich die Schritte genau auf, gilt vor.“
+- Folge: P4 verlangt ohne `schritte` `abweichungSekunden` = nachher − vorher (gekürzt) mit Vorzeichen, Betrag mindestens 120, `richtung` passend zum Vorzeichen; mit `schritte` dasselbe Vorzeichen wie nachher − vorher (bei genauem Ausgleich positiv) und |nachher − vorher| höchstens |abweichungSekunden|. Sonst „?“ (E-27). Der Betrag bei `richtung` `zurueck` gilt nicht mehr.
 
-### U-15 Erster Teil der Zerlegung „nie negativ“
+### U-15 Erster Teil der Zerlegung
 
-- TE 4.7: Der erste Teil (vorher − zeitpunkt(voriges)) ist „die tatsächlich verstrichene Zeit nach der Monotonuhr, bis auf unvermerkte Abweichungen von höchstens 2 Minuten …; er ist nie negativ.“
-- Deutung: Unvermerkte Korrekturen bis 2 Minuten (z. B. der Netzzeit) können `vorher` knapp vor das vorige Glied legen.
-- Folge: WATTest lässt bis zu 2 Minuten zu (E-28).
+- Früher: TE 4.7: „er ist nie negativ“, zugleich „bis auf unvermerkte Abweichungen von höchstens 2 Minuten“; WATTest ließ bis −2 Minuten zu und gab darunter „?“.
+- **Geklärt durch TE Abschnitt 4.7, Stand 25.10.2026 (watt_public 4828c89):** „Der erste Teil ist nicht kleiner als −2 Minuten (−120 Sekunden, Grenze eingeschlossen); bei summierten kleinen Schritten (schritte) … nicht negativ. Ausgenommen sind Korrekturen der Uhr zurück bei eingeschalteter automatischer Uhrzeit (Netzzeit): WATT summiert sie nicht … Liegt der erste Teil unter der Grenze, ist das ein Hinweis zur Klärung, kein Beleg einer Manipulation; autoZeit des Eintrags uhr_verstellt zeigt, ob die automatische Uhrzeit bei der Erkennung eingeschaltet war.“
+- Folge: P4 gibt unterhalb der Grenze nur einen Hinweis (i) mit dem Abstand und `autoZeit` des Glieds, nie ✗ oder „?“ (E-28).
 
-### U-16 Zeitpunkt der Erzeugung: Glied oder `creationDateTime`?
+### U-16 Bezugszeitpunkt für die Gültigkeit der Zertifikate
 
-- TE 4.7, Schritt 1: „Die Gültigkeitszeiträume zum Zeitpunkt der Erzeugung prüfen (Zeitpunkt des Eintrags schluessel bzw. creationDateTime, beide nach der Geräteuhr).“
-- Deutung: Beide Angaben stammen von der Geräteuhr und sollten nahe beieinander liegen.
-- Folge: WATTest prüft am Zeitpunkt des Glieds `schluessel`, wie bisher.
+- Früher: TE 4.7, Schritt 1 nannte „Zeitpunkt des Eintrags schluessel bzw. creationDateTime“; WATTest nahm den Zeitpunkt des Glieds.
+- **Geklärt durch TE Abschnitt 4.7, Schritt 1, Stand 25.10.2026 (watt_public 4828c89):** Gültigkeit aller Zertifikate „(notBefore bis notAfter, Grenzen eingeschlossen) … zu einem einzigen Bezugszeitpunkt“; maßgeblich ist der zeitpunkt des Eintrags `schluessel`. „Einzige Ausnahme ist der im Voraus erzeugte Schlüssel einer leeren Kette (der Eintrag schluessel mit challenge) … dort ist creationDateTime aus der Attestierung maßgeblich (Tag 701 …), und nur wenn es fehlt, der zeitpunkt des Eintrags.“ Sonst ist eine Abweichung von creationDateTime kein Befund. Das Blattzertifikat trägt die Standardgrenzen von Android (01.01.1970 bis 01.01.2048).
+- Folge: P7 prüft alle Zertifikate an diesem Bezugszeitpunkt, beim Glied mit `challenge` an `creationDateTime`, und nennt ihn in der Teilaussage. Ungültig zum Bezugszeitpunkt bleibt „?“ (U-9). Der Testerzeuger setzt beim Blattzertifikat die Standardgrenzen von Android.
 
-### U-17 Maskierung in der Eingabe der Bestandsprüfsumme
+### U-17 Maskierung in kanonischem JSON
 
-- TE 4.6 legt Einrückung, Zeilenende und Feldreihenfolge fest, nicht aber die Maskierung von Zeichen in Texten (etwa Nicht-ASCII-Zeichen oder `/`).
-- Folge: WATTest schreibt wie `JSON.stringify` (keine Maskierung von Nicht-ASCII und `/`). Rechenbeispiel B3 enthält keine solchen Zeichen. Weicht WATT ab, bleibt ein passender Export unbestätigt (Hinweis), nie ✗.
+- Früher: TE 4.6 legte die Maskierung von Zeichen nicht fest; WATTest schrieb wie `JSON.stringify`.
+- **Geklärt durch TE Abschnitt 4.6 („Maskierung“) und 4.2, Stand 25.10.2026 (watt_public 4828c89):** Für die kanonische Form der Bestandsprüfsumme, den Klartext-Export, über den `bestand` gerechnet wird, und `daten` der Einträge gilt: maskiert werden genau `"`, `\` und U+0000 bis U+001F, mit Kurzform `\b \t \n \f \r`, sonst `\u` mit vier Hexadezimalziffern klein; alle anderen Zeichen stehen unverändert in UTF-8, auch `/`, U+007F, U+2028 und U+2029; ein einzelnes Ersatzzeichen wird in UTF-8 zu „?“ (0x3F). Rechenbeispiel B13.
+- Folge: `src/kern/kanonisch.ts` schreibt kanonisches JSON mit eigener Maskierung (`jsonZeichenkette`, `jsonKanonisch`) statt `JSON.stringify`; das ändert nur das einzelne Ersatzzeichen, das `JSON.stringify` als `\udxxx` schreibt. `utf8` in `src/kern/bytes.ts` wandelt ein einzelnes Ersatzzeichen in „?“ statt in U+FFFD. `daten` erzeugt WATTest nicht selbst, es rechnet über den Text aus der Datei. B13 steht in `tests/vektoren/`.
+
+### U-19 Schemas der Formatversion 19
+
+- Früher: watt_public enthielt nur die Schemas 16 bis 18 und die XSD 18; WATTest nutzte für 19 (und XML 17) den früheren Stand der Unterlagen.
+- **Geklärt durch watt_public, Commit 4828c89:** `schema/` enthält `watt-daten-19.schema.json` und `watt-daten-19.xsd`; die README führt die Zeile „19 (Vorabfassung)“: noch in keiner ausgelieferten Fassung, „kann sich bis dahin ändern“. Beide Dateien sind inhaltlich gleich dem früheren Stand.
+- Folge: Schema-Auszug und XML-Typtabelle sind aus watt_public neu erzeugt (Inhalt unverändert; die Typtabelle kommt jetzt ohne XSD 17 aus, E-30). P1 gibt für Version 19 einen Hinweis „Das Schema der Formatversion 19 ist eine Vorabfassung.“, solange die README sie so nennt (E-38).
+
+## Offen
 
 ### U-18 `uhr_ruecksprung` in einem Abschnitt mit Bezug
 
@@ -110,8 +118,13 @@ Keine der drei Beispieldateien (`apfel-16`, `bergamotte-17`, `cherimoya-18`) wei
 - Deutung: Auslösend ist bei `objektId` `timer` oder `nachweis` der Vermerk selbst, sonst das Glied unmittelbar davor (`objektId` nennt dessen `seq`). Ein Bezug bestand, wenn das Glied vor dem auslösenden den Uhrstand trägt und jedes Glied vom auslösenden bis zum Vermerk den Uhrstand mit `neustarts` 0 trägt (kein Neustart dazwischen).
 - Folge: P4 gibt dann einen Hinweis (i) mit den betroffenen Gliedern, nie ✗ oder „?“: Aus der Datei lässt sich nicht ausschließen, dass der Bezug auf einem anderen Weg fehlte; der Rücksprung selbst ist vermerkt.
 
-### U-19 Schemas der Formatversion 19 und XSD 17 nicht in watt_public
+### U-20 Einzelnes Ersatzzeichen in den übrigen Prüfsummen
 
-- watt_public `schema/` enthält `watt-daten-16.schema.json` bis `watt-daten-18.schema.json` und `watt-daten-18.xsd`, inhaltlich gleich dem bisherigen Stand. Das Datenformat (Kopf „Format watt-daten, Version 19“, „Schemas in docs/schnittstelle/“) beschreibt Version 19; veröffentlicht sind nach dem Datenformat nur die Formatversionen ausgelieferter Fassungen, die XSD 17 ist ausdrücklich nicht veröffentlicht. Die Pfadangabe `docs/schnittstelle/` bezieht sich auf das Repository von WATT, in watt_public heißt der Ordner `schema/`.
-- Deutung: Version 19 ist noch in keiner ausgelieferten Fassung; ihr Schema erscheint mit der ersten.
-- Folge: Der Schema-Auszug (`src/kern/schema-auszug.ts`) und die Typtabelle für XML (`src/kern/xml-typen.ts`) behalten für 19 (und für XML 17) den früheren Stand. Sobald `watt-daten-19.schema.json` und `watt-daten-19.xsd` in watt_public liegen, werden beide Dateien daraus neu erzeugt und verglichen.
+- TE 4.6 („Maskierung“) nennt die Umwandlung eines einzelnen Ersatzzeichens in „?“ für die drei Stellen mit JSON (Bestandsprüfsumme, Klartext-Export für `bestand`, `daten`). Für die übrigen Felder der Kette (4.2) und für die Prüfsummen der Nachweise (5.1), deren Werte ebenfalls „in UTF-8“ eingehen, sagt sie dazu nichts.
+- Deutung: Die Umwandlung in UTF-8 ist überall dieselbe.
+- Folge: WATTest wandelt in allen Eingaben einer Prüfsumme ein einzelnes Ersatzzeichen in „?“ (E-39). Weicht WATT ab, passt eine solche Prüfsumme nicht; das Zeichen ist über die Oberfläche praktisch nicht einzugeben.
+
+### U-21 Inhalt des Felds `schritte` in `uhr_verstellt`
+
+- TE 4.7 und Datenformat nennen das Feld `schritte` bei summierten kleinen Schritten, beschreiben aber nicht seinen Inhalt (Anzahl oder Liste der Schritte); das Schema 19 legt `daten` nur als Text fest.
+- Folge: WATTest prüft nur, ob das Feld vorhanden ist, und rechnet nicht die einzelnen Schritte nach, sondern nur Vorzeichen und Obergrenze über nachher − vorher (U-14).

@@ -8,6 +8,7 @@ import { textAus } from "./bytes.js";
 import { glieder, objekt, type Klartext } from "./klartext.js";
 import { dateiFundstelle, sage, type Kontext, type Optionen } from "./kontext.js";
 import { bekannteVersion, pruefeSchema } from "./schema.js";
+import { SCHEMA_VORABFASSUNG } from "./schema-auszug.js";
 import { pruefeAnker } from "./schritte-anker.js";
 import { pruefeDaten } from "./schritte-daten.js";
 import { pruefeBesondere, pruefeKette, pruefeZeit } from "./schritte-kette.js";
@@ -124,6 +125,10 @@ function pruefeFormat(k: Kontext): void {
   if (!bekannteVersion(v)) {
     sage(k, "P1", "offen", `WATTest kennt das Datenformat ${String(v)} nicht.`, `WATTest 0.1 kennt die Formatversionen 16 bis 19. ${typeof v === "number" && v < 16 ? "Dateien vor Version 16 lassen sich nach 7. nicht abgleichen." : "Eine neuere Version braucht eine neuere Fassung von WATTest."} Die folgenden Schritte rechnen trotzdem nach den bekannten Regeln.`, { fundstelle: fund, grenze });
     return;
+  }
+  // Die README in schema/ von watt_public führt die Version als Vorabfassung (U-19).
+  if (SCHEMA_VORABFASSUNG.includes(v)) {
+    sage(k, "P1", "hinweis", `Das Schema der Formatversion ${v} ist eine Vorabfassung.`, `Die Schemas der Version ${v} (watt-daten-${v}.schema.json und watt-daten-${v}.xsd) sind als Vorabfassung veröffentlicht: Noch keine ausgelieferte Fassung von WATT schreibt diese Version, und sie kann sich bis dahin ändern (Datenformat, README der Schemas). WATTest prüft gegen diesen Stand.`, { fundstelle: fund, grenze });
   }
   // TE 8., Schritt 1: Ausgelieferte Fassungen exportieren XML ab Formatversion 18.
   const xmlVor18 = kt.quelle === "xml" && v < 18;

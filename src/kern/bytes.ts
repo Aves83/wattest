@@ -5,8 +5,11 @@
 
 const encoder = new TextEncoder();
 
+// Ein einzelnes Ersatzzeichen (ungültiges UTF-16) wird in UTF-8 zu einem Fragezeichen, Byte 0x3F (4.6, Maskierung).
+const EINZELNES_ERSATZZEICHEN = /[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/g;
+
 export function utf8(text: string): Uint8Array {
-  return encoder.encode(text);
+  return encoder.encode(text.replace(EINZELNES_ERSATZZEICHEN, "?"));
 }
 
 export function utf8Laenge(text: string): number {
@@ -15,13 +18,11 @@ export function utf8Laenge(text: string): number {
     const c = text.charCodeAt(i);
     if (c < 0x80) n += 1;
     else if (c < 0x800) n += 2;
-    else if (c >= 0xd800 && c <= 0xdbff && i + 1 < text.length) {
-      const d = text.charCodeAt(i + 1);
-      if (d >= 0xdc00 && d <= 0xdfff) {
-        n += 4;
-        i++;
-      } else n += 3;
-    } else n += 3;
+    else if (c >= 0xd800 && c <= 0xdbff && i + 1 < text.length && text.charCodeAt(i + 1) >= 0xdc00 && text.charCodeAt(i + 1) <= 0xdfff) {
+      n += 4;
+      i++;
+    } else if (c >= 0xd800 && c <= 0xdfff) n += 1;
+    else n += 3;
   }
   return n;
 }

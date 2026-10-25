@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // WATTest © 2026 Hans-Joachim Steudel
 
-// Kanonische Formen nach der Technischen Erläuterung von WATT (4.2, 4.6, 5.1).
+// Kanonische Formen nach der Technischen Erläuterung von WATT (4.2, 4.6 mit Maskierung, 5.1).
 
 import { utf8Laenge } from "./bytes.js";
 import { isoWatt, zeitpunktMs } from "./zeit.js";
@@ -165,8 +165,40 @@ export function nachtragEingabe(n: { id?: unknown; text?: unknown; erfasstAm?: u
   return felder([n.id, notizId, n.text, zeitpunktKanonisch(n.erfasstAm)]);
 }
 
-function jsonText(wert: unknown): string {
-  return wert === undefined ? "null" : JSON.stringify(wert);
+const KURZFORM: Record<string, string> = { '"': '\\"', "\\": "\\\\", "\b": "\\b", "\t": "\\t", "\n": "\\n", "\f": "\\f", "\r": "\\r" };
+
+/**
+ * Text als JSON-Zeichenkette nach 4.6 (Maskierung): maskiert werden nur ", \ und U+0000 bis U+001F,
+ * fünf davon mit Kurzform, die übrigen als \u00xx in Kleinbuchstaben. Alles andere bleibt unverändert,
+ * auch /, U+007F, U+2028, U+2029 und ein einzelnes Ersatzzeichen (in UTF-8 dann „?“, siehe utf8).
+ */
+export function jsonZeichenkette(text: string): string {
+  return `"${text.replace(/["\\\u0000-\u001f]/g, (z) => KURZFORM[z] ?? `\\u${z.charCodeAt(0).toString(16).padStart(4, "0")}`)}"`;
+}
+
+/**
+ * JSON-Text nach 4.6: aufgebaut wie JSON.stringify(wert, null, einzug), Texte aber nach jsonZeichenkette.
+ * Fehlende Werte (undefined) entfallen in Objekten und stehen in Listen und als Ganzes als null.
+ */
+export function jsonKanonisch(wert: unknown, einzug = 0): string {
+  const schreibe = (w: unknown, tiefe: string): string | undefined => {
+    if (w === null) return "null";
+    if (typeof w === "string") return jsonZeichenkette(w);
+    if (typeof w === "number") return Number.isFinite(w) ? String(w) : "null";
+    if (typeof w === "boolean") return String(w);
+    if (typeof w !== "object") return undefined;
+    const innen = einzug ? tiefe + " ".repeat(einzug) : "";
+    const teile = Array.isArray(w)
+      ? w.map((x) => schreibe(x, innen) ?? "null")
+      : Object.entries(w).flatMap(([k, x]) => {
+          const t = schreibe(x, innen);
+          return t === undefined ? [] : [`${jsonZeichenkette(k)}:${einzug ? " " : ""}${t}`];
+        });
+    const [auf, zu] = Array.isArray(w) ? ["[", "]"] : ["{", "}"];
+    if (!teile.length) return auf + zu;
+    return einzug ? `${auf}\n${innen}${teile.join(`,\n${innen}`)}\n${tiefe}${zu}` : auf + teile.join(",") + zu;
+  };
+  return schreibe(wert, "") ?? "null";
 }
 
 /** Kanonische Form eines Eintrags für die Bestandsprüfsumme (4.6). */
@@ -188,7 +220,7 @@ export function bestandEintragEingabe(e: Record<string, unknown>): string {
     ["fach", e.fach ?? ""],
     ["klasse", e.klasse ?? ""],
   ];
-  return "{" + teile.map(([k, v]) => `${JSON.stringify(k)}:${jsonText(v)}`).join(",") + "}";
+  return "{" + teile.map(([k, v]) => `${jsonZeichenkette(k)}:${jsonKanonisch(v)}`).join(",") + "}";
 }
 
 /** Kanonische Form einer Abwesenheit für die Bestandsprüfsumme (4.6). */
@@ -200,7 +232,7 @@ export function bestandAbwesenheitEingabe(a: Record<string, unknown>): string {
     ["beginn", z(a.beginn)],
     ["ende", z(a.ende)],
   ];
-  return "{" + teile.map(([k, v]) => `${JSON.stringify(k)}:${jsonText(v)}`).join(",") + "}";
+  return "{" + teile.map(([k, v]) => `${jsonZeichenkette(k)}:${jsonKanonisch(v)}`).join(",") + "}";
 }
 
 /**
@@ -217,5 +249,5 @@ export function bestandDatenEingabe(datei: Record<string, unknown>): string {
     else if (k === "protokoll") kopie[k] = [];
     else kopie[k] = v;
   }
-  return JSON.stringify(kopie, null, 4);
+  return jsonKanonisch(kopie, 4);
 }

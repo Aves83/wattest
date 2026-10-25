@@ -217,30 +217,44 @@ function pruefeBezug(k: Kontext): void {
 /**
  * Zerlegung eines Zeitsprungs bis zu einem Glied uhr_verstellt (4.7):
  * zeitpunkt(uhr_verstellt) − zeitpunkt(voriges) = (vorher − zeitpunkt(voriges)) + (nachher − vorher).
+ * Der zweite Teil gleicht abweichungSekunden mit Vorzeichen (U-14); passt er nicht, „?“ (E-27).
+ * Liegt der erste Teil unter der Grenze aus 4.7, nur ein Hinweis (U-15, E-28).
  */
 function pruefeVerstellungen(k: Kontext): void {
   const g = k.kt.glieder;
   const verstellt = g.map((x, i) => ({ x, i })).filter(({ x }) => x.objektArt === "uhr_verstellt");
   if (!verstellt.length) return;
   const abweichend: Detail[] = [];
+  const ersterTeil: { x: Glied; text: string }[] = [];
   for (const { x, i } of verstellt) {
     const d = x.json ?? {};
     const vorher = zeitpunktMs(d["vorher"]);
     const nachher = zeitpunktMs(d["nachher"]);
+    const schritte = d["schritte"] !== undefined;
     const probleme: string[] = [];
     if (vorher === null || nachher === null) probleme.push("vorher oder nachher fehlt");
     else {
       if (x.ms !== null && x.ms !== nachher) probleme.push(`zeitpunkt (${deutsch(x.ms)}) gleicht nicht nachher (${deutsch(nachher)})`);
-      // Der erste Teil ist die verstrichene Zeit nach der Monotonuhr, bis auf unvermerkte Abweichungen bis 2 Minuten.
+      // Erster Teil: nicht unter −120 Sekunden (Grenze eingeschlossen), bei schritte nicht negativ.
       const voriges = g[i - 1];
-      if (voriges && voriges.ms !== null && vorher - voriges.ms < -120000) probleme.push(`vorher (${deutsch(vorher)}) liegt mehr als 2 Minuten vor ${gliedText(voriges)}`);
+      if (voriges && voriges.ms !== null && vorher - voriges.ms < (schritte ? 0 : -120000)) {
+        ersterTeil.push({ x, text: `${gliedText(x)}: vorher (${deutsch(vorher)}) liegt ${zahl(Math.trunc((voriges.ms - vorher) / 1000))} Sekunden vor ${gliedText(voriges)}${schritte ? " (mit schritte)" : ""}; autoZeit ${x.autoZeit === null ? "fehlt" : String(x.autoZeit)}.` });
+      }
+      // Zweiter Teil: nachher − vorher in ganzen Sekunden, zur Null hin gekürzt.
       const sprung = Math.trunc((nachher - vorher) / 1000);
-      const richtung = d["richtung"];
-      if ((richtung === "vor" && sprung <= 0) || (richtung === "zurueck" && sprung >= 0)) probleme.push(`richtung ${String(richtung)} passt nicht zu nachher − vorher (${zahl(sprung)} Sekunden)`);
       const ab = d["abweichungSekunden"];
-      if (typeof ab !== "number") probleme.push("abweichungSekunden fehlt");
-      else if (d["schritte"] === undefined ? Math.abs(sprung) !== Math.abs(ab) : Math.abs(sprung) > Math.abs(ab)) {
-        probleme.push(`nachher − vorher sind ${zahl(sprung)} Sekunden, abweichungSekunden nennt ${zahl(ab)}${d["schritte"] !== undefined ? " (Summe der Beträge der Schritte)" : ""}`);
+      if (typeof ab !== "number" || !Number.isInteger(ab)) probleme.push("abweichungSekunden fehlt oder ist keine ganze Zahl");
+      else {
+        if (Math.abs(ab) < 120) probleme.push(`der Betrag von abweichungSekunden (${zahl(ab)}) ist kleiner als 120`);
+        const richtung = d["richtung"];
+        if (richtung !== (ab > 0 ? "vor" : "zurueck")) probleme.push(`richtung ${String(richtung)} passt nicht zu abweichungSekunden ${zahl(ab)}`);
+        if (!schritte) {
+          if (sprung !== ab) probleme.push(`nachher − vorher sind ${zahl(sprung)} Sekunden, abweichungSekunden nennt ${zahl(ab)}`);
+        } else {
+          // Bei schritte: Summe der Beträge mit dem Vorzeichen der Gesamtrichtung; bei genauem Ausgleich vor.
+          const vorzeichenPasst = nachher === vorher ? ab > 0 : sprung === 0 || Math.sign(sprung) === Math.sign(ab);
+          if (!vorzeichenPasst || Math.abs(sprung) > Math.abs(ab)) probleme.push(`nachher − vorher sind ${zahl(sprung)} Sekunden, abweichungSekunden nennt ${zahl(ab)} (Summe der Beträge der Schritte mit dem Vorzeichen der Gesamtrichtung)`);
+        }
       }
     }
     const folgend = g[i + 1];
@@ -249,9 +263,19 @@ function pruefeVerstellungen(k: Kontext): void {
   }
   const fund = dateiFundstelle(k, `Glied ${bereiche(verstellt.map(({ x }) => x.seq ?? 0))}`);
   if (abweichend.length) {
-    sage(k, "P4", "offen", `${anzahl(abweichend.length, "Vermerk uhr_verstellt passt", "Vermerke uhr_verstellt passen")} nicht zur Rechnung in 4.7.`, "Nach 4.7 gleicht zeitpunkt des Glieds uhr_verstellt dem Wert nachher, vorher liegt nicht vor dem vorigen Glied (bis auf unvermerkte Abweichungen bis 2 Minuten), und nachher − vorher gleicht abweichungSekunden (ganze Sekunden, zur Null hin gekürzt; bei schritte höchstens die Summe der Beträge). Die Prüfsummen der Glieder prüft P2; hier erklärt der Vermerk den Zeitsprung nicht so, wie die Technische Erläuterung es beschreibt.", { fundstelle: fund, grenze: GRENZE.zeit, details: abweichend });
+    sage(k, "P4", "offen", `${anzahl(abweichend.length, "Vermerk uhr_verstellt passt", "Vermerke uhr_verstellt passen")} nicht zur Rechnung in 4.7.`, "Nach 4.7 gleicht zeitpunkt des Glieds uhr_verstellt dem Wert nachher, und abweichungSekunden ist nachher − vorher in ganzen Sekunden, zur Null hin gekürzt, mit Vorzeichen: positiv bei richtung vor, negativ bei richtung zurueck, im Betrag mindestens 120. Bei schritte nennt abweichungSekunden die Summe der Beträge mit dem Vorzeichen der Gesamtrichtung (bei genauem Ausgleich vor). Die Prüfsummen der Glieder prüft P2; hier erklärt der Vermerk den Zeitsprung nicht so, wie die Technische Erläuterung es beschreibt.", { fundstelle: fund, grenze: GRENZE.zeit, details: abweichend });
   } else {
-    sage(k, "P4", "bestaetigt", `${verstellt.length === 1 ? "Der Vermerk uhr_verstellt erklärt seinen Zeitsprung" : `Die ${zahl(verstellt.length)} Vermerke uhr_verstellt erklären ihre Zeitsprünge`} nach der Rechnung in 4.7.`, "zeitpunkt(uhr_verstellt) − zeitpunkt(voriges Glied) = (vorher − zeitpunkt(voriges Glied)) + (nachher − vorher): Der erste Teil ist die verstrichene Zeit nach der Monotonuhr, der zweite die Verstellung; sie gleicht abweichungSekunden (4.7).", { fundstelle: fund, grenze: GRENZE.zeit });
+    sage(k, "P4", "bestaetigt", `${verstellt.length === 1 ? "Der Vermerk uhr_verstellt erklärt seinen Zeitsprung" : `Die ${zahl(verstellt.length)} Vermerke uhr_verstellt erklären ihre Zeitsprünge`} nach der Rechnung in 4.7.`, "zeitpunkt(uhr_verstellt) − zeitpunkt(voriges Glied) = (vorher − zeitpunkt(voriges Glied)) + (nachher − vorher): Der erste Teil ist die verstrichene Zeit nach der Monotonuhr, der zweite die Verstellung; sie gleicht abweichungSekunden mit Vorzeichen (4.7).", { fundstelle: fund, grenze: GRENZE.zeit });
+  }
+  if (ersterTeil.length) {
+    sage(
+      k,
+      "P4",
+      "hinweis",
+      `${ersterTeil.length === 1 ? "Bei einem Vermerk uhr_verstellt liegt" : `Bei ${zahl(ersterTeil.length)} Vermerken uhr_verstellt liegt`} vorher weiter vor dem vorigen Glied, als 4.7 es vorsieht.`,
+      "Nach 4.7 ist der erste Teil der Zerlegung (vorher − zeitpunkt des vorigen Glieds) nicht kleiner als −120 Sekunden, die Grenze eingeschlossen; bei schritte stehen die Schritte vollständig im zweiten Teil, und der erste Teil ist nicht negativ. Ausgenommen sind Korrekturen der Uhr zurück bei eingeschalteter automatischer Uhrzeit (Netzzeit), die WATT nicht summiert. Das ist ein Hinweis zur Klärung, kein Beleg einer Manipulation; autoZeit des Glieds uhr_verstellt zeigt, ob die automatische Uhrzeit bei der Erkennung eingeschaltet war.",
+      { fundstelle: dateiFundstelle(k, `Glied ${bereiche(ersterTeil.map(({ x }) => x.seq ?? 0))}`), grenze: GRENZE.zeit, details: ersterTeil.map(({ text }) => ({ text })) },
+    );
   }
 }
 

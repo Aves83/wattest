@@ -1,17 +1,20 @@
 // SPDX-License-Identifier: EUPL-1.2
 // WATTest © 2026 Hans-Joachim Steudel
 
-// Rechenbeispiele der Technischen Erläuterung (4.2, 4.6, 4.7, 5.1) als Testvektoren.
+// Rechenbeispiele der Technischen Erläuterung (4.2, 4.6, 4.7, 5.1) als Testvektoren, dazu die Maskierung nach 4.6.
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { ausBase64, textAus, utf8 } from "../src/kern/bytes.js";
+import { ausBase64, textAus, utf8, utf8Laenge } from "../src/kern/bytes.js";
 import {
   anzeigeEingabe,
   bestandDatenEingabe,
   bestandEintragEingabe,
+  feld,
   gespraechEingabe,
   gliedEingabe,
+  jsonKanonisch,
+  jsonZeichenkette,
   nachweisgliedEingabe,
   type AnzeigeRoh,
   type GliedRoh,
@@ -124,3 +127,73 @@ test("B7: Glied der Nachweiskette (5.1)", async () => {
   assert.equal(nachweisgliedEingabe(x.objekt as never), x.eingabe);
   assert.equal(await sha256Hex(nachweisgliedEingabe(x.objekt as never)), x.sha256);
 });
+
+// U-17: Maskierung nach 4.6 für die Bestandsprüfsumme, den Klartext-Export über bestand und daten (4.2).
+
+test("B13: Bestandsprüfsumme eines Eintrags mit Umlauten, Anführungszeichen und Tabulator (4.6)", async () => {
+  const x = v("B13");
+  const e = x.objekt as Record<string, unknown>;
+  assert.equal(e["notiz"], 'Aufsatz "Märchen"\tGröße');
+  assert.equal(bestandEintragEingabe(e), x.eingabe);
+  assert.equal(await sha256Hex(bestandEintragEingabe(e)), x.sha256);
+  assert.equal(x.sha256.slice(0, 32), x.bestand);
+});
+
+test("U-17: Tabelle der Maskierung (4.6)", () => {
+  const tabelle: [number, string][] = [
+    [0x22, '\\"'],
+    [0x5c, "\\\\"],
+    [0x08, "\\b"],
+    [0x09, "\\t"],
+    [0x0a, "\\n"],
+    [0x0c, "\\f"],
+    [0x0d, "\\r"],
+    [0x00, "\\u0000"],
+    [0x1b, "\\u001b"],
+    [0x1f, "\\u001f"],
+  ];
+  for (const [c, m] of tabelle) assert.equal(jsonZeichenkette(String.fromCharCode(c)), `"${m}"`, `U+${c.toString(16).padStart(4, "0")}`);
+});
+
+test("U-17: alle anderen Zeichen stehen unverändert in UTF-8", () => {
+  for (const c of [0x2f, 0x7f, 0x2028, 0x2029, 0xe4, 0xdf, 0x20ac, 0x1f600]) {
+    const z = String.fromCodePoint(c);
+    assert.equal(jsonZeichenkette(z), `"${z}"`, `U+${c.toString(16)}`);
+  }
+  assert.equal(utf8(String.fromCodePoint(0xe4)).length, 2);
+  assert.equal(utf8(String.fromCodePoint(0x20ac)).length, 3);
+  assert.equal(utf8(String.fromCodePoint(0x1f600)).length, 4);
+  assert.equal(utf8Laenge(String.fromCodePoint(0x1f600)), 4);
+});
+
+test("U-17: ein einzelnes Ersatzzeichen wird in UTF-8 zu einem Fragezeichen (0x3F)", async () => {
+  for (const c of [0xd800, 0xdfff, 0xd83d]) {
+    const z = String.fromCharCode(c);
+    assert.deepEqual([...utf8(`a${z}b`)], [0x61, 0x3f, 0x62]);
+    assert.equal(utf8Laenge(`a${z}b`), 3);
+    assert.equal(jsonZeichenkette(z), `"${z}"`);
+    assert.equal(feld(z), `1:${z}`);
+  }
+  // Das Paar bleibt ein Zeichen mit vier Bytes, nur der Rest eines Paars wird zu „?“.
+  assert.deepEqual([...utf8(String.fromCharCode(0xd83d, 0xde00, 0xde00))], [0xf0, 0x9f, 0x98, 0x80, 0x3f]);
+  const e = { ...(v("B13").objekt as Record<string, unknown>), notiz: `Ende ${String.fromCharCode(0xd83d)}` };
+  assert.equal(await sha256Hex(bestandEintragEingabe(e)), await sha256Hex(bestandEintragEingabe({ ...e, notiz: "Ende ?" })));
+});
+
+test("U-17: kanonisches JSON gleicht JSON.stringify bis auf einzelne Ersatzzeichen", () => {
+  const text = `x/ü${String.fromCharCode(0x1b, 0x7f, 0x2028, 0x2029)}€${String.fromCodePoint(0x1f600)}`;
+  const wert = { a: text, b: [], c: {}, d: [1, 22.5, -0.25, { e: null, f: true, g: false }], i: undefined, j: [undefined] };
+  for (const einzug of [0, 4]) assert.equal(jsonKanonisch(wert, einzug), JSON.stringify(wert, null, einzug));
+  const einzeln = { n: String.fromCharCode(0xd800) };
+  assert.equal(jsonKanonisch(einzeln), `{"n":"${String.fromCharCode(0xd800)}"}`);
+  assert.equal(JSON.stringify(einzeln), '{"n":"\\ud800"}');
+});
+
+test("U-17: Prüfsumme des Datenbestands mit Zeichen, die andere Werkzeuge maskieren", () => {
+  const datei = JSON.parse(v("B3").eingabe) as Record<string, unknown>;
+  const name = `Müller/Été ${String.fromCharCode(0x1b)}€`;
+  const text = bestandDatenEingabe({ ...datei, profil: { ...(datei["profil"] as Record<string, unknown>), name } });
+  assert.ok(text.includes(`"name": "Müller/Été \\u001b€"`), text);
+  assert.ok(!text.includes("\\/") && !text.includes("\\u00e"), text);
+});
+

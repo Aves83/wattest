@@ -46,7 +46,7 @@ export function optionen(weiter: Partial<Optionen> = {}): Optionen {
 }
 
 export async function befund(dateien: Eingabedatei[], weiter: Partial<Optionen> = {}): Promise<Befund> {
-  return pruefe(dateien, optionen(weiter), { version: "0.1.2", commit: "test" });
+  return pruefe(dateien, optionen(weiter), { version: "0.1.3", commit: "test" });
 }
 
 /** Schlechtestes Zeichen der Aussagen eines Schritts ohne Hinweise; null, wenn es keine gibt. */

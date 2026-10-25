@@ -3,14 +3,14 @@
 
 // Erzeugt src/kern/schema-auszug.ts aus den JSON-Schemas von WATT (Versionen 16 bis 19):
 // die Teile, die WATTest liest, ohne Beschreibungen. Andere Definitionen werden nur auf ihren Typ geprüft.
-// Veröffentlicht sind in Aves83/watt_public (schema/) die Versionen 16 bis 18; die Version 19 stammt aus dem
-// früheren Stand der Unterlagen (docs/UNKLARHEITEN.md, U-19).
-// Aufruf: node scripts/schema-auszug.mjs <Ordner mit watt-daten-<Version>.schema.json>
+// Quelle ist Aves83/watt_public (schema/). Versionen, die die README dort als Vorabfassung führt
+// („| 19 (Vorabfassung) |“), stehen in SCHEMA_VORABFASSUNG; P1 nennt das im Befund.
+// Aufruf: node scripts/schema-auszug.mjs <Ordner mit watt-daten-<Version>.schema.json und README.md>
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-const ordner = process.argv[2] ?? "referenz/schnittstelle";
+const ordner = process.argv[2] ?? "referenz/watt_public";
 const GELESEN = [
   "zeitpunkt", "zeitpunktOderNull", "tag", "tagOderNull", "hash", "textOderNull",
   "eintrag", "abwesenheit", "glied", "kettenschluessel", "kettensignatur",
@@ -33,6 +33,10 @@ function bereinige(x, istProperties = false) {
   return x;
 }
 
+// Zeilen der Versionstabelle wie „| 19 (Vorabfassung) | …“.
+const readme = readFileSync(join(ordner, "README.md"), "utf8");
+const vorab = [...readme.matchAll(/^\| (\d+) \(Vorabfassung\) \|/gm)].map((m) => Number(m[1]));
+
 const aus = {};
 for (const v of [16, 17, 18, 19]) {
   const s = JSON.parse(readFileSync(join(ordner, `watt-daten-${v}.schema.json`), "utf8"));
@@ -53,10 +57,13 @@ for (const v of [16, 17, 18, 19]) {
 const kopf = `// SPDX-License-Identifier: EUPL-1.2
 // WATTest © 2026 Hans-Joachim Steudel
 
-// Erzeugt von scripts/schema-auszug.mjs aus den JSON-Schemas 16 bis 19 von WATT (docs/schnittstelle/,
+// Erzeugt von scripts/schema-auszug.mjs aus den JSON-Schemas 16 bis 19 von WATT (Aves83/watt_public, schema/,
 // CC BY 4.0, Hans-Joachim Steudel). Nicht von Hand ändern.
+
+/** Versionen, deren Schema die README in schema/ als Vorabfassung führt. */
+export const SCHEMA_VORABFASSUNG: readonly number[] = ${JSON.stringify(vorab)};
 
 /* eslint-disable */
 export const SCHEMA_AUSZUG: Record<number, any> = `;
 writeFileSync("src/kern/schema-auszug.ts", kopf + JSON.stringify(aus) + ";\n");
-console.log("geschrieben");
+console.log("geschrieben, Vorabfassung:", vorab.join(", ") || "keine");
