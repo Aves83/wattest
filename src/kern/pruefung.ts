@@ -3,10 +3,12 @@
 
 // Ablauf der Prüfung: Eingaben erkennen, P1 Format, dann P2 bis P9 je Klartext und P8 für Aktenauszüge.
 
-import { anzahl, gesamt, gesamtText, type Aussage, type Befund, type GeprueftDatei, type Schritt } from "./befund.js";
+import { anzahl, gesamt, gesamtText, zahl, type Aussage, type Befund, type GeprueftDatei, type Schritt } from "./befund.js";
 import { textAus } from "./bytes.js";
+import { GRENZE_HAERTUNG, GRENZWERTE, grenzeText } from "./grenzen.js";
+import { leseJson } from "./json.js";
 import { glieder, objekt, type Klartext } from "./klartext.js";
-import { dateiFundstelle, sage, type Kontext, type Optionen } from "./kontext.js";
+import { Abbruch, dateiFundstelle, sage, type Kontext, type Optionen } from "./kontext.js";
 import { bekannteVersion, pruefeSchema } from "./schema.js";
 import { SCHEMA_VORABFASSUNG } from "./schema-auszug.js";
 import { pruefeAnker } from "./schritte-anker.js";
@@ -16,12 +18,14 @@ import { pruefeAktenauszug, pruefeNachweise, type Aktenauszug, type Dokumentbind
 import { pruefeSignaturen } from "./schritte-signatur.js";
 import { sha256Hex } from "./sha.js";
 import { leseXml, xmlZuJson } from "./xml.js";
-import { istZip, leseZip } from "./zip.js";
+import { istZip, leseZip, ZipFehler } from "./zip.js";
 import { isoWatt } from "./zeit.js";
 
 export interface Eingabedatei {
   name: string;
   bytes: Uint8Array;
+  /** Größe laut Dateisystem, wenn die Seite die Datei wegen ihrer Größe nicht gelesen hat */
+  groesse?: number;
 }
 
 export interface Programminfo {
@@ -32,36 +36,45 @@ export interface Programminfo {
 type Erkannt =
   | { art: "klartext"; kt: Klartext }
   | { art: "aktenauszug"; az: Aktenauszug }
-  | { art: "hinweis"; text: string; begruendung: string };
+  | { art: "hinweis"; text: string; begruendung: string; grenze?: string };
 
 const REIHENFOLGE: Schritt[] = ["E", "P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9"];
 
-function leseText(name: string, text: string): { daten: Record<string, unknown>; quelle: "json" | "xml"; xmlUnbekannt: string[] } | { fehler: string } {
+interface Gelesen {
+  daten: Record<string, unknown>;
+  quelle: "json" | "xml";
+  xmlUnbekannt: string[];
+  unsicher: string[];
+}
+
+function leseText(name: string, text: string): Gelesen | { fehler: string; grenze?: string } {
   const t = text.replace(/^﻿/, "").trimStart();
   if (t.startsWith("{")) {
     try {
-      const d = JSON.parse(t);
-      if (!objekt(d)) return { fehler: `„${name}“ ist kein JSON-Objekt.` };
-      return { daten: d as Record<string, unknown>, quelle: "json", xmlUnbekannt: [] };
+      const { wert, unsicher } = leseJson(t);
+      if (!objekt(wert)) return { fehler: `„${name}“ ist kein JSON-Objekt.` };
+      return { daten: wert as Record<string, unknown>, quelle: "json", xmlUnbekannt: [], unsicher };
     } catch (e) {
-      return { fehler: `„${name}“ ist kein lesbares JSON (${(e as Error).message}).` };
+      const grenze = /Grenze/.test((e as Error).message) ? GRENZE_HAERTUNG : undefined;
+      return { fehler: `„${name}“ ist kein lesbares JSON (${(e as Error).message}).`, ...(grenze ? { grenze } : {}) };
     }
   }
   if (t.startsWith("<")) {
     try {
-      const { daten, unbekannt } = xmlZuJson(leseXml(t));
-      return { daten, quelle: "xml", xmlUnbekannt: unbekannt };
+      const { daten, unbekannt, unsicher } = xmlZuJson(leseXml(t));
+      return { daten, quelle: "xml", xmlUnbekannt: unbekannt, unsicher };
     } catch (e) {
-      return { fehler: `„${name}“ ist kein lesbares XML von WATT (${(e as Error).message}).` };
+      const grenze = /Grenze|DTD/.test((e as Error).message) ? GRENZE_HAERTUNG : undefined;
+      return { fehler: `„${name}“ ist kein lesbares XML von WATT (${(e as Error).message}).`, ...(grenze ? { grenze } : {}) };
     }
   }
   return { fehler: `„${name}“ ist weder JSON noch XML.` };
 }
 
-function alsKlartext(name: string, inhalt: { daten: Record<string, unknown>; quelle: "json" | "xml"; xmlUnbekannt: string[] }, anhaenge: Klartext["anhaenge"]): Erkannt {
+function alsKlartext(name: string, inhalt: Gelesen, anhaenge: Klartext["anhaenge"]): Erkannt {
   const d = inhalt.daten;
   if (d["format"] !== "watt-daten") {
-    return { art: "hinweis", text: `„${name}“ ist keine Datei im Datenformat von WATT.`, begruendung: `Das Feld format ist ${JSON.stringify(d["format"] ?? null)}, nicht „watt-daten“.` };
+    return { art: "hinweis", text: `„${name}“ ist keine Datei im Datenformat von WATT.`, begruendung: `Das Feld format ist ${JSON.stringify(d["format"] ?? null)?.slice(0, 80)}, nicht „watt-daten“.` };
   }
   if (d["umfang"] === "BUCHUNGEN") {
     return {
@@ -70,13 +83,34 @@ function alsKlartext(name: string, inhalt: { daten: Record<string, unknown>; que
       begruendung: "Buchungsdaten (umfang BUCHUNGEN, Export im Überblick) enthalten nur Einträge, Abwesenheiten, Tagesmarkierungen und Ferien eines Zeitraums, aber keine Arbeitszeitkette und keine Nachweise (Datenformat, Abschnitt „Buchungsdaten“). Ohne Kette gibt es nichts nachzurechnen. Für eine Prüfung braucht es den vollständigen Klartext-Export.",
     };
   }
+  const protokoll = d["protokoll"];
+  if (Array.isArray(protokoll) && protokoll.length > GRENZWERTE.glieder) {
+    return {
+      art: "hinweis",
+      text: `„${name}“ hat mehr Glieder, als WATTest prüft.`,
+      begruendung: `Die Arbeitszeitkette hat ${zahl(protokoll.length)} Glieder, mehr als die Grenze von ${grenzeText(GRENZWERTE.glieder)}. WATTest prüft sie nicht, damit die Seite nicht hängt; das ist kein Befund über die Datei.`,
+      grenze: GRENZE_HAERTUNG,
+    };
+  }
   const version = typeof d["version"] === "number" ? (d["version"] as number) : null;
-  return { art: "klartext", kt: { name, quelle: inhalt.quelle, daten: d, version, xmlUnbekannt: inhalt.xmlUnbekannt, anhaenge, glieder: glieder(d) } };
+  const unsicher = [...inhalt.unsicher];
+  const gl = glieder(d, unsicher);
+  return { art: "klartext", kt: { name, quelle: inhalt.quelle, daten: d, version, xmlUnbekannt: inhalt.xmlUnbekannt, unsicher, anhaenge, glieder: gl } };
 }
 
 async function erkenne(datei: Eingabedatei): Promise<Erkannt> {
   const b = datei.bytes;
-  const kopf = String.fromCharCode(...b.subarray(0, 8));
+  const groesse = Math.max(b.length, datei.groesse ?? 0);
+  if (groesse > GRENZWERTE.dateiBytes) {
+    return {
+      art: "hinweis",
+      text: `„${datei.name}“ ist größer, als WATTest prüft.`,
+      begruendung: `Die Datei ist ${grenzeText(groesse, "bytes")} groß, mehr als die Grenze von ${grenzeText(GRENZWERTE.dateiBytes, "bytes")}. WATTest liest sie nicht, damit der Browser nicht hängt; das ist kein Befund über die Datei.`,
+      grenze: GRENZE_HAERTUNG,
+    };
+  }
+  let kopf = "";
+  for (const x of b.subarray(0, 8)) kopf += String.fromCharCode(x);
   if (kopf === "WATTBKUP") {
     return {
       art: "hinweis",
@@ -85,19 +119,30 @@ async function erkenne(datei: Eingabedatei): Promise<Erkannt> {
     };
   }
   if (istZip(b)) {
-    const eintraege = leseZip(b).filter((e) => !e.istOrdner);
-    const summen = eintraege.find((e) => /(^|\/)SHA256SUMS\.txt$/.test(e.pfad));
-    if (summen) {
-      const dateien = [];
-      for (const e of eintraege) dateien.push({ pfad: e.pfad, groesse: e.groesse, sha256: await sha256Hex(await e.lesen()) });
-      return { art: "aktenauszug", az: { name: datei.name, dateien, summenPfad: summen.pfad, summenText: textAus(await summen.lesen(), false) } };
+    let eintraege;
+    try {
+      eintraege = leseZip(b).filter((e) => !e.istOrdner);
+    } catch (e) {
+      if (!(e instanceof ZipFehler)) throw e;
+      return { art: "hinweis", text: `„${datei.name}“ ist ein ZIP, das WATTest nicht liest.`, begruendung: `${e.message} WATTest weist solche ZIP-Dateien ab, statt sie zu entpacken; das ist kein Befund über den Inhalt.`, grenze: GRENZE_HAERTUNG };
     }
-    const haupt = eintraege.filter((e) => !/(^|\/)anhaenge\//.test(e.pfad) && /\.(json|xml)$/i.test(e.pfad));
-    if (haupt.length === 1) {
-      const anhaenge = eintraege.filter((e) => /(^|\/)anhaenge\//.test(e.pfad)).map((e) => ({ pfad: e.pfad, groesse: e.groesse }));
-      const inhalt = leseText(`${datei.name}/${haupt[0]!.pfad}`, textAus(await haupt[0]!.lesen(), false));
-      if ("fehler" in inhalt) return { art: "hinweis", text: inhalt.fehler, begruendung: "Die Datei im ZIP lässt sich nicht lesen." };
-      return alsKlartext(datei.name, inhalt, anhaenge);
+    try {
+      const summen = eintraege.find((e) => /(^|\/)SHA256SUMS\.txt$/.test(e.pfad));
+      if (summen) {
+        const dateien = [];
+        for (const e of eintraege) dateien.push({ pfad: e.pfad, groesse: e.groesse, sha256: await sha256Hex(await e.lesen()) });
+        return { art: "aktenauszug", az: { name: datei.name, dateien, summenPfad: summen.pfad, summenText: textAus(await summen.lesen(), false) } };
+      }
+      const haupt = eintraege.filter((e) => !/(^|\/)anhaenge\//.test(e.pfad) && /\.(json|xml)$/i.test(e.pfad));
+      if (haupt.length === 1) {
+        const anhaenge = eintraege.filter((e) => /(^|\/)anhaenge\//.test(e.pfad)).map((e) => ({ pfad: e.pfad, groesse: e.groesse }));
+        const inhalt = leseText(`${datei.name}/${haupt[0]!.pfad}`, textAus(await haupt[0]!.lesen(), false));
+        if ("fehler" in inhalt) return { art: "hinweis", text: inhalt.fehler, begruendung: "Die Datei im ZIP lässt sich nicht lesen.", ...(inhalt.grenze ? { grenze: inhalt.grenze } : {}) };
+        return alsKlartext(datei.name, inhalt, anhaenge);
+      }
+    } catch (e) {
+      if (!(e instanceof ZipFehler)) throw e;
+      return { art: "hinweis", text: `„${datei.name}“ ließ sich nicht entpacken.`, begruendung: `${e.message} Ein Lesefehler ist kein Befund über den Inhalt.`, grenze: GRENZE_HAERTUNG };
     }
     return {
       art: "hinweis",
@@ -112,7 +157,7 @@ async function erkenne(datei: Eingabedatei): Promise<Erkannt> {
     return { art: "hinweis", text: `„${datei.name}“ ist keine Textdatei in UTF-8.`, begruendung: "Klartext-Exporte von WATT sind JSON oder XML in UTF-8." };
   }
   const inhalt = leseText(datei.name, text);
-  if ("fehler" in inhalt) return { art: "hinweis", text: inhalt.fehler, begruendung: "Klartext-Exporte von WATT sind JSON oder XML in UTF-8." };
+  if ("fehler" in inhalt) return { art: "hinweis", text: inhalt.fehler, begruendung: "Klartext-Exporte von WATT sind JSON oder XML in UTF-8.", ...(inhalt.grenze ? { grenze: inhalt.grenze } : {}) };
   return alsKlartext(datei.name, inhalt, null);
 }
 
@@ -156,6 +201,13 @@ function pruefeFormat(k: Kontext): void {
       details: [...unbekannt.map((f) => f.text), ...kt.xmlUnbekannt.map((p) => `unbekanntes Element ${p}`)].slice(0, 100).map((text) => ({ text })),
     });
   }
+  if (kt.unsicher.length) {
+    sage(k, "P1", "offen", "Die Datei enthält Zahlen, die WATTest nicht genau lesen kann.", `Ganze Zahlen über 9.007.199.254.740.991 (Number.MAX_SAFE_INTEGER) lassen sich im Browser nicht genau darstellen. WATTest rundet sie nicht still, sondern nennt sie hier; Prüfschritte, die diese Werte brauchen (etwa seq in P2 oder Signaturen in P6), sagen über diese Stellen nichts.`, {
+      fundstelle: fund,
+      grenze: GRENZE_HAERTUNG,
+      details: kt.unsicher.map((text) => ({ text })),
+    });
+  }
   const app = String(d["appVersion"] ?? "");
   if (/-debug/.test(app)) {
     sage(k, "P1", "offen", "Die Datei stammt aus der Debug-Variante von WATT.", `appVersion ist ${app}. In der Debug-Variante lassen sich beide Ketten über das Debug-Menü löschen und Beispieldaten anlegen (Technische Erläuterung, Abschnitt 9).`, { fundstelle: fund });
@@ -164,7 +216,10 @@ function pruefeFormat(k: Kontext): void {
 
 /** Führt die ganze Prüfung aus. */
 export async function pruefe(dateien: Eingabedatei[], optionen: Optionen, info: Programminfo): Promise<Befund> {
-  const melde = optionen.fortschritt ?? ((): void => undefined);
+  const melde = (anteil: number, text: string): void => {
+    if (optionen.abgebrochen?.()) throw new Abbruch("Die Prüfung wurde abgebrochen.");
+    optionen.fortschritt?.(anteil, text);
+  };
   const aussagen: Aussage[] = [];
   const geprueft: GeprueftDatei[] = [];
   const klartexte: Klartext[] = [];
@@ -172,7 +227,9 @@ export async function pruefe(dateien: Eingabedatei[], optionen: Optionen, info: 
   const e = { aussagen };
   melde(0, "Dateien werden gelesen");
   for (const d of dateien) {
-    const sha = await sha256Hex(d.bytes);
+    melde(0, `Datei „${d.name}“ wird gelesen`);
+    const zuGross = Math.max(d.bytes.length, d.groesse ?? 0) > GRENZWERTE.dateiBytes;
+    const sha = zuGross ? "" : await sha256Hex(d.bytes);
     let art = "unbekannt";
     try {
       const r = await erkenne(d);
@@ -183,13 +240,14 @@ export async function pruefe(dateien: Eingabedatei[], optionen: Optionen, info: 
         auszuege.push(r.az);
         art = "Aktenauszug (ZIP)";
       } else {
-        sage({ aussagen, datei: d.name }, "E", "offen", r.text, r.begruendung, { fundstelle: `Datei „${d.name}“` });
+        sage({ aussagen, datei: d.name }, "E", "offen", r.text, r.begruendung, { fundstelle: `Datei „${d.name}“`, ...(r.grenze ? { grenze: r.grenze } : {}) });
         art = "nicht prüfbar";
       }
     } catch (err) {
+      if (err instanceof Abbruch) throw err;
       sage({ aussagen, datei: d.name }, "E", "offen", `„${d.name}“ ließ sich nicht lesen.`, `Beim Lesen trat ein Fehler auf: ${(err as Error).message}. Ein Lesefehler ist kein Befund über den Inhalt.`, { fundstelle: `Datei „${d.name}“` });
     }
-    geprueft.push({ name: d.name, groesse: d.bytes.length, sha256: sha, art });
+    geprueft.push({ name: d.name, groesse: Math.max(d.bytes.length, d.groesse ?? 0), sha256: sha, art });
   }
   if (!dateien.length) sage(e, "E", "offen", "Es ist keine Datei geladen.", "WATTest prüft Klartext-Exporte (JSON, XML, ZIP) und Aktenauszüge von WATT.");
   if (!klartexte.length && optionen.anker.length) {
@@ -212,6 +270,7 @@ export async function pruefe(dateien: Eingabedatei[], optionen: Optionen, info: 
       try {
         await f();
       } catch (err) {
+        if (err instanceof Abbruch) throw err;
         sage(k, s, "offen", `Schritt ${s} ließ sich nicht vollständig ausführen.`, `Bei der Prüfung trat ein Fehler auf: ${(err as Error).message}. Ein Prüffehler ist kein Befund über die Datei.`, { fundstelle: dateiFundstelle(k) });
       }
     };
@@ -232,6 +291,7 @@ export async function pruefe(dateien: Eingabedatei[], optionen: Optionen, info: 
     try {
       pruefeAktenauszug(az, bindungen, aussagen);
     } catch (err) {
+      if (err instanceof Abbruch) throw err;
       sage({ aussagen, datei: az.name }, "P8", "offen", `Der Aktenauszug „${az.name}“ ließ sich nicht vollständig prüfen.`, `Fehler: ${(err as Error).message}. Ein Prüffehler ist kein Befund über die Datei.`);
     }
   }
@@ -247,6 +307,6 @@ export async function pruefe(dateien: Eingabedatei[], optionen: Optionen, info: 
     wurzeln: stand(optionen.wurzelnStand, optionen.wurzeln.length),
     aussagen,
     gesamt: g,
-    gesamtText: gesamtText(g),
+    gesamtText: gesamtText(aussagen, klartexte.map((kt) => kt.version)),
   };
 }

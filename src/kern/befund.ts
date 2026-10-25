@@ -38,6 +38,8 @@ export interface Aussage {
   fundstelle?: string;
   grenze?: string;
   details?: Detail[];
+  /** Art eines erwarteten „?“ für die Gesamtzeile: kein Anker, keine Signatur vor Datenformat 19 */
+  kennung?: "ohne-anker" | "ohne-signatur";
 }
 
 export interface GeprueftDatei {
@@ -75,10 +77,64 @@ export function gesamt(aussagen: Aussage[]): Zeichen {
   return "offen";
 }
 
-export function gesamtText(z: Zeichen): string {
+/** Gegenstand je Schritt für den zweiten Satz der Gesamtzeile, mit Angabe der Mehrzahl für das Verb. */
+const GEGENSTAND: Record<Schritt, [string, boolean]> = {
+  E: ["die Eingaben", true],
+  P1: ["das Format", false],
+  P2: ["die Arbeitszeitkette", false],
+  P3: ["der Abgleich der Daten mit der Kette", false],
+  P4: ["die Zeitstempel", true],
+  P5: ["die Anker", true],
+  P6: ["die Signaturen", true],
+  P7: ["die Attestierung", false],
+  P8: ["die Nachweiskette", false],
+  P9: ["die besonderen Glieder", true],
+};
+
+/** Aufzählung der Gegenstände und ob das Verb in der Mehrzahl steht. */
+function gegenstaende(schritte: Schritt[]): [string, boolean] {
+  return [aufzaehlung(schritte.map((s) => GEGENSTAND[s][0])), schritte.length > 1 || GEGENSTAND[schritte[0]!][1]];
+}
+
+const ABFOLGE: Schritt[] = ["E", "P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9"];
+
+/**
+ * Gesamtzeile: ✗ vor ? vor ✓. Bei „?“ folgt aus den Ergebnissen, was bestätigt ist und was fehlt. Die Formatversion
+ * stammt aus der Datei (`formate`, eine je Klartext).
+ */
+export function gesamtText(aussagen: Aussage[], formate: (number | null)[] = []): string {
+  const z = gesamt(aussagen);
   if (z === "widerlegt") return "Mindestens eine Aussage ist widerlegt.";
-  if (z === "offen") return "Nicht alles lässt sich bestätigen; nichts ist widerlegt.";
-  return "Alle Aussagen sind bestätigt.";
+  if (z === "bestaetigt") return "Alle Aussagen sind bestätigt.";
+  return ["Nicht alles lässt sich bestätigen; nichts ist widerlegt.", ...lage(aussagen, formate)].join(" ");
+}
+
+function lage(aussagen: Aussage[], formate: (number | null)[]): string[] {
+  const offen = aussagen.filter((a) => a.zeichen === "offen");
+  const uebrige = offen.filter((a) => !a.kennung);
+  const ohneSignatur = offen.some((a) => a.kennung === "ohne-signatur");
+  const ohneAnker = offen.some((a) => a.kennung === "ohne-anker");
+  const mehrere = formate.length > 1;
+  const saetze: string[] = [];
+  const kette = aussagen.some((a) => a.schritt === "P2" && a.zeichen === "bestaetigt");
+  if (!uebrige.length && kette) saetze.push(mehrere ? "Die Dateien sind in sich stimmig." : "Die Datei ist in sich stimmig.");
+  else if (uebrige.length) {
+    const fehlt = ABFOLGE.filter((s) => uebrige.some((a) => a.schritt === s));
+    const bestaetigt = ABFOLGE.filter((s) => !fehlt.includes(s) && aussagen.some((a) => a.schritt === s && a.zeichen === "bestaetigt"));
+    const [was, mehrzahl] = gegenstaende(fehlt);
+    const offenText = `offen ${mehrzahl ? "bleiben" : "bleibt"} ${was} (siehe die Aussagen mit „?“).`;
+    if (bestaetigt.length) {
+      const [wasB, mehrzahlB] = gegenstaende(bestaetigt);
+      saetze.push(`Bestätigt ${mehrzahlB ? "sind" : "ist"} ${wasB}; ${offenText}`);
+    } else saetze.push(offenText[0]!.toUpperCase() + offenText.slice(1));
+  }
+  if (ohneSignatur) {
+    const alt = [...new Set(formate.filter((v): v is number => v !== null && v < 19))].sort((a, b) => a - b);
+    const wer = alt.length > 1 ? `diese Dateien (Datenformat ${aufzaehlung(alt.map(String))}) keine Signatur haben` : `diese Datei (Datenformat ${alt[0] ?? "?"}) keine Signatur hat`;
+    saetze.push(`WATT signiert erst ab Datenformat 19; dass ${wer}, ist kein negativer Befund.`);
+  }
+  if (ohneAnker) saetze.push("Den Zeitpunkt bestätigt ein Prüfvermerk aus einem Bericht oder einer Anzeige, wenn du ihn hinzufügst.");
+  return saetze;
 }
 
 export function schlechtestes(aussagen: Aussage[], schritt: Schritt): Zeichen | null {

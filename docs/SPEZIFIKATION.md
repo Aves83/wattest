@@ -1,4 +1,4 @@
-# WATTest – Spezifikation (Stand 25.10.2026, Entscheidungen Achim eingearbeitet; umgesetzt in WATTest 0.1.4, siehe Abschnitt 13)
+# WATTest – Spezifikation (Stand 25.10.2026, Entscheidungen Achim eingearbeitet; umgesetzt in WATTest 0.1.5, siehe Abschnitt 13)
 
 > **Stimmt WATT?** WATTest prüft Exporte der App WATT: ob die Arbeitszeitkette intakt ist, ob sie zu vorhandenen Ankern passt, ob die Daten zur Kette passen und, ab WATT „D“, ob die Kette vom echten WATT auf einem bestätigten Gerät stammt.
 
@@ -54,14 +54,14 @@ Jeder Schritt liefert einen Teilbefund (Abschnitt 6) mit Begründung und Fundste
 | P1 | Format | Formatversion erkannt, Datei gegen das Schema ihrer Version gültig; unbekannte Version → „nicht bestätigbar“; Hinweis, solange die README der Schemas die Version als Vorabfassung führt (derzeit 19) |
 | P2 | Arbeitszeitkette | Prüfsumme jedes Glieds nach 4.2 neu berechnen (beide kanonischen Formen: ohne und mit `neustarts`/`autoZeit`), Verkettung über `prev`, `seq` lückenlos ab 1, Neubeginn nur als erstes Glied |
 | P3 | Daten passen zur Kette | Kette nachspielen nach 7.; der entstehende Stand muss genau `eintraege` und `abwesenheiten` entsprechen; Abweichungen je Eintrag |
-| P4 | Zeit | Zeitstempel steigend; ein Rücksprung über 2 Minuten ist erklärt, wenn unmittelbar ein `uhr_ruecksprung` folgt oder das Glied selbst ein Vermerk zur Uhr ist (`uhr_ruecksprung` mit `objektId` `timer`, `nachweis`, `start` oder `zeitsignal`, `uhr_verstellt` mit `richtung` `zurueck`; 8. Schritt 5); je `uhr_verstellt` die Zerlegung des Zeitsprungs nach 4.7 (`zeitpunkt` = `nachher`; `abweichungSekunden` = `nachher − vorher` in ganzen Sekunden, zur Null hin gekürzt, mit Vorzeichen, Betrag mindestens 120, `richtung` `vor` genau bei positivem Wert; bei `schritte` die Summe der Beträge mit dem Vorzeichen der Gesamtrichtung, bei genauem Ausgleich `vor`); Hinweis, wenn der erste Teil (`vorher` − Zeitpunkt des vorigen Glieds) unter −120 Sekunden liegt, bei `schritte` unter 0; Liste aller `uhr_ruecksprung`, `uhr_abweichung`, `uhr_verstellt`; Summe der `neustarts`; Abschnitte mit `autoZeit` aus; bei `uhr_ruecksprung` mit Uhrstand die Regel zum Bezug nach 4.7 (`objektId` laufende Nummer: auslösendes Glied davor `neustarts` größer als 0 oder -1, Vermerk 0; `timer`, `nachweis`, `start`, `zeitsignal`: Vermerk selbst größer als 0 oder -1; Ausnahme `nachweis` als erstes Glied einer leeren Kette mit 0; eingespielte Glieder ebenso; ohne Uhrstand entfällt die Regel), Verstoß „?“ (U-18) |
-| P5 | Anker | Je Anker: Glied mit `seq = n` suchen, `hash = sha256`, Zeitpunkt in Europe/Berlin auf Minuten = `t`; die Zähler `r`, `w`, `wa`, `i` (Anlage-Glieder `eintrag` und `abwesenheit` mit `importDatei`), `s` gegen die Kette bis `n`; Anker ohne passendes Glied → „widerlegt“ bzw. „nicht in dieser Kette“ |
-| P6 | Signaturen (ab D) | Signatur je Kopf über `watt-kopf-1:<hash>` mit dem Schlüssel aus dem Glied `schluessel` prüfen; Abschnitte: signiert ab Glied n, eingespielt (vor `wiederherstellung`, Herkunft aus deren eigenen Signaturen), unsigniert, ungültig ab Glied n |
-| P7 | Attestierung (ab D) | Zertifikatskette bis zu einer Google-Wurzel (alte RSA-Wurzel und „Key Attestation CA1“, ECDSA P-384), Gültigkeit aller Zertifikate zum Bezugszeitpunkt, Grenzen eingeschlossen (Zeitpunkt des Glieds `schluessel`; beim Vorratsschlüssel der leeren Kette, dem Glied mit `challenge`, `creationDateTime` und ohne es der Zeitpunkt des Glieds), keine gesperrten Zertifikate laut Sperrliste (Stand angeben); aus der Erweiterung 1.3.6.1.4.1.11129.2.1.17: Paketname `de.achim.watt` und SHA-256 der App-Signatur = veröffentlichter Fingerabdruck, Sicherheitsstufe TEE oder StrongBox (Software → „nicht bestätigt“), `verifiedBootState` Verified und `deviceLocked`, Challenge = `hash` des Kopfs vor dem Glied `schluessel` (steht dazwischen `uhr_verstellt` mit `objektId` `glied`, der `hash` des Glieds davor), bei leerer Kette die Zufallsbytes in `challenge`; Hinweis, wenn das erste signierte Glied älter ist als das Zwischenzertifikat (grobe Untergrenze) |
+| P4 | Zeit | Zeitstempel steigend, als genau eine Aussage je nach Lage (ohne Sprünge; mit Sprüngen, alle vermerkt; Sprung ohne Vermerk ✗, Abschnitt 6); ein Rücksprung über 2 Minuten ist erklärt, wenn unmittelbar ein `uhr_ruecksprung` folgt oder das Glied selbst ein Vermerk zur Uhr ist (`uhr_ruecksprung` mit `objektId` `timer`, `nachweis`, `start` oder `zeitsignal`, `uhr_verstellt` mit `richtung` `zurueck`; 8. Schritt 5); je `uhr_verstellt` die Zerlegung des Zeitsprungs nach 4.7 (`zeitpunkt` = `nachher`; `abweichungSekunden` = `nachher − vorher` in ganzen Sekunden, zur Null hin gekürzt, mit Vorzeichen, Betrag mindestens 120, `richtung` `vor` genau bei positivem Wert; bei `schritte` die Summe der Beträge mit dem Vorzeichen der Gesamtrichtung, bei genauem Ausgleich `vor`); Hinweis, wenn der erste Teil (`vorher` − Zeitpunkt des vorigen Glieds) unter −120 Sekunden liegt, bei `schritte` unter 0; Liste aller `uhr_ruecksprung`, `uhr_abweichung`, `uhr_verstellt`; Summe der `neustarts`; Abschnitte mit `autoZeit` aus; bei `uhr_ruecksprung` mit Uhrstand die Regel zum Bezug nach 4.7 (`objektId` laufende Nummer: auslösendes Glied davor `neustarts` größer als 0 oder -1, Vermerk 0; `timer`, `nachweis`, `start`, `zeitsignal`: Vermerk selbst größer als 0 oder -1; Ausnahme `nachweis` als erstes Glied einer leeren Kette mit 0; eingespielte Glieder ebenso; ohne Uhrstand entfällt die Regel), Verstoß „?“ (U-18) |
+| P5 | Anker | Je Anker: Glied mit `seq = n` suchen, `hash = sha256`, Zeitpunkt in Europe/Berlin auf Minuten = `t`; die Zähler `r`, `w`, `wa`, `i` (Anlage-Glieder `eintrag` und `abwesenheit` mit `importDatei`), `s` gegen die Kette bis `n`; Anker ohne passendes Glied → „widerlegt“ bzw. „nicht in dieser Kette“; ohne Anker „?“ mit dem Handlungshinweis „Füge einen Prüfvermerk aus einem Bericht oder einer Anzeige hinzu (Text oder QR-Code), um den Stand daran zu prüfen.“ |
+| P6 | Signaturen (ab D) | Signatur je Kopf über `watt-kopf-1:<hash>` mit dem Schlüssel aus dem Glied `schluessel` prüfen; Abschnitte: signiert ab Glied n, eingespielt (vor `wiederherstellung`, Herkunft aus deren eigenen Signaturen), unsigniert, ungültig ab Glied n; Signaturen zu Gliedern, die es nicht gibt, mehrere zu einem Glied, nicht genau lesbare `seq`, nicht lesbare oder zu lange Signaturen und Schlüssel mit unlesbaren Zertifikaten → „?“ mit Fundstelle; vor Datenformat 19 nur ein „?“ (Abschnitt 6) |
+| P7 | Attestierung (ab D) | Zertifikatskette bis zu einer Google-Wurzel (alte RSA-Wurzel und „Key Attestation CA1“, ECDSA P-384), Gültigkeit aller Zertifikate zum Bezugszeitpunkt, Grenzen eingeschlossen (Zeitpunkt des Glieds `schluessel`; beim Vorratsschlüssel der leeren Kette, dem Glied mit `challenge`, `creationDateTime` und ohne es der Zeitpunkt des Glieds), keine gesperrten Zertifikate laut Sperrliste (Stand angeben); aus der Erweiterung 1.3.6.1.4.1.11129.2.1.17: Paketname `de.achim.watt` und SHA-256 der App-Signatur = veröffentlichter Fingerabdruck, Sicherheitsstufe TEE oder StrongBox (Software → „nicht bestätigt“), `verifiedBootState` Verified und `deviceLocked`, Challenge = `hash` des Kopfs vor dem Glied `schluessel` (steht dazwischen `uhr_verstellt` mit `objektId` `glied`, der `hash` des Glieds davor), bei leerer Kette die Zufallsbytes in `challenge`; Hinweis, wenn das erste signierte Glied älter ist als das Zwischenzertifikat (grobe Untergrenze); nicht lesbare Zertifikate und Angaben → „?“, nie ✗; vor Datenformat 19 Hinweis „Entfällt (keine Signatur).“ |
 | P8 | Nachweiskette | Prüfsummen nach 5.1 neu berechnen (Anzeigen mit den Notizen mit `fest` true, Gesprächsnotizen, Nachträge aus den Inhalten der Datei), Verkettung, Löschvermerke; im Aktenauszug jedes Dokument gegen `SHA256SUMS.txt` und gegen die Kette |
 | P9 | Besondere Glieder | Übersicht: Neubeginne mit Angaben zur alten Kette (Prüfsumme des Bestands nachgerechnet, wenn der Export ein JSON unmittelbar nach dem Neubeginn ist, 4.6), Wiederherstellungen mit Vorgeschichte, Löschungen mit Begründung, Änderungen mit Kommentar, Nachträge über 24 h nach 4.5 (Erfassung, Änderung und Einlesen getrennt, bis 96 h in Stunden, darüber in Tagen), eingelesene Buchungen (`importDatei`) |
 
-Rechnen im Web Worker mit Fortschritt; Ziel: 10.000 Glieder in wenigen Sekunden auf einem durchschnittlichen Laptop, ohne die Seite zu blockieren.
+Rechnen im Web Worker mit Fortschritt in Teilschritten (Live-Region) und „Abbrechen“; Ziel: 10.000 Glieder in wenigen Sekunden auf einem durchschnittlichen Laptop, ohne die Seite zu blockieren. Ausnahmen in einem Schritt werden zu „?“; scheitert die ganze Prüfung, zeigt die Seite einen Befund mit einer Aussage „?“ statt einer leeren Seite. Feste Grenzen für Eingaben in Abschnitt 14.
 
 ## 6. Befund
 
@@ -69,11 +69,18 @@ Rechnen im Web Worker mit Fortschritt; Ziel: 10.000 Glieder in wenigen Sekunden 
   - ✓ blau: bestätigt
   - ? gelb: nicht bestätigbar (Prüfung nicht möglich oder nicht aussagekräftig, z. B. keine Signaturen, Software-Attestation, Sperrliste nicht verfügbar)
   - ✗ rot: widerlegt
-- Beispiele: „Die Kette ist lückenlos und unverändert.“, „Die Daten entsprechen der Kette.“, „Der Anker vom 12.03.2026 passt zur Kette.“, „Die Kette stammt von WATT auf einem bestätigten Gerät.“, „Die Uhr wurde nicht verstellt.“, „Das Gerät wurde 14-mal neu gestartet.“ (Hinweis), „Die Dokumente im Aktenauszug sind unverändert.“
+- Beispiele: „Die Kette ist lückenlos und unverändert.“, „Die Daten entsprechen der Kette.“, „Der Anker vom 12.03.2026 passt zur Kette.“, „Die Kette stammt von WATT auf einem bestätigten Gerät.“, „Die Zeitstempel steigen an; die Kette enthält keinen Rücksprung und keine Verstellung der Geräteuhr.“, „Das Gerät wurde 14-mal neu gestartet.“ (Hinweis), „Die Dokumente im Aktenauszug sind unverändert.“
 - Zu jeder Aussage aufklappbar: Begründung, Fundstelle (Glied-Nummer, Datei) und Grenze („Über die Zeit vor dem ersten Anker sagt das nichts.“, aus Abschnitt 9 der Technischen Erläuterung).
 - Ein Prüffehler ist nie ✗.
 - Dazu Hinweise (i, grau) für reine Informationen wie Neustarts; sie beeinflussen die Gesamtzeile nicht (Entscheidung E-1).
 - Oben eine Gesamtzeile: ✗, wenn eine Aussage ✗ ist, sonst ?, wenn eine ? ist, sonst ✓.
+- Bei „?“ folgt in der Gesamtzeile aus den Ergebnissen, was bestätigt ist und was fehlt (Auftrag 0.1.5, Feldtest 25.10.2026):
+  - „Die Datei ist in sich stimmig.“, wenn die Kette bestätigt ist und kein anderes „?“ als die beiden folgenden vorliegt; sonst „Bestätigt sind …; offen bleiben … (siehe die Aussagen mit „?“).“ nach Schritten.
+  - Datenformat 16 bis 18 (Formatversion aus der Datei): „WATT signiert erst ab Datenformat 19; dass diese Datei (Datenformat <n>) keine Signatur hat, ist kein negativer Befund.“
+  - Ohne Anker: „Den Zeitpunkt bestätigt ein Prüfvermerk aus einem Bericht oder einer Anzeige, wenn du ihn hinzufügst.“
+- P4 sagt zu den Zeitstempeln genau eine Aussage: ohne Sprünge „Die Zeitstempel steigen an; die Kette enthält keinen Rücksprung und keine Verstellung der Geräteuhr.“; mit Sprüngen, alle vermerkt: „Die Zeitstempel steigen an. Die Geräteuhr wurde <n>-mal verstellt oder sprang zurück; jeder Fall ist vermerkt (Glied …).“ (gezählt `uhr_ruecksprung` und `uhr_verstellt`; `uhr_abweichung` steht in den Einzelheiten); ein Sprung ohne Vermerk bleibt ✗ mit Fundstelle.
+- Datenformat 16 bis 18: P6 einmal „?“ („Diese Fassung von WATT (Datenformat <n>) signiert noch nicht; die Herkunft lässt sich deshalb nicht bestätigen.“), P7 als Hinweis „Entfällt (keine Signatur).“
+- Jede Aussage trägt höchstens 200 Einzelheiten; der Rest wird gezählt („… und n weitere.“).
 - Druckansicht bzw. PDF über den Browser mit: Prüfdatum, WATTest-Version, SHA-256 jeder geprüften Datei, Stand der Sperrliste und der Wurzeln, allen Teilbefunden. Keine persönlichen Inhalte außer Glied-Nummern und Zeitpunkten.
 
 ## 7. Sperrliste und Wurzeln
@@ -131,12 +138,12 @@ Ziel: Statt des vollständigen Klartexts nur einen Zeitraum weitergeben und trot
 - Sichtbar bleibt nur die Gesamtzahl der Glieder. Ein Anker auf ein verdecktes Glied prüft nur die Prüfsumme, nicht den Zeitpunkt.
 - Voraussetzung in WATT: Erweiterung der Buchungsdaten (JSON/XML im Export-Dialog) um diesen Auszug der Kette samt Signaturen und Zertifikaten; neue Formatversion bzw. Erweiterung von 19.
 
-## 13. Stand der Umsetzung (WATTest 0.1.4, 25.10.2026)
+## 13. Stand der Umsetzung (WATTest 0.1.5, 25.10.2026)
 
 - P1 bis P9 umgesetzt wie in Abschnitt 5; Einzelheiten der Deutung in `docs/ENTSCHEIDUNGEN.md` und `docs/UNKLARHEITEN.md`.
 - Abweichend von Abschnitt 9 sind PWA (Service Worker, installierbar) und QR mit der Kamera (über `BarcodeDetector`, nur wo vorhanden) schon in 0.1.0 enthalten.
 - Content Security Policy: `default-src none`, Skripte und Stile über Hashes, `worker-src self blob:`, `connect-src self` (Einzeldatei `none`), `img-src self data: blob:`, `manifest-src self`, `base-uri none`, `form-action none`.
-- Fußzeile (alle drei Seiten): „WATTest 0.1.4 · © 2026 Hans-Joachim Steudel · EUPL-1.2 · Quelltext · WATT · Impressum · Datenschutz“.
+- Fußzeile (alle drei Seiten): „WATTest 0.1.5 · © 2026 Hans-Joachim Steudel · EUPL-1.2 · Quelltext · WATT · Impressum · Datenschutz“.
 - Startseite mit dem Absatz „Über WATT“ unter der Einleitung (Links auf WATT, die Technische Erläuterung und den Quelltext, in neuem Tab); im Druck ausgeblendet wie die Einleitung.
 - P4 prüft bei `uhr_ruecksprung` mit Uhrstand die Regel zum Bezug aus 4.7 („uhr_ruecksprung bei Einträgen mit Uhrstand“); ein Verstoß ist „?“ mit Glied-Nummer, nie ✗ (U-18, E-36). `uhr_ruecksprung` mit `objektId` `start` und `zeitsignal` erklärt einen Rücksprung wie `timer` und `nachweis` (8., Schritt 5).
 - Der Fingerabdruck des App-Signaturzertifikats steht in `daten/app-signatur.json` (TE 4.7, Schritt 3); die Teilaussage zur App-Signatur in P7 ist damit ✓ oder ✗.
@@ -144,4 +151,29 @@ Ziel: Statt des vollständigen Klartexts nur einen Zeitraum weitergeben und trot
 - Kanonisches JSON (Bestandsprüfsumme je Eintrag und Abwesenheit, Prüfsumme des Datenbestands) schreibt WATTest mit eigener Maskierung nach 4.6: nur `"`, `\` und U+0000 bis U+001F, alles andere roh in UTF-8; ein einzelnes Ersatzzeichen wird in UTF-8 zu „?“ (U-17).
 - Schema-Auszug und XML-Typtabelle erzeugen `scripts/schema-auszug.mjs` und `scripts/xml-typen.mjs` aus `schema/` von watt_public (JSON-Schemas 16 bis 19, XSD 18 und 19); P1 nennt für Version 19 die Vorabfassung als Hinweis (U-19).
 - P1 prüft Pflichtfelder und Typen der gelesenen Teile gegen einen Auszug der Schemas, keinen vollständigen Schema-Validator.
-- Formatversionen 16 bis 18: P6 und P7 „?“ mit „Diese Version von WATT signiert noch nicht.“
+- Formatversionen 16 bis 18: P6 einmal „?“ mit „Diese Fassung von WATT (Datenformat <n>) signiert noch nicht; die Herkunft lässt sich deshalb nicht bestätigen.“, P7 Hinweis „Entfällt (keine Signatur).“ (seit 0.1.5; bis 0.1.4 beide „?“).
+- Befundtexte seit 0.1.5 (Feldtest Achim 25.10.2026): Gesamtzeile mit zweitem Satz, P4 mit genau einer Aussage zu den Zeitstempeln, P5 ohne Anker mit Handlungshinweis (Abschnitt 6).
+- Härtung seit 0.1.5 (Abschnitt 14): DER/X.509, ZIP, XML und JSON mit festen Grenzen; Lese- und Grenzfehler sind „?“, nie ✗; Zahlen über Number.MAX_SAFE_INTEGER werden genannt statt gerundet; „Abbrechen“ und Befund „?“ statt leerer Seite. Getestet mit deterministischen Mutationstests (fester Seed) und einer Kette mit 100.000 Gliedern, 50 Schlüsseln und 100.000 Signaturen.
+
+## 14. Feste Grenzen für Eingaben (seit WATTest 0.1.5)
+
+WATTest bekommt Dateien von Dritten. Damit eine manipulierte Datei die Seite nicht zum Absturz bringt, nicht hängen lässt und nicht den Speicher füllt, gelten feste, großzügige Grenzen (`src/kern/grenzen.ts`, `GRENZWERTE`). Echte Exporte von WATT liegen weit darunter. Darüber meldet WATTest „?“ mit Hinweis auf die Grenze, nie ✗ und nie einen Absturz.
+
+| Gegenstand | Grenze | Folge darüber |
+| --- | --- | --- |
+| Größe einer Datei | 200 MB | Datei wird nicht gelesen; Eingaben „?“, SHA-256 „nicht berechnet“ |
+| Glieder der Arbeitszeitkette | 1.000.000 | Eingaben „?“, keine Prüfschritte |
+| Signaturen in `kettensignaturen` | 1.000.000 | P6 „?“ |
+| Schlüssel in `kettenschluessel` | 256 | P6 und P7 „?“ |
+| Zertifikate je Schlüssel | 8 | Schlüssel nicht lesbar: Signaturen und Attestierung „?“ |
+| Größe eines Zertifikats | 8 KB | ebenso |
+| Größe einer Signatur | 128 Bytes | diese Signatur „?“ |
+| DER: Verschachtelung, Tag-Nummer | 32 Ebenen, 16.383 (zwei Bytes) | DER-Fehler, „?“; unbestimmte Längen, Längen über das Ende und Daten hinter einem Element ebenso |
+| JSON: Verschachtelung | 64 Ebenen (auch im Feld `daten`) | Datei: Eingaben „?“; `daten` eines Glieds: P3 „?“ für das Objekt |
+| JSON und XML: ganze Zahlen | Number.MAX_SAFE_INTEGER (9.007.199.254.740.991) | P1 „?“ mit Pfad; betroffene Glieder in P2 „?“, Signaturen in P6 „?“ |
+| XML: Verschachtelung, Attribute je Element | 64 Ebenen, 32 Attribute | Eingaben „?“; DTD und Entitäten (außer den fünf vordefinierten und Zeichenreferenzen) werden abgewiesen |
+| ZIP: Einträge | 10.000 | Eingaben „?“ |
+| ZIP: entpackte Größe | 200 MB je Eintrag, 512 MB zusammen | ebenso, vor dem Entpacken; beim Entpacken Abbruch, sobald mehr als die angegebene Größe entsteht |
+| ZIP: Kompressionsverhältnis | 250 : 1 ab 1 MB entpackter Größe | ebenso (Zip-Bombe) |
+| ZIP: Pfade | 1.024 Zeichen; kein `..`, kein absoluter Pfad, kein Rückstrich, keine Steuerzeichen, keine doppelten Namen, keine überlappenden Einträge | ebenso |
+| Einzelheiten je Aussage | 200 | Rest gezählt |

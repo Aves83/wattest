@@ -4,7 +4,8 @@
 // X.509-Zertifikate lesen und Signaturen über WebCrypto prüfen.
 
 import { ausBase64, gleich, hex, puffer } from "./bytes.js";
-import { DerFehler, T, bitString, erwarte, ganz, inhalt, kinder, oid, wurzel, zeit, type Tlv } from "./der.js";
+import { DerFehler, T, bitString, bool, erwarte, ganz, inhalt, kinder, oid, teil, wurzel, zeit, type Tlv } from "./der.js";
+import { GRENZWERTE, grenzeText } from "./grenzen.js";
 import { subtle } from "./sha.js";
 
 export interface Erweiterung {
@@ -67,18 +68,21 @@ function seriennummerHex(t: Tlv): string {
 }
 
 export function leseZertifikat(der: Uint8Array): Zertifikat {
+  if (der.length > GRENZWERTE.zertifikatBytes) throw new DerFehler(`Zertifikat größer als die Grenze von ${grenzeText(GRENZWERTE.zertifikatBytes, "bytes")}`);
   const zert = erwarte(wurzel(der), T.SEQUENCE);
-  const [tbsT, algT, sigT] = kinder(zert);
-  if (!tbsT || !algT || !sigT) throw new DerFehler("Zertifikat unvollständig");
+  const aussen = kinder(zert);
+  if (aussen.length !== 3) throw new DerFehler("Zertifikat besteht nicht aus genau drei Teilen");
+  const [tbsT, algT, sigT] = aussen as [Tlv, Tlv, Tlv];
   const tbsTeile = kinder(erwarte(tbsT, T.SEQUENCE));
   let i = 0;
   if (tbsTeile[0] && tbsTeile[0].klasse === 2 && tbsTeile[0].tag === 0) i++;
-  const serialT = erwarte(tbsTeile[i++]!, T.INTEGER);
-  i++; // signature (wie außen)
-  const ausstellerT = erwarte(tbsTeile[i++]!, T.SEQUENCE);
-  const gueltigT = kinder(erwarte(tbsTeile[i++]!, T.SEQUENCE));
-  const inhaberT = erwarte(tbsTeile[i++]!, T.SEQUENCE);
-  const spkiT = erwarte(tbsTeile[i++]!, T.SEQUENCE);
+  const serialT = erwarte(teil(tbsTeile, i++, "Seriennummer"), T.INTEGER);
+  teil(tbsTeile, i++, "Signaturverfahren im Zertifikat");
+  const ausstellerT = erwarte(teil(tbsTeile, i++, "Aussteller"), T.SEQUENCE);
+  const gueltigT = kinder(erwarte(teil(tbsTeile, i++, "Gültigkeit"), T.SEQUENCE));
+  if (gueltigT.length !== 2) throw new DerFehler("Gültigkeit besteht nicht aus zwei Zeitpunkten");
+  const inhaberT = erwarte(teil(tbsTeile, i++, "Inhaber"), T.SEQUENCE);
+  const spkiT = erwarte(teil(tbsTeile, i++, "öffentlicher Schlüssel"), T.SEQUENCE);
   const erweiterungen: Erweiterung[] = [];
   for (; i < tbsTeile.length; i++) {
     const t = tbsTeile[i]!;
@@ -86,23 +90,23 @@ export function leseZertifikat(der: Uint8Array): Zertifikat {
       const liste = kinder(t)[0];
       if (!liste) continue;
       for (const ext of kinder(erwarte(liste, T.SEQUENCE))) {
-        const k = kinder(ext);
-        const id = oid(erwarte(k[0]!, T.OID));
+        const k = kinder(erwarte(ext, T.SEQUENCE));
+        const id = oid(erwarte(teil(k, 0, "Kennung der Erweiterung"), T.OID));
         let kritisch = false;
-        let w = k[1]!;
+        let w = teil(k, 1, "Wert der Erweiterung");
         if (w.tag === T.BOOLEAN) {
-          kritisch = inhalt(w)[0] !== 0;
-          w = k[2]!;
+          kritisch = bool(w);
+          w = teil(k, 2, "Wert der Erweiterung");
         }
         erweiterungen.push({ oid: id, kritisch, wert: inhalt(erwarte(w, T.OCTET_STRING)) });
       }
     }
   }
   const spkiTeile = kinder(spkiT);
-  const algTeile = kinder(erwarte(spkiTeile[0]!, T.SEQUENCE));
-  const schluesselAlgorithmus = oid(algTeile[0]!);
+  const algTeile = kinder(erwarte(teil(spkiTeile, 0, "Verfahren des Schlüssels"), T.SEQUENCE));
+  const schluesselAlgorithmus = oid(erwarte(teil(algTeile, 0, "Verfahren des Schlüssels"), T.OID));
   const kurve = algTeile[1] && algTeile[1].tag === T.OID ? oid(algTeile[1]) : null;
-  const sigAlg = oid(kinder(erwarte(algT, T.SEQUENCE))[0]!);
+  const sigAlg = oid(erwarte(teil(kinder(erwarte(algT, T.SEQUENCE)), 0, "Signaturverfahren"), T.OID));
   return {
     der,
     tbs: ganz(tbsT),
@@ -159,6 +163,18 @@ export function ecdsaRoh(derSig: Uint8Array, groesse: number): Uint8Array | null
     return out;
   } catch {
     return null;
+  }
+}
+
+/** Ist die Signatur als DER lesbar: eine SEQUENCE aus genau zwei INTEGER (r, s)? */
+export function ecdsaLesbar(derSig: Uint8Array): boolean {
+  try {
+    const t = wurzel(derSig);
+    if (t.tag !== T.SEQUENCE || t.klasse !== 0) return false;
+    const k = kinder(t);
+    return k.length === 2 && k.every((z) => z.klasse === 0 && z.tag === T.INTEGER && z.ende > z.inhaltStart);
+  } catch {
+    return false;
   }
 }
 

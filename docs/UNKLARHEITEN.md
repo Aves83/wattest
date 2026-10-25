@@ -2,7 +2,7 @@
 
 Stellen, an denen die Unterlagen (Technische Erläuterung, Datenformat, Schemas, Beispieldateien) unklar sind oder einander widersprechen. WATTest entscheidet nach dem Wortlaut der Technischen Erläuterung (TE); jede Stelle nennt Zitat, Deutung und Folge.
 
-Stand: WATTest 0.1.4, Unterlagen vom 25.10.2026 aus dem öffentlichen Repository [Aves83/watt_public](https://github.com/Aves83/watt_public) (Commit 37ae281: `doc/technische-erlaeuterung.md`, `doc/datenformat.md`, `schema/` mit den Schemas der Version 19 als Vorabfassung; TE und Datenformat auf dem Stand 1af17a5 von WATT, Kopfzeile „WATT-Version: Vorabfassung“). Die TE vom 25.10.2026 klärt U-1 bis U-18, die Schemas in watt_public klären U-19; WATTest folgt jeweils nur noch der Lesart der TE, Ersatz-Lesarten sind gestrichen. Offen sind U-20 (Antwort angekündigt), U-21 (Bedeutung von `schritte` ändert sich mit dem nächsten Stand der TE) und der neue Punkt U-22.
+Stand: WATTest 0.1.5, Unterlagen vom 25.10.2026 aus dem öffentlichen Repository [Aves83/watt_public](https://github.com/Aves83/watt_public) (Commit 37ae281: `doc/technische-erlaeuterung.md`, `doc/datenformat.md`, `schema/` mit den Schemas der Version 19 als Vorabfassung; TE und Datenformat auf dem Stand 1af17a5 von WATT, Kopfzeile „WATT-Version: Vorabfassung“). Die TE vom 25.10.2026 klärt U-1 bis U-18, die Schemas in watt_public klären U-19; WATTest folgt jeweils nur noch der Lesart der TE, Ersatz-Lesarten sind gestrichen. Offen sind U-20 (Antwort angekündigt), U-21 (Bedeutung von `schritte` ändert sich mit dem nächsten Stand der TE), U-22 und die neuen Punkte U-23 und U-24 aus der Härtung (0.1.5; der Stand der TE ist unverändert 37ae281).
 
 Keine der drei Beispieldateien (`apfel-16`, `bergamotte-17`, `cherimoya-18`) weicht von der Beschreibung ab: Alle Prüfsummen der Arbeitszeitkette, der Nachweiskette, der Anzeige, der Gesprächsnotiz und des Nachtrags lassen sich nach 4.2 und 5.1 nachrechnen, und der Abgleich nach 7. ergibt keine Abweichung. Die Rechenbeispiele B1 bis B13 aus den Codeblöcken der TE sind in 37ae281 unverändert.
 
@@ -136,3 +136,17 @@ Keine der drei Beispieldateien (`apfel-16`, `bergamotte-17`, `cherimoya-18`) wei
 - TE 4.7 nennt zwei Abweichungen mit demselben Wortlaut „ein Hinweis zur Klärung, kein Beleg einer Manipulation“: den ersten Teil der Zerlegung unter −120 Sekunden (U-15) und einen `uhr_ruecksprung`, der nicht zur Regel für den Bezug passt (U-18: „passt er nicht zu dieser Regel; das ist ein Hinweis zur Klärung, kein Beleg einer Manipulation“).
 - Deutung: Beide sind kein ✗. Ob „Hinweis“ das Zeichen i (zählt nicht für die Gesamtzeile) oder „?“ meint, lässt der Wortlaut offen.
 - Folge: WATTest gibt nach den Aufträgen 0.1.3 und 0.1.4 beim ersten Teil einen Hinweis (i, E-28), beim Bezug „?“ (E-36). Die Gesamtzeile wird also nur im zweiten Fall „?“. Sollen beide gleich behandelt werden, genügt eine Änderung in `src/kern/schritte-kette.ts`.
+
+### U-23 Mehrere Signaturen zu einem Glied und Signaturen zu Gliedern, die es nicht gibt
+
+- TE 4.7, „Signatur und Deutung“: „Nach jedem Vorgang, der Einträge anhängt, signiert WATT den neuen Kopf […]. Die Signaturen stehen getrennt von der Kette (Liste kettensignaturen mit seq, fingerabdruck und signatur in Base64, DER) […]. Vor jedem Dokument signiert WATT einen noch unsignierten Kopf, sofern möglich“. Prüfverfahren, Schritt 7: „Jede Signatur mit dem Schlüssel ihres Abschnitts über watt-kopf-1:\<hash des Eintrags seq> prüfen.“
+- Die TE sagt nicht ausdrücklich, ob zu einer `seq` höchstens eine Signatur stehen kann, und nicht, was eine Signatur bedeutet, deren `seq` in der Kette fehlt (etwa nach einem gekürzten Export).
+- Deutung: „einen noch unsignierten Kopf“ legt eine Signatur je Kopf nahe; eine Signatur ohne Glied lässt sich nach Schritt 7 nicht prüfen.
+- Folge: Beides ist „?“ mit Fundstelle, nie ✗ (E-44). Jede Signatur wird einzeln geprüft; eine lesbare, aber falsche bleibt ✗.
+
+### U-24 Fehlender Eintrag in `kettenschluessel`
+
+- TE 4.7: „Die Zertifikate selbst stehen in der Liste kettenschluessel von Sicherung und Klartext (Base64, DER, Blatt zuerst).“ Befund „widerlegt“: „fingerabdruck oder zertifikateSha256 passen nicht zu den Zertifikaten“.
+- Die TE nennt nicht den Fall, dass zu einem Eintrag `schluessel` mit status `verfuegbar` die Zertifikate ganz fehlen, und keine Grenzen für Anzahl und Größe der Zertifikate.
+- Deutung: Ohne Zertifikate gibt es nichts, wozu Fingerabdruck und `zertifikateSha256` nicht passen könnten; die Prüfung ist nicht möglich.
+- Folge: Seit 0.1.5 „?“ in P6 und P7 (bis 0.1.4 ✗); ebenso für unlesbare Zertifikate und solche über den Grenzen aus E-41 (E-43).

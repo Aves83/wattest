@@ -28,6 +28,14 @@ function passtTyp(w: unknown, typ: string): boolean {
   return t === typ;
 }
 
+const MUSTER = new Map<string, RegExp>();
+
+function muster(quelle: string): RegExp {
+  let re = MUSTER.get(quelle);
+  if (!re) MUSTER.set(quelle, (re = new RegExp(quelle, "u")));
+  return re;
+}
+
 class Pruefer {
   fehler: SchemaFehler[] = [];
   constructor(private defs: Record<string, Schema>) {}
@@ -69,7 +77,7 @@ class Pruefer {
     }
     if ("const" in s && w !== s["const"]) this.fehler.push({ art: "typ", pfad, text: `${pfad}: erwartet ${JSON.stringify(s["const"])}` });
     if (Array.isArray(s["enum"]) && !(s["enum"] as unknown[]).includes(w)) this.fehler.push({ art: "typ", pfad, text: `${pfad}: Wert ${JSON.stringify(w)} ist nicht erlaubt` });
-    if (typeof s["pattern"] === "string" && typeof w === "string" && !new RegExp(s["pattern"] as string, "u").test(w)) {
+    if (typeof s["pattern"] === "string" && typeof w === "string" && !muster(s["pattern"] as string).test(w)) {
       this.fehler.push({ art: "typ", pfad, text: `${pfad}: Form ungültig` });
     }
     if (typeof w === "number") {

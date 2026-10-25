@@ -74,7 +74,10 @@
 
   <section class="karte" aria-labelledby="h-pruefen">
     <h2 id="h-pruefen">3. Prüfen</h2>
-    <button type="button" class="knopf haupt" id="pruefen" disabled>Prüfen</button>
+    <div class="knopfreihe">
+      <button type="button" class="knopf haupt" id="pruefen" disabled>Prüfen</button>
+      <button type="button" class="knopf zweit" id="abbrechen" hidden>Abbrechen</button>
+    </div>
     <div class="fortschritt" id="fortschritt" hidden>
       <progress id="balken" max="1" value="0" aria-labelledby="fortschritt-text"></progress>
     </div>

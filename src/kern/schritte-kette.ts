@@ -4,7 +4,7 @@
 // P2 Arbeitszeitkette, P4 Zeit, P9 besondere Glieder.
 
 import { anzahl, bereiche, zahl, type Detail } from "./befund.js";
-import { GRENZE } from "./grenzen.js";
+import { GRENZE, GRENZE_HAERTUNG } from "./grenzen.js";
 import { bestandDatenEingabe, gliedEingabe } from "./kanonisch.js";
 import { gliedName, type Glied } from "./klartext.js";
 import { dateiFundstelle, sage, type Kontext } from "./kontext.js";
@@ -32,6 +32,9 @@ export async function pruefeKette(k: Kontext): Promise<void> {
     return;
   }
   const brueche: { index: number; text: string }[] = [];
+  // Glieder mit seq oder neustarts außerhalb des genau darstellbaren Bereichs: Die Prüfsumme lässt sich nicht
+  // nachrechnen, ohne die Zahl still zu runden; das ist „?“, kein Bruch.
+  const ungenau: Glied[] = [];
   let sieben = 0;
   let neun = 0;
   for (let i = 0; i < g.length; i++) {
@@ -42,6 +45,12 @@ export async function pruefeKette(k: Kontext): Promise<void> {
     if (x.form === "bruch") brueche.push({ index: i, text: `${name}: nur eines der Felder neustarts und autoZeit ist vorhanden.` });
     else if (x.form === "neun") neun++;
     else sieben++;
+    if (x.ungenau) {
+      ungenau.push(x);
+      if (i === 0 && x.prev !== "0") brueche.push({ index: i, text: `${name}: Das erste Glied muss als Vorgänger 0 nennen.` });
+      if (i > 0 && x.prev !== g[i - 1]!.hash) brueche.push({ index: i, text: `${name}: Der Vorgänger (prev) ist nicht die Prüfsumme von ${gliedName(g[i - 1]!)}.` });
+      continue;
+    }
     const erwartet = i === 0 ? 1 : (g[i - 1]!.seq ?? i) + 1;
     if (x.seq === null) brueche.push({ index: i, text: `Glied an Stelle ${i + 1}: seq ist keine ganze Zahl.` });
     else if (x.seq !== erwartet) {
@@ -56,7 +65,19 @@ export async function pruefeKette(k: Kontext): Promise<void> {
   }
   k.melde(0.4, "Prüfsummen der Kette berechnet");
   const letzter = g[g.length - 1]!;
-  if (brueche.length === 0) {
+  if (ungenau.length) {
+    sage(
+      k,
+      "P2",
+      "offen",
+      `${ungenau.length === 1 ? "Ein Glied lässt" : `${zahl(ungenau.length)} Glieder lassen`} sich nicht nachrechnen.`,
+      "seq oder neustarts liegen über 9.007.199.254.740.991 (Number.MAX_SAFE_INTEGER). Solche Zahlen stellt der Browser nicht genau dar; WATTest rundet sie nicht still, sondern lässt die Prüfsumme dieser Glieder offen. Die Verkettung über prev ist trotzdem geprüft.",
+      { fundstelle: dateiFundstelle(k, `Glied an Stelle ${bereiche(ungenau.map((x) => x.index + 1))}`), grenze: GRENZE_HAERTUNG, details: ungenau.map((x) => ({ text: `Glied an Stelle ${x.index + 1}: seq ${String(x.roh.seq)}, neustarts ${String(x.roh.neustarts ?? "fehlt")}` })) },
+    );
+  }
+  if (brueche.length === 0 && ungenau.length) {
+    k.ersterBruch = null;
+  } else if (brueche.length === 0) {
     k.ersterBruch = null;
     const formen = [sieben ? `${zahl(sieben)} mit sieben Feldern` : "", neun ? `${zahl(neun)} mit neun Feldern, also mit Uhrstand` : ""].filter(Boolean);
     sage(
@@ -70,8 +91,7 @@ export async function pruefeKette(k: Kontext): Promise<void> {
   } else {
     k.ersterBruch = brueche[0]!.index;
     const erster = g[k.ersterBruch]!;
-    const details: Detail[] = brueche.slice(0, 200).map((b) => ({ text: b.text }));
-    if (brueche.length > 200) details.push({ text: `… und ${brueche.length - 200} weitere Befunde.` });
+    const details: Detail[] = brueche.map((b) => ({ text: b.text }));
     sage(
       k,
       "P2",
@@ -114,47 +134,50 @@ export function pruefeZeit(k: Kontext): void {
     }
   }
   const fund = dateiFundstelle(k);
+  const vermerke = g.filter((x) => UHR.has(x.objektArt));
+  // Rücksprünge und Verstellungen der Geräteuhr; uhr_abweichung betrifft den Timer (4.1, 4.7).
+  const spruenge = vermerke.filter((x) => x.objektArt !== "uhr_abweichung");
+  const mitUhrstand = g.filter((x) => x.form === "neun");
+  const neu = mitUhrstand.length === g.length;
+  const vermerkDetails = (): Detail[] => vermerke.map((x) => ({ text: `${gliedText(x)}: ${uhrBeschreibung(x)}` }));
+  const klein = kleine ? ` Rücksprünge bis 2 Minuten vermerkt WATT nicht (8., Schritt 5); hier gibt es ${zahl(kleine)}.` : "";
+  // Genau eine Aussage zu Zeitstempeln und Vermerken, je nach Lage (Auftrag 0.1.5, B2).
   if (unvermerkt.length) {
     sage(k, "P4", "widerlegt", `Die Uhr sprang ${anzahl(unvermerkt.length, "Mal", "Mal")} um mehr als 2 Minuten zurück, ohne dass die Kette es vermerkt.`, "Liegt ein Glied mehr als 2 Minuten vor seinem Vorgänger, folgt unmittelbar danach ein Glied uhr_ruecksprung, oder das Glied ist selbst ein Vermerk zur Uhr: uhr_ruecksprung mit objektId timer, nachweis, start oder zeitsignal bzw. uhr_verstellt mit richtung zurueck (Technische Erläuterung 4.1, 4.7 und 8., Schritt 5). Hier fehlt dieser Vermerk.", {
       fundstelle: fund,
       grenze: GRENZE.zeit,
       details: unvermerkt,
     });
-  } else {
+    if (vermerke.length) {
+      sage(k, "P4", "hinweis", `Die Kette vermerkt ${anzahl(vermerke.length, "Vorgang", "Vorgänge")} an der Geräteuhr.`, "WATT vermerkt Rücksprünge (uhr_ruecksprung), Abweichungen beim Timer (uhr_abweichung) und Verstellungen der Uhr (uhr_verstellt) als eigene Glieder (4.1, 4.7). Sie zeigen, dass die Uhr des Geräts nicht durchgehend gleichmäßig lief; die Zeitpunkte dieser Abschnitte stammen von der verstellten Uhr.", {
+        fundstelle: dateiFundstelle(k, `Glied ${bereiche(vermerke.map((x) => x.seq ?? 0))}`),
+        grenze: GRENZE.zeit,
+        details: vermerkDetails(),
+      });
+    }
+  } else if (!spruenge.length) {
+    const abw = vermerke.length ? ` Sie vermerkt ${anzahl(vermerke.length, "Abweichung", "Abweichungen")} beim Timer (uhr_abweichung, 4.7); das betrifft den Timer, nicht die Geräteuhr.` : "";
     sage(
       k,
       "P4",
       "bestaetigt",
-      "Die Zeitstempel steigen; jeder Rücksprung der Uhr um mehr als 2 Minuten ist vermerkt.",
-      `Die Zeitpunkte der ${anzahl(g.length, "Glieds", "Glieder")} steigen mit der laufenden Nummer${kleine ? `, abgesehen von ${anzahl(kleine, "Rücksprung", "Rücksprüngen")} bis 2 Minuten, die WATT nicht vermerkt` : ""}; nach Rücksprüngen um mehr als 2 Minuten folgt der Vermerk, den 8., Schritt 5 verlangt.`,
-      { fundstelle: fund, grenze: GRENZE.zeit },
+      "Die Zeitstempel steigen an; die Kette enthält keinen Rücksprung und keine Verstellung der Geräteuhr.",
+      `Die Zeitpunkte der ${anzahl(g.length, "Glieds", "Glieder")} steigen mit der laufenden Nummer, und die Kette enthält kein Glied uhr_ruecksprung oder uhr_verstellt${neu ? "; alle Glieder tragen den Uhrstand (4.7)" : ""}.${klein}${abw}`,
+      { fundstelle: fund, grenze: neu ? GRENZE.zeit : GRENZE.zeitAlt, ...(vermerke.length ? { details: vermerkDetails() } : {}) },
+    );
+  } else {
+    const n = spruenge.length;
+    sage(
+      k,
+      "P4",
+      "bestaetigt",
+      `Die Zeitstempel steigen an. Die Geräteuhr wurde ${n === 1 ? "einmal" : `${zahl(n)}-mal`} verstellt oder sprang zurück; jeder Fall ist vermerkt (Glied ${bereiche(spruenge.map((x) => x.seq ?? 0))}).`,
+      `Liegt ein Glied mehr als 2 Minuten vor seinem Vorgänger, folgt unmittelbar ein Glied uhr_ruecksprung, oder das Glied ist selbst ein Vermerk zur Uhr (8., Schritt 5); Verstellungen der Uhr stehen als uhr_verstellt in der Kette (4.7). Alle Sprünge dieser Kette sind so vermerkt; die Zeitpunkte danach stammen von der verstellten Uhr.${klein}`,
+      { fundstelle: dateiFundstelle(k, `Glied ${bereiche(vermerke.map((x) => x.seq ?? 0))}`), grenze: GRENZE.zeit, details: vermerkDetails() },
     );
   }
 
   pruefeVerstellungen(k);
-
-  const vermerke = g.filter((x) => UHR.has(x.objektArt));
-  const mitUhrstand = g.filter((x) => x.form === "neun");
-  if (vermerke.length === 0) {
-    const neu = mitUhrstand.length === g.length;
-    sage(
-      k,
-      "P4",
-      "bestaetigt",
-      neu ? "Die Uhr des Geräts wurde nicht verstellt." : "Die Kette vermerkt keinen Rücksprung und keine Verstellung der Geräteuhr.",
-      neu
-        ? "Alle Glieder tragen den Uhrstand (4.7), und die Kette enthält kein Glied uhr_verstellt, uhr_ruecksprung oder uhr_abweichung."
-        : "Die Kette enthält kein Glied uhr_ruecksprung, uhr_abweichung oder uhr_verstellt.",
-      { fundstelle: fund, grenze: neu ? GRENZE.zeit : GRENZE.zeitAlt },
-    );
-  } else {
-    const details = vermerke.map((x) => ({ text: `${gliedText(x)}: ${uhrBeschreibung(x)}` }));
-    sage(k, "P4", "hinweis", `Die Kette vermerkt ${anzahl(vermerke.length, "Vorgang", "Vorgänge")} an der Geräteuhr.`, "WATT vermerkt Rücksprünge (uhr_ruecksprung), Abweichungen beim Timer (uhr_abweichung) und Verstellungen der Uhr (uhr_verstellt) als eigene Glieder (4.1, 4.7). Sie zeigen, dass die Uhr des Geräts nicht durchgehend gleichmäßig lief; die Zeitpunkte dieser Abschnitte stammen von der verstellten Uhr.", {
-      fundstelle: dateiFundstelle(k, `Glied ${bereiche(vermerke.map((x) => x.seq ?? 0))}`),
-      grenze: GRENZE.zeit,
-      details,
-    });
-  }
 
   pruefeBezug(k);
 
@@ -271,7 +294,7 @@ function pruefeVerstellungen(k: Kontext): void {
       // Zweiter Teil: nachher − vorher in ganzen Sekunden, zur Null hin gekürzt.
       const sprung = Math.trunc((nachher - vorher) / 1000);
       const ab = d["abweichungSekunden"];
-      if (typeof ab !== "number" || !Number.isInteger(ab)) probleme.push("abweichungSekunden fehlt oder ist keine ganze Zahl");
+      if (typeof ab !== "number" || !Number.isSafeInteger(ab)) probleme.push("abweichungSekunden fehlt oder ist keine ganze Zahl im genau darstellbaren Bereich");
       else {
         if (Math.abs(ab) < 120) probleme.push(`der Betrag von abweichungSekunden (${zahl(ab)}) ist kleiner als 120`);
         const richtung = d["richtung"];
@@ -472,7 +495,9 @@ export async function pruefeBesondere(k: Kontext): Promise<void> {
     const nachDatei = new Map<string, number[]>();
     for (const x of importe) {
       const h = String(x.json!["importDatei"]);
-      nachDatei.set(h, [...(nachDatei.get(h) ?? []), x.seq ?? 0]);
+      const l = nachDatei.get(h);
+      if (l) l.push(x.seq ?? 0);
+      else nachDatei.set(h, [x.seq ?? 0]);
     }
     sage(k, "P9", "hinweis", `${anzahl(importe.length, "Buchung wurde", "Buchungen wurden")} aus ${anzahl(nachDatei.size, "Datei", "Dateien")} eingelesen.`, "Eingelesene Buchungen tragen im Anlage-Glied importDatei, die SHA-256 der eingelesenen Datei (4.1, 7.1). Ihre Erfassungs- und Änderungszeitpunkte stammen aus der Datei des anderen Geräts.", {
       fundstelle: dateiFundstelle(k, `Glied ${bereiche(importe.map((x) => x.seq ?? 0))}`),

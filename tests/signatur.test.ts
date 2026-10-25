@@ -28,7 +28,8 @@ test("gültige Kette: P1 bis P9 bestätigt, Kette stammt von WATT auf einem best
   const b = await befund([json("watt-19.json", e.daten)], opt({ anker: [a.anker] }));
   for (const s of ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9"] as const) assert.equal(zeichen(b, s), "bestaetigt", `${s}:\n${texte(b)}`);
   assert.ok(b.aussagen.some((x) => x.text === "Die Kette stammt von WATT auf einem bestätigten Gerät."));
-  assert.ok(b.aussagen.some((x) => x.text === "Die Uhr des Geräts wurde nicht verstellt."));
+  assert.ok(b.aussagen.some((x) => x.text === "Die Zeitstempel steigen an; die Kette enthält keinen Rücksprung und keine Verstellung der Geräteuhr."));
+  assert.equal(b.gesamtText, "Alle Aussagen sind bestätigt.");
   assert.equal(b.gesamt, "bestaetigt");
 });
 

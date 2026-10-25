@@ -5,8 +5,9 @@
 
 import { ankerName, leseAnkerText, leseHand, type Anker } from "../kern/anker.js";
 import { SCHRITTNAMEN, SYMBOL, type Aussage, type Befund, type Schritt, type Zeichen } from "../kern/befund.js";
+import { GRENZWERTE } from "../kern/grenzen.js";
 import { deutsch } from "../kern/zeit.js";
-import { auftragAusfuehren, type Auftrag, type Daten, type Meldung } from "../worker/auftrag.js";
+import { auftragAusfuehren, fehlerBefund, type Auftrag, type Daten, type Meldung } from "../worker/auftrag.js";
 
 declare const __VERSION__: string;
 declare const __COMMIT__: string;
@@ -62,12 +63,23 @@ function zeigeDateien(): void {
 }
 
 async function nimmDateien(liste: FileList | File[]): Promise<void> {
+  const nichtLesbar: string[] = [];
   for (const f of Array.from(liste)) {
-    const bytes = new Uint8Array(await f.arrayBuffer());
-    zustand.dateien.push({ name: f.name, groesse: f.size, bytes });
+    // Dateien über der Grenze liest die Seite nicht ein; der Befund nennt sie mit „?“ und der Grenze.
+    if (f.size > GRENZWERTE.dateiBytes) {
+      zustand.dateien.push({ name: f.name, groesse: f.size, bytes: new Uint8Array(0) });
+      continue;
+    }
+    try {
+      zustand.dateien.push({ name: f.name, groesse: f.size, bytes: new Uint8Array(await f.arrayBuffer()) });
+    } catch {
+      nichtLesbar.push(f.name);
+    }
   }
   zeigeDateien();
-  $("fortschritt-text").textContent = `${zustand.dateien.length} ${zustand.dateien.length === 1 ? "Datei" : "Dateien"} ausgewählt.`;
+  $("fortschritt-text").textContent =
+    `${zustand.dateien.length} ${zustand.dateien.length === 1 ? "Datei" : "Dateien"} ausgewählt.` +
+    (nichtLesbar.length ? ` Nicht lesbar: ${nichtLesbar.map((n) => `„${n}“`).join(", ")}.` : "");
 }
 
 function zeigeAnker(): void {
@@ -203,29 +215,45 @@ async function pruefen(): Promise<void> {
   aktualisiereKnopf();
   $("fortschritt").hidden = false;
   fortschritt(0, "Prüfung beginnt");
+  const abbrechen = $<HTMLButtonElement>("abbrechen");
+  abbrechen.hidden = false;
   const auftrag: Auftrag = {
-    dateien: zustand.dateien.map((d) => ({ name: d.name, bytes: d.bytes })),
+    dateien: zustand.dateien.map((d) => ({ name: d.name, bytes: d.bytes, groesse: d.groesse })),
     anker: zustand.anker,
     daten: await ladeDaten(),
     jetzt: Date.now(),
     version: __VERSION__,
     commit: __COMMIT__,
   };
+  let abgebrochen = false;
+  let beendet = false;
+  let worker: Worker | null = null;
   const fertig = (m: Meldung): void => {
+    if (beendet) return;
     if (m.art === "fortschritt") {
       fortschritt(m.anteil, m.text);
       return;
     }
+    beendet = true;
     zustand.laeuft = false;
     aktualisiereKnopf();
     $("fortschritt").hidden = true;
-    if (m.art === "fehler") $("fortschritt-text").textContent = `Die Prüfung ließ sich nicht ausführen: ${m.text}`;
-    else {
-      zeigeBefund(m.befund);
-      $("fortschritt-text").textContent = `Prüfung abgeschlossen: ${ZEICHEN_NAME[m.befund.gesamt]}.`;
+    abbrechen.hidden = true;
+    abbrechen.onclick = null;
+    if (m.art === "abgebrochen") {
+      $("fortschritt-text").textContent = "Prüfung abgebrochen.";
+      $("pruefen").focus();
+      return;
     }
+    zeigeBefund(m.befund);
+    $("fortschritt-text").textContent = `Prüfung abgeschlossen: ${ZEICHEN_NAME[m.befund.gesamt]}.`;
   };
-  let worker: Worker | null = null;
+  // Abbrechen beendet den Worker sofort; ohne Worker prüft die Prüfung selbst zwischen den Teilschritten.
+  abbrechen.onclick = (): void => {
+    abgebrochen = true;
+    worker?.terminate();
+    fertig({ art: "abgebrochen" });
+  };
   try {
     const url = URL.createObjectURL(new Blob([__WORKER_CODE__], { type: "text/javascript" }));
     worker = new Worker(url);
@@ -235,17 +263,24 @@ async function pruefen(): Promise<void> {
   }
   if (worker) {
     const w = worker;
+    let gestartet = false;
     w.onmessage = (e: MessageEvent<Meldung>) => {
+      gestartet = true;
       fertig(e.data);
       if (e.data.art !== "fortschritt") w.terminate();
     };
-    w.onerror = () => {
+    w.onerror = (e: ErrorEvent) => {
       w.terminate();
-      void auftragAusfuehren(auftrag, fertig);
+      if (abgebrochen || beendet) return;
+      // Startet der Worker nicht, läuft die Prüfung auf der Seite; bricht er mitten in der Prüfung ab, ein „?“.
+      if (!gestartet) {
+        worker = null;
+        void auftragAusfuehren(auftrag, fertig, () => abgebrochen);
+      } else fertig({ art: "ergebnis", befund: fehlerBefund(auftrag, e.message || "Die Prüfung im Hintergrund brach ab.") });
     };
     w.postMessage(auftrag);
   } else {
-    await auftragAusfuehren(auftrag, fertig);
+    await auftragAusfuehren(auftrag, fertig, () => abgebrochen);
   }
 }
 
@@ -274,7 +309,7 @@ function druckkopf(b: Befund): HTMLElement {
   const zeilen: [string, string][] = [
     ["Prüfdatum", deutsch(Date.parse(b.geprueftAm))],
     ["WATTest", `${b.wattestVersion} (Commit ${b.commit})`],
-    ...b.dateien.map((d): [string, string] => [`Datei „${d.name}“`, `${d.art}, ${groesse(d.groesse)}, SHA-256 ${d.sha256}`]),
+    ...b.dateien.map((d): [string, string] => [`Datei „${d.name}“`, `${d.art}, ${groesse(d.groesse)}, ${d.sha256 ? `SHA-256 ${d.sha256}` : "SHA-256 nicht berechnet"}`]),
     ["Sperrliste", b.sperrliste ? `${b.sperrliste.anzahl} Einträge, Stand ${b.sperrliste.abgerufen ? deutsch(Date.parse(b.sperrliste.abgerufen)) : "unbekannt"}` : "nicht verfügbar"],
     ["Wurzeln", b.wurzeln ? `${b.wurzeln.anzahl} Wurzelzertifikate von Google, Stand ${b.wurzeln.abgerufen ? deutsch(Date.parse(b.wurzeln.abgerufen)) : "unbekannt"}` : "nicht verfügbar"],
   ];

@@ -24,7 +24,8 @@ export type AnkerErgebnis = { ok: true; anker: Anker } | { ok: false; fehler: st
 const HASH = /^[0-9a-fA-F]{64}$/;
 
 function zahlFeld(name: string, wert: string): number | string {
-  if (!/^\d+$/.test(wert)) return `${name} muss eine ganze Zahl sein, nicht „${wert}“.`;
+  if (!/^\d+$/.test(wert)) return `${name} muss eine ganze Zahl sein, nicht „${wert.slice(0, 40)}“.`;
+  if (!Number.isSafeInteger(Number(wert))) return `${name} ist zu groß, um genau gelesen zu werden.`;
   return Number(wert);
 }
 
@@ -115,6 +116,7 @@ export function leseHand(f: HandFelder): HandErgebnis {
   const fehler: Partial<Record<keyof HandFelder, string>> = {};
   const anzahl = f.anzahl.trim();
   if (!/^\d+$/.test(anzahl)) fehler.anzahl = "Bitte die Anzahl der Einträge als ganze Zahl eingeben.";
+  else if (!Number.isSafeInteger(Number(anzahl))) fehler.anzahl = "Die Anzahl ist zu groß, um genau gelesen zu werden.";
   const t = leseStand(f.stand);
   if (!t) fehler.stand = "Bitte den Stand als TT.MM.JJJJ HH:MM eingeben, z. B. 12.03.2026 14:32.";
   const sha = f.pruefsumme.replace(/\s+/g, "");

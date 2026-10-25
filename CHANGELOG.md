@@ -1,5 +1,20 @@
 # Änderungen
 
+## 0.1.5 – 25.10.2026
+
+Härtung gegen manipulierte Dateien und klarere Befunde. Die Unterlagen von WATT sind unverändert (watt_public, Commit 37ae281).
+
+- Feste Grenzen für Eingaben von Dritten, zentral in `src/kern/grenzen.ts` und in der Spezifikation (Abschnitt 14): Datei 200 MB, 1 Mio. Glieder, 1 Mio. Signaturen, 256 Schlüssel, 8 Zertifikate je Schlüssel, Zertifikat 8 KB, Signatur 128 Bytes, Verschachtelung DER 32, JSON und XML 64 Ebenen, XML 32 Attribute, ZIP 10.000 Einträge, 200 MB je Eintrag, 512 MB zusammen, Verhältnis 250 : 1. Darüber „?“ mit Hinweis auf die Grenze, nie ✗ und kein Absturz (E-41).
+- DER/X.509: keine unbestimmten Längen, Tag-Nummern bis 16.383 in minimaler Form, Längen gegen das Ende der Daten, Verschachtelung geprüft ohne Rekursion, jedes Zertifikat genau ein Element aus drei Teilen ohne Rest; fehlende Teile ergeben einen DER-Fehler statt einer Ausnahme. Ein unlesbares Zertifikat ist „?“, nie ✗; ist nur ein Zwischenzertifikat unlesbar, prüft P6 die Signaturen mit dem Blatt (E-43). Ein fehlender Eintrag in `kettenschluessel` ist jetzt „?“ statt ✗ (U-24).
+- ZIP: Zip-Bomben werden vor dem Entpacken abgewiesen (Größe, Verhältnis, überlappende Einträge); entpackt wird als Strom bis zur angegebenen Größe. Abgewiesen werden auch Pfade mit `..`, absolute Pfade, Rückstriche, Steuerzeichen und doppelte Namen (E-46).
+- XML: Tiefe und Attribute je Element begrenzt, doppelte Attribute und ungültige Zeichenreferenzen abgewiesen; DTD und Entitäten wie bisher nicht unterstützt.
+- JSON: Tiefe begrenzt (auch im Feld `daten`), Prüfung ohne Rekursion vor dem Lesen. Zahlen über Number.MAX_SAFE_INTEGER nennt P1 mit Pfad („?“); betroffene Glieder sind in P2 „?“ statt ✗, Signaturen in P6 „?“ (E-42).
+- Signaturen (P6): zu Gliedern, die es nicht gibt, mit `seq` außerhalb der Kette, mehrere zu einem Glied, über 128 Bytes oder nicht als DER lesbar: „?“ mit Fundstelle statt ✗ (E-44, U-23). Eine lesbare, aber falsche Signatur bleibt ✗.
+- Ablauf: „Abbrechen“ neben „Prüfen“; Fortschritt in Teilschritten in der Live-Region. Bricht die Prüfung ab, zeigt die Seite einen Befund mit „?“ statt einer leeren Seite (E-49). Dateien über 200 MB liest die Seite nicht ein. Jede Aussage trägt höchstens 200 Einzelheiten.
+- Oberfläche: Das Attribut `hidden` blendet jetzt auch Knöpfe aus; bisher blieb dadurch „QR-Code mit der Kamera scannen“ auch in Browsern ohne Erkennung von QR-Codes sichtbar.
+- Befundtexte nach dem Feldtest vom 25.10.2026: Die Gesamtzeile sagt bei „?“ in einem zweiten Satz, was bestätigt ist und was fehlt (E-47). P4 zeigt genau eine Aussage zu den Zeitstempeln (E-48). P5 ohne Anker gibt den Hinweis, einen Prüfvermerk hinzuzufügen. Bei Datenformat 16 bis 18 nur noch ein „?“ in P6, P7 als Hinweis „Entfällt (keine Signatur).“
+- Tests: deterministische Mutationstests mit festem Seed für DER (2.000 Fälle), ZIP (300), XML und JSON (je 400); Härtungstests je Grenze; Zip-Bomben; Kette mit 100.000 Gliedern, 50 Schlüsseln und 100.000 Signaturen; je Lage der neuen Befundtexte. Der Testerzeuger kann weitere Schlüssel einfügen (`weitereSchluessel`).
+
 ## 0.1.4 – 25.10.2026
 
 - Unterlagen: Technische Erläuterung und Datenformat aus Aves83/watt_public, Commit 37ae281 (Stand 1af17a5 von WATT, Vorabfassung). Rechenbeispiele B1 bis B13 und Schemas inhaltlich unverändert.
