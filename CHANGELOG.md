@@ -1,5 +1,13 @@
 # Änderungen
 
+## 0.1.4 – 25.10.2026
+
+- Unterlagen: Technische Erläuterung und Datenformat aus Aves83/watt_public, Commit 37ae281 (Stand 1af17a5 von WATT, Vorabfassung). Rechenbeispiele B1 bis B13 und Schemas inhaltlich unverändert.
+- P4 (U-18, geklärt durch TE 4.7 und 8.): Bei `uhr_ruecksprung` mit Uhrstand gilt die Regel der TE zum Bezug. Bei `objektId` mit laufender Nummer hat das auslösende Glied davor `neustarts` größer als 0 oder -1 und der Vermerk selbst 0; bei `timer`, `nachweis`, `start` und `zeitsignal` hat der Vermerk selbst `neustarts` größer als 0 oder -1. Ausnahme: `nachweis` als erstes Glied einer leeren Kette mit 0. Eingespielte Glieder vor einer `wiederherstellung` folgen derselben Regel; ohne Uhrstand entfällt sie. Ein Verstoß ist „?“ mit Glied-Nummer und Begründung, nie ✗; der bisherige Hinweis „uhr_ruecksprung trotz Bezug“ entfällt.
+- P4: `uhr_ruecksprung` mit `objektId` `start` oder `zeitsignal` erklärt einen Rücksprung über 2 Minuten (8., Schritt 5); die Liste der Vermerke nennt beide Anlässe.
+- U-20: WATT bestätigt die Lesart von E-39, die TE übernimmt sie mit dem nächsten Stand; bis dahin offen. U-21 bleibt offen (Bedeutung von `schritte` ändert sich mit dem nächsten Stand der TE), die Prüfung bleibt wie bisher. Neu offen: U-22 (gleicher Wortlaut „Hinweis zur Klärung“ bei U-15 und U-18, unterschiedlich gewertet).
+- Tests: je Fall der Regel zum Bezug, die Ausnahme mit Schlüssel und Challenge, eingespielte Glieder, Glieder ohne Uhrstand, `start` und `zeitsignal` als Erklärung. Der Testerzeuger kann einen Rücksprung mit wählbarem Anlass und wählbaren `neustarts` einfügen (`ruecksprung`).
+
 ## 0.1.3 – 25.10.2026
 
 - Unterlagen: Technische Erläuterung und Datenformat aus Aves83/watt_public, Commit 4828c89 (Stand 85a7f6e von WATT). Die Klarstellungen zu U-14 bis U-17 sind übernommen, die Ersatz-Lesarten gestrichen; `docs/UNKLARHEITEN.md` vermerkt je Punkt „geklärt durch TE Abschnitt …“.

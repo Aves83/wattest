@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 // WATTest © 2026 Hans-Joachim Steudel
 
-// Klarstellungen der Technischen Erläuterung vom 25.10.2026 (docs/UNKLARHEITEN.md, U-1 bis U-15),
-// dazu U-18. U-16 steht in signatur.test.ts, U-17 in vektoren.test.ts, U-19 in eingaben.test.ts.
+// Klarstellungen der Technischen Erläuterung vom 25.10.2026 (docs/UNKLARHEITEN.md, U-1 bis U-15 und U-18).
+// U-16 steht in signatur.test.ts, U-17 in vektoren.test.ts, U-19 in eingaben.test.ts.
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
@@ -243,6 +243,8 @@ test("U-5: Rücksprung beim Festhalten eines Nachweises (uhr_ruecksprung mit obj
   const d = await kette();
   const letzt = Date.parse(String(d.protokoll.at(-1)!["zeitpunkt"]));
   anhaengen(d, "uhr_ruecksprung", "nachweis", iso(letzt - 600000), { vorher: iso(letzt), nachher: iso(letzt - 600000) });
+  // Ohne Bezug, etwa nach einem Neustart; mit neustarts 0 wäre der Vermerk nach 4.7 nicht bestätigbar (U-18).
+  d.protokoll.at(-1)!["neustarts"] = -1;
   await neuVerketten(d.protokoll);
   const b = await befund([json("x.json", d)]);
   assert.equal(zeichen(b, "P4"), "bestaetigt", texte(b, "P4"));
@@ -278,54 +280,132 @@ test("U-6: zeitpunkt von uhr_verstellt gleicht nicht nachher: P4 nicht bestätig
   assert.match(texte(b, "P4"), /gleicht nicht nachher/);
 });
 
-// U-18: uhr_ruecksprung, obwohl ein Bezug bestand (TE 8., Schritt 5, und 4.7). Nur Hinweis.
+// U-18: uhr_ruecksprung bei Gliedern mit Uhrstand nur ohne Bezug (TE 4.7, „Bezug“ und „uhr_ruecksprung bei Einträgen
+// mit Uhrstand“; 8., Schritt 5; watt_public 37ae281). Ein Verstoß ist „?“, nie ✗.
 
-const BEZUG = /Glied uhr_ruecksprung steht in einem Abschnitt, in dem ein Bezug zur Monotonuhr bestand/;
+const REGEL_OK = /uhr_ruecksprung mit Uhrstand (entstand|entstanden) ohne Bezug, wie 4\.7 es beschreibt\./;
+const REGEL_VERSTOSS = /uhr_ruecksprung (passt|passen) nicht zur Regel für den Bezug in 4\.7\./;
 
-function hinweisBezug(b: Awaited<ReturnType<typeof befund>>): boolean {
-  return b.aussagen.some((a) => a.schritt === "P4" && a.zeichen === "hinweis" && BEZUG.test(a.text));
+function bezug(b: Awaited<ReturnType<typeof befund>>): "bestaetigt" | "offen" | null {
+  const a = b.aussagen.filter((x) => x.schritt === "P4" && (REGEL_OK.test(x.text) || REGEL_VERSTOSS.test(x.text)));
+  assert.ok(a.length <= 1, texte(b, "P4"));
+  if (!a.length) return null;
+  assert.ok(a[0]!.zeichen === "bestaetigt" || a[0]!.zeichen === "offen", texte(b, "P4"));
+  return a[0]!.zeichen as "bestaetigt" | "offen";
 }
 
-async function mitRuecksprungNachGlied(neustarts: number): Promise<Daten> {
-  const d = await kette();
-  const letzt = Date.parse(String(d.protokoll.at(-1)!["zeitpunkt"]));
-  anhaengen(d, "uhr_abweichung", "timer", iso(letzt - 600000), { art: "korrektur", abweichungSekunden: 60 });
-  d.protokoll.at(-1)!["neustarts"] = neustarts;
-  anhaengen(d, "uhr_ruecksprung", String(d.protokoll.length), iso(letzt - 600000), { vorher: iso(letzt), nachher: iso(letzt - 600000) });
-  await neuVerketten(d.protokoll);
-  return d;
+type Anlass = "glied" | "timer" | "nachweis" | "start" | "zeitsignal";
+
+async function mitRuecksprung(anlass: Anlass, neustarts: number, vorEintrag = 2): Promise<Daten> {
+  return (await erzeugeKette({ eintraege: 4, ruecksprung: { anlass, vorEintrag, neustarts } })).daten as unknown as Daten;
 }
 
-test("U-18: uhr_ruecksprung nach einem Glied ohne Neustart seit dem vorigen Glied mit Uhrstand: Hinweis, keine ✗", async () => {
-  const d = await mitRuecksprungNachGlied(0);
-  const b = await befund([json("x.json", d)]);
-  assert.equal(zeichen(b, "P4"), "bestaetigt", texte(b, "P4"));
-  assert.ok(hinweisBezug(b), texte(b, "P4"));
-  assert.match(texte(b, "P4"), new RegExp(`Glied ${d.protokoll.length} \\([^)]*\\): Bezug seit Glied ${d.protokoll.length - 2} `));
-});
-
-test("U-18: nach einem Neustart oder ohne Bezug (neustarts größer als 0 oder -1) kein Hinweis", async () => {
-  for (const n of [1, -1]) {
-    const b = await befund([json("x.json", await mitRuecksprungNachGlied(n))]);
-    assert.equal(zeichen(b, "P4"), "bestaetigt", texte(b, "P4"));
-    assert.ok(!hinweisBezug(b), `neustarts ${n}`);
+test("U-18: objektId mit laufender Nummer, auslösendes Glied mit neustarts größer als 0 oder -1, Vermerk 0: bestätigt", async () => {
+  for (const n of [1, 3, -1]) {
+    const d = await mitRuecksprung("glied", n);
+    const v = d.protokoll.find((x) => x["objektArt"] === "uhr_ruecksprung")!;
+    assert.equal(v["objektId"], "3");
+    assert.equal(v["neustarts"], 0);
+    const b = await befund([json("x.json", d)]);
+    assert.equal(zeichen(b, "P2"), "bestaetigt", texte(b, "P2"));
+    assert.equal(zeichen(b, "P4"), "bestaetigt", `neustarts ${n}:\n${texte(b, "P4")}`);
+    assert.equal(bezug(b), "bestaetigt", `neustarts ${n}`);
   }
 });
 
-test("U-18: uhr_ruecksprung mit objektId nachweis zählt die eigenen Neustarts", async () => {
-  for (const [n, erwartet] of [[0, true], [2, false], [-1, false]] as const) {
-    const d = await kette();
-    const letzt = Date.parse(String(d.protokoll.at(-1)!["zeitpunkt"]));
-    anhaengen(d, "uhr_ruecksprung", "nachweis", iso(letzt - 600000), { vorher: iso(letzt), nachher: iso(letzt - 600000) });
-    d.protokoll.at(-1)!["neustarts"] = n;
-    await neuVerketten(d.protokoll);
+test("U-18: objektId mit laufender Nummer, auslösendes Glied mit neustarts 0: nicht bestätigbar mit Glied-Nummer, keine ✗", async () => {
+  const d = await mitRuecksprung("glied", 0);
+  const b = await befund([json("x.json", d)]);
+  assert.equal(zeichen(b, "P4"), "offen", texte(b, "P4"));
+  assert.equal(bezug(b), "offen");
+  const a = b.aussagen.find((x) => REGEL_VERSTOSS.test(x.text))!;
+  assert.match(a.fundstelle ?? "", /Glied 4\b/);
+  assert.match(a.begruendung, /entspricht an dieser Stelle nicht der Beschreibung der Technischen Erläuterung/);
+  assert.match(a.details!.map((x) => x.text).join("\n"), /Glied 4 \([^)]*\) mit objektId 3: das auslösende Glied 3 nennt neustarts 0, also einen Bezug\./);
+  assert.notEqual(b.gesamt, "widerlegt");
+});
+
+test("U-18: objektId mit laufender Nummer, der Vermerk selbst mit neustarts ungleich 0: nicht bestätigbar", async () => {
+  const d = await mitRuecksprung("glied", 1);
+  const v = d.protokoll.find((x) => x["objektArt"] === "uhr_ruecksprung")!;
+  v["neustarts"] = 1;
+  await neuVerketten(d.protokoll);
+  const b = await befund([json("x.json", d)]);
+  assert.equal(zeichen(b, "P2"), "bestaetigt");
+  assert.equal(zeichen(b, "P4"), "offen", texte(b, "P4"));
+  assert.match(texte(b, "P4"), /mit objektId 3: der Vermerk selbst nennt neustarts 1 statt 0\./);
+});
+
+test("U-18: objektId timer, nachweis, start oder zeitsignal: der Vermerk selbst trägt neustarts größer als 0 oder -1", async () => {
+  for (const anlass of ["timer", "nachweis", "start", "zeitsignal"] as const) {
+    for (const [n, erwartet] of [[2, "bestaetigt"], [-1, "bestaetigt"], [0, "offen"]] as const) {
+      const d = await mitRuecksprung(anlass, n);
+      const b = await befund([json("x.json", d)]);
+      assert.equal(zeichen(b, "P2"), "bestaetigt", texte(b, "P2"));
+      assert.equal(zeichen(b, "P4"), erwartet, `${anlass}, neustarts ${n}:\n${texte(b, "P4")}`);
+      assert.equal(bezug(b), erwartet, `${anlass}, neustarts ${n}`);
+      if (erwartet === "offen") assert.match(texte(b, "P4"), new RegExp(`Glied 3 \\([^)]*\\) mit objektId ${anlass}: der Vermerk selbst nennt neustarts 0, also einen Bezug\\.`));
+    }
+  }
+});
+
+test("U-18: uhr_ruecksprung mit objektId start oder zeitsignal erklärt einen Rücksprung (8., Schritt 5)", async () => {
+  for (const anlass of ["start", "zeitsignal"] as const) {
+    const d = await mitRuecksprung(anlass, 1);
     const b = await befund([json("x.json", d)]);
     assert.equal(zeichen(b, "P4"), "bestaetigt", texte(b, "P4"));
-    assert.equal(hinweisBezug(b), erwartet, `neustarts ${n}`);
+    assert.match(texte(b, "P4"), /jeder Rücksprung der Uhr um mehr als 2 Minuten ist vermerkt/);
+    assert.match(texte(b, "P4"), anlass === "start" ? /Rücksprung der Uhr beim Start der App von / : /Rücksprung der Uhr nach einer von Android gemeldeten Änderung der Uhrzeit von /);
+    // Mit einer anderen objektId ist derselbe Rücksprung nicht erklärt.
+    const v = d.protokoll.find((x) => x["objektArt"] === "uhr_ruecksprung")!;
+    v["objektId"] = "app";
+    await neuVerketten(d.protokoll);
+    assert.equal(zeichen(await befund([json("x.json", d)]), "P4"), "widerlegt");
   }
 });
 
-test("U-18: ohne Uhrstand (Glieder mit sieben Feldern) kein Hinweis", async () => {
+test("U-18: Ausnahme: uhr_ruecksprung mit objektId nachweis als erstes Glied einer leeren Kette mit neustarts 0", async () => {
+  const d = await mitRuecksprung("nachweis", 0, 0);
+  assert.equal(d.protokoll[0]!["objektArt"], "uhr_ruecksprung");
+  assert.equal(d.protokoll[0]!["prev"], "0");
+  const b = await befund([json("x.json", d)]);
+  assert.equal(zeichen(b, "P4"), "bestaetigt", texte(b, "P4"));
+  assert.equal(bezug(b), "bestaetigt");
+  // Die Ausnahme gilt nur für nachweis.
+  for (const anlass of ["timer", "start", "zeitsignal"] as const) {
+    const b2 = await befund([json("x.json", await mitRuecksprung(anlass, 0, 0))]);
+    assert.equal(bezug(b2), "offen", anlass);
+  }
+});
+
+test("U-18: eingespielte Glieder vor einer wiederherstellung folgen derselben Regel", async () => {
+  const wiederherstellung = (d: Daten, neustarts: number): void => {
+    const letzt = Date.parse(String(d.protokoll.at(-1)!["zeitpunkt"]));
+    anhaengen(d, "wiederherstellung", "", iso(letzt + 60000), { exportiertAm: iso(letzt + 30000), verschluesselt: true, vorherAnzahl: 0, vorherLetzterHash: "0", vorgeschichte: "LEER" });
+    d.protokoll.at(-1)!["neustarts"] = neustarts;
+  };
+  // Eingespielt: auslösendes Glied mit neustarts 0 – auch vor der wiederherstellung „?“.
+  const d1 = await mitRuecksprung("glied", 0);
+  wiederherstellung(d1, -1);
+  await neuVerketten(d1.protokoll);
+  const b1 = await befund([json("x.json", d1)]);
+  assert.equal(bezug(b1), "offen", texte(b1, "P4"));
+  assert.match(texte(b1, "P4"), /Glied 4 \([^)]*\) mit objektId 3: das auslösende Glied 3/);
+  // Eingespielt und regelgerecht, danach wiederherstellung mit -1 und ein uhr_ruecksprung mit ihrer seq: bestätigt.
+  const d2 = await mitRuecksprung("glied", 1);
+  wiederherstellung(d2, -1);
+  const w = d2.protokoll.at(-1)!;
+  const zuvor = d2.protokoll.at(-2)!;
+  w["zeitpunkt"] = iso(Date.parse(String(zuvor["zeitpunkt"])) - 600000);
+  anhaengen(d2, "uhr_ruecksprung", String(w["seq"]), String(w["zeitpunkt"]), { vorher: String(zuvor["zeitpunkt"]), nachher: String(w["zeitpunkt"]) });
+  await neuVerketten(d2.protokoll);
+  const b2 = await befund([json("x.json", d2)]);
+  assert.equal(zeichen(b2, "P4"), "bestaetigt", texte(b2, "P4"));
+  assert.equal(bezug(b2), "bestaetigt");
+  assert.match(texte(b2, "P4"), /Die 2 Glieder uhr_ruecksprung mit Uhrstand entstanden ohne Bezug/);
+});
+
+test("U-18: ohne Uhrstand (Glieder mit sieben Feldern) entfällt die Regel", async () => {
   const d = lade();
   d.protokoll[6]!["zeitpunkt"] = "2026-10-02T07:50:00.123Z";
   d.protokoll.splice(7, 0, { seq: 8, zeitpunkt: "2026-10-02T07:50:00.123Z", aktion: "ANGELEGT", objektArt: "uhr_ruecksprung", objektId: "7", daten: '{"vorher":"2026-10-02T08:00:00.123Z","nachher":"2026-10-02T07:50:00.123Z"}', prev: "", hash: "" });
@@ -333,7 +413,7 @@ test("U-18: ohne Uhrstand (Glieder mit sieben Feldern) kein Hinweis", async () =
   await neuVerketten(d.protokoll);
   const b = await befund([json("x.json", d)]);
   assert.equal(zeichen(b, "P4"), "bestaetigt", texte(b, "P4"));
-  assert.ok(!hinweisBezug(b), texte(b, "P4"));
+  assert.equal(bezug(b), null, texte(b, "P4"));
 });
 
 // U-13: Prüfsumme des Datenbestands beim Neubeginn (TE 4.6).

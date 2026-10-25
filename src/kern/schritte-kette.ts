@@ -12,6 +12,8 @@ import { sha256Hex } from "./sha.js";
 import { berlinTagesende, deutsch, zeitpunktMs } from "./zeit.js";
 
 const UHR = new Set(["uhr_ruecksprung", "uhr_abweichung", "uhr_verstellt"]);
+/** objektId eines uhr_ruecksprung, der ohne eigenes auslösendes Glied entsteht (4.7, 8., Schritt 5). */
+const OHNE_EIGENES_GLIED = new Set(["timer", "nachweis", "start", "zeitsignal"]);
 
 function wann(g: Glied): string {
   return g.ms === null ? g.zeitpunkt : deutsch(g.ms);
@@ -105,15 +107,15 @@ export function pruefeZeit(k: Kontext): void {
     const naechstes = g[i + 1];
     const erklaert =
       (naechstes?.objektArt === "uhr_ruecksprung" && naechstes.objektId === String(b.seq)) ||
-      (b.objektArt === "uhr_ruecksprung" && (b.objektId === "timer" || b.objektId === "nachweis")) ||
+      (b.objektArt === "uhr_ruecksprung" && OHNE_EIGENES_GLIED.has(b.objektId)) ||
       (b.objektArt === "uhr_verstellt" && b.json?.["richtung"] === "zurueck");
     if (!erklaert) {
-      unvermerkt.push({ text: `${gliedText(b)} liegt ${minuten(zurueck)} vor ${gliedText(a)}; es folgt kein Glied uhr_ruecksprung, und das Glied ist selbst kein Vermerk zur Uhr (uhr_ruecksprung mit objektId timer oder nachweis, uhr_verstellt mit richtung zurueck).` });
+      unvermerkt.push({ text: `${gliedText(b)} liegt ${minuten(zurueck)} vor ${gliedText(a)}; es folgt kein Glied uhr_ruecksprung, und das Glied ist selbst kein Vermerk zur Uhr (uhr_ruecksprung mit objektId timer, nachweis, start oder zeitsignal, uhr_verstellt mit richtung zurueck).` });
     }
   }
   const fund = dateiFundstelle(k);
   if (unvermerkt.length) {
-    sage(k, "P4", "widerlegt", `Die Uhr sprang ${anzahl(unvermerkt.length, "Mal", "Mal")} um mehr als 2 Minuten zurück, ohne dass die Kette es vermerkt.`, "Liegt ein Glied mehr als 2 Minuten vor seinem Vorgänger, folgt unmittelbar danach ein Glied uhr_ruecksprung, oder das Glied ist selbst ein Vermerk zur Uhr: uhr_ruecksprung mit objektId timer oder nachweis bzw. uhr_verstellt mit richtung zurueck (Technische Erläuterung 4.1, 4.7 und 8., Schritt 5). Hier fehlt dieser Vermerk.", {
+    sage(k, "P4", "widerlegt", `Die Uhr sprang ${anzahl(unvermerkt.length, "Mal", "Mal")} um mehr als 2 Minuten zurück, ohne dass die Kette es vermerkt.`, "Liegt ein Glied mehr als 2 Minuten vor seinem Vorgänger, folgt unmittelbar danach ein Glied uhr_ruecksprung, oder das Glied ist selbst ein Vermerk zur Uhr: uhr_ruecksprung mit objektId timer, nachweis, start oder zeitsignal bzw. uhr_verstellt mit richtung zurueck (Technische Erläuterung 4.1, 4.7 und 8., Schritt 5). Hier fehlt dieser Vermerk.", {
       fundstelle: fund,
       grenze: GRENZE.zeit,
       details: unvermerkt,
@@ -184,34 +186,60 @@ export function pruefeZeit(k: Kontext): void {
 }
 
 /**
- * uhr_ruecksprung, obwohl ein Bezug bestand (8., Schritt 5): Das Glied vor dem auslösenden trägt den Uhrstand,
- * und vom auslösenden Glied bis zum Vermerk nennt jedes Glied den Uhrstand mit neustarts 0. Auslösend ist bei
- * objektId timer oder nachweis der Vermerk selbst, sonst das Glied davor. Nur Hinweis (U-18).
+ * uhr_ruecksprung bei Gliedern mit Uhrstand (4.7, „uhr_ruecksprung bei Einträgen mit Uhrstand“; 8., Schritt 5):
+ * WATT schreibt ihn nur ohne Bezug. Bei objektId mit laufender Nummer hat das auslösende Glied unmittelbar davor
+ * neustarts größer als 0 oder -1 und der Vermerk selbst 0; bei timer, nachweis, start und zeitsignal hat der
+ * Vermerk selbst neustarts größer als 0 oder -1. Einzige Ausnahme: nachweis als erstes Glied einer leeren Kette
+ * (seq 1, prev 0, neustarts 0). Eingespielte Glieder vor einer wiederherstellung folgen derselben Regel; ohne
+ * Uhrstand entfällt sie. Ein Verstoß ist „?“, nie ✗ (U-18, E-36).
  */
 function pruefeBezug(k: Kontext): void {
   const g = k.kt.glieder;
-  const treffer: { x: Glied; bezug: Glied }[] = [];
+  const geprueft: Glied[] = [];
+  const abweichend: { x: Glied; text: string }[] = [];
+  const ohneBezug = (n: number | null): boolean => n !== null && (n > 0 || n === -1);
   for (let j = 0; j < g.length; j++) {
     const x = g[j]!;
-    if (x.objektArt !== "uhr_ruecksprung") continue;
-    const ausloeser = x.objektId === "timer" || x.objektId === "nachweis" ? j : j - 1;
-    const bezug = g[ausloeser - 1];
-    if (!bezug || bezug.form !== "neun") continue;
-    if (g.slice(ausloeser, j + 1).every((y) => y.form === "neun" && y.neustarts === 0)) treffer.push({ x, bezug });
+    if (x.objektArt !== "uhr_ruecksprung" || x.form !== "neun") continue;
+    const probleme: string[] = [];
+    if (/^\d+$/.test(x.objektId)) {
+      const ausloeser = g[j - 1];
+      if (!ausloeser || ausloeser.form !== "neun") continue;
+      geprueft.push(x);
+      if (ausloeser.seq !== Number(x.objektId)) probleme.push(`objektId nennt Glied ${x.objektId}, unmittelbar davor steht ${gliedName(ausloeser)}`);
+      if (!ohneBezug(ausloeser.neustarts)) probleme.push(`das auslösende ${gliedName(ausloeser)} nennt neustarts ${String(ausloeser.neustarts)}, also einen Bezug`);
+      if (x.neustarts !== 0) probleme.push(`der Vermerk selbst nennt neustarts ${String(x.neustarts)} statt 0`);
+    } else if (OHNE_EIGENES_GLIED.has(x.objektId)) {
+      geprueft.push(x);
+      const ersterDerKette = x.objektId === "nachweis" && j === 0 && x.seq === 1 && x.prev === "0" && x.neustarts === 0;
+      if (!ohneBezug(x.neustarts) && !ersterDerKette) probleme.push(`der Vermerk selbst nennt neustarts ${String(x.neustarts)}, also einen Bezug`);
+    } else continue;
+    if (probleme.length) abweichend.push({ x, text: `${gliedText(x)} mit objektId ${x.objektId}: ${probleme.join("; ")}.` });
   }
-  if (!treffer.length) return;
-  sage(
-    k,
-    "P4",
-    "hinweis",
-    `${treffer.length === 1 ? "Ein Glied uhr_ruecksprung steht" : `${zahl(treffer.length)} Glieder uhr_ruecksprung stehen`} in einem Abschnitt, in dem ein Bezug zur Monotonuhr bestand.`,
-    "Seit dem 24.10.2026 vermerkt WATT bei Gliedern mit Uhrstand eine Verstellung der Uhr als uhr_verstellt; uhr_ruecksprung folgt nach 8., Schritt 5 nur noch, wenn kein Bezug bestand (neustarts größer als 0 oder -1). Hier trägt das vorangehende Glied den Uhrstand, und kein Glied bis zum Vermerk nennt einen Neustart. Das widerlegt nichts: Den Bezug hält WATT nur auf dem Gerät, und die Technische Erläuterung nennt die Fälle ohne Bezug nur beispielhaft (4.7); der Rücksprung selbst ist vermerkt.",
-    {
-      fundstelle: dateiFundstelle(k, `Glied ${bereiche(treffer.map(({ x }) => x.seq ?? 0))}`),
-      grenze: GRENZE.zeit,
-      details: treffer.map(({ x, bezug }) => ({ text: `${gliedText(x)}: Bezug seit ${gliedText(bezug)}, ohne Neustart dazwischen.` })),
-    },
-  );
+  if (!geprueft.length) return;
+  if (abweichend.length) {
+    sage(
+      k,
+      "P4",
+      "offen",
+      `${abweichend.length === 1 ? "Ein Glied uhr_ruecksprung passt" : `${zahl(abweichend.length)} Glieder uhr_ruecksprung passen`} nicht zur Regel für den Bezug in 4.7.`,
+      "Bei Gliedern mit Uhrstand schreibt WATT uhr_ruecksprung nur ohne Bezug, sonst steht eine Verstellung als uhr_verstellt in der Kette (4.7, 8., Schritt 5). Ohne Bezug heißt: Bei objektId mit laufender Nummer hat das auslösende Glied unmittelbar davor neustarts größer als 0 oder -1 und der Vermerk selbst 0; bei objektId timer, nachweis, start oder zeitsignal hat der Vermerk selbst neustarts größer als 0 oder -1. Einzige Ausnahme ist ein uhr_ruecksprung mit objektId nachweis als erstes Glied einer leeren Kette (neustarts 0). Die Datei entspricht an dieser Stelle nicht der Beschreibung der Technischen Erläuterung; das ist ein Hinweis zur Klärung, kein Beleg einer Manipulation.",
+      {
+        fundstelle: dateiFundstelle(k, `Glied ${bereiche(abweichend.map(({ x }) => x.seq ?? 0))}`),
+        grenze: GRENZE.zeit,
+        details: abweichend.map(({ text }) => ({ text })),
+      },
+    );
+  } else {
+    sage(
+      k,
+      "P4",
+      "bestaetigt",
+      `${geprueft.length === 1 ? "Das Glied uhr_ruecksprung mit Uhrstand entstand" : `Die ${zahl(geprueft.length)} Glieder uhr_ruecksprung mit Uhrstand entstanden`} ohne Bezug, wie 4.7 es beschreibt.`,
+      "Bei objektId mit laufender Nummer nennt das auslösende Glied neustarts größer als 0 oder -1 und der Vermerk selbst 0; bei timer, nachweis, start und zeitsignal nennt der Vermerk selbst neustarts größer als 0 oder -1, ausgenommen nachweis als erstes Glied einer leeren Kette (4.7, 8., Schritt 5).",
+      { fundstelle: dateiFundstelle(k, `Glied ${bereiche(geprueft.map((x) => x.seq ?? 0))}`), grenze: GRENZE.zeit },
+    );
+  }
 }
 
 /**
@@ -284,7 +312,8 @@ function uhrBeschreibung(x: Glied): string {
   if (x.objektArt === "uhr_ruecksprung") {
     const v = zeitpunktMs(d["vorher"]);
     const n = zeitpunktMs(d["nachher"]);
-    const anlass = x.objektId === "timer" ? "beim Start eines Timers" : x.objektId === "nachweis" ? "beim Festhalten eines Nachweises" : `nach Glied ${x.objektId}`;
+    const anlaesse: Record<string, string> = { timer: "beim Start eines Timers", nachweis: "beim Festhalten eines Nachweises", start: "beim Start der App", zeitsignal: "nach einer von Android gemeldeten Änderung der Uhrzeit" };
+    const anlass = anlaesse[x.objektId] ?? `nach Glied ${x.objektId}`;
     return `Rücksprung der Uhr ${anlass}${v !== null && n !== null ? ` von ${deutsch(v)} auf ${deutsch(n)}` : ""}`;
   }
   if (x.objektArt === "uhr_abweichung") {

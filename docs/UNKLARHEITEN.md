@@ -2,9 +2,9 @@
 
 Stellen, an denen die Unterlagen (Technische Erläuterung, Datenformat, Schemas, Beispieldateien) unklar sind oder einander widersprechen. WATTest entscheidet nach dem Wortlaut der Technischen Erläuterung (TE); jede Stelle nennt Zitat, Deutung und Folge.
 
-Stand: WATTest 0.1.3, Unterlagen vom 25.10.2026 aus dem öffentlichen Repository [Aves83/watt_public](https://github.com/Aves83/watt_public) (Commit 4828c89: `doc/technische-erlaeuterung.md`, `doc/datenformat.md`, `schema/` mit den Schemas der Version 19 als Vorabfassung; TE und Datenformat auf dem Stand 85a7f6e von WATT, Kopfzeile „WATT-Version: Vorabfassung“). Die TE vom 25.10.2026 klärt U-1 bis U-17, die Schemas in watt_public klären U-19; WATTest folgt jeweils nur noch der Lesart der TE, Ersatz-Lesarten sind gestrichen. Offen sind U-18 (TE 8., Schritt 5 ist in 4828c89 unverändert) und die neuen Punkte U-20 und U-21.
+Stand: WATTest 0.1.4, Unterlagen vom 25.10.2026 aus dem öffentlichen Repository [Aves83/watt_public](https://github.com/Aves83/watt_public) (Commit 37ae281: `doc/technische-erlaeuterung.md`, `doc/datenformat.md`, `schema/` mit den Schemas der Version 19 als Vorabfassung; TE und Datenformat auf dem Stand 1af17a5 von WATT, Kopfzeile „WATT-Version: Vorabfassung“). Die TE vom 25.10.2026 klärt U-1 bis U-18, die Schemas in watt_public klären U-19; WATTest folgt jeweils nur noch der Lesart der TE, Ersatz-Lesarten sind gestrichen. Offen sind U-20 (Antwort angekündigt), U-21 (Bedeutung von `schritte` ändert sich mit dem nächsten Stand der TE) und der neue Punkt U-22.
 
-Keine der drei Beispieldateien (`apfel-16`, `bergamotte-17`, `cherimoya-18`) weicht von der Beschreibung ab: Alle Prüfsummen der Arbeitszeitkette, der Nachweiskette, der Anzeige, der Gesprächsnotiz und des Nachtrags lassen sich nach 4.2 und 5.1 nachrechnen, und der Abgleich nach 7. ergibt keine Abweichung. Die Rechenbeispiele B1 bis B12 aus den Codeblöcken der TE sind unverändert; neu ist B13 (4.6, Maskierung).
+Keine der drei Beispieldateien (`apfel-16`, `bergamotte-17`, `cherimoya-18`) weicht von der Beschreibung ab: Alle Prüfsummen der Arbeitszeitkette, der Nachweiskette, der Anzeige, der Gesprächsnotiz und des Nachtrags lassen sich nach 4.2 und 5.1 nachrechnen, und der Abgleich nach 7. ergibt keine Abweichung. Die Rechenbeispiele B1 bis B13 aus den Codeblöcken der TE sind in 37ae281 unverändert.
 
 ## Geklärt
 
@@ -110,21 +110,29 @@ Keine der drei Beispieldateien (`apfel-16`, `bergamotte-17`, `cherimoya-18`) wei
 - **Geklärt durch watt_public, Commit 4828c89:** `schema/` enthält `watt-daten-19.schema.json` und `watt-daten-19.xsd`; die README führt die Zeile „19 (Vorabfassung)“: noch in keiner ausgelieferten Fassung, „kann sich bis dahin ändern“. Beide Dateien sind inhaltlich gleich dem früheren Stand.
 - Folge: Schema-Auszug und XML-Typtabelle sind aus watt_public neu erzeugt (Inhalt unverändert; die Typtabelle kommt jetzt ohne XSD 17 aus, E-30). P1 gibt für Version 19 einen Hinweis „Das Schema der Formatversion 19 ist eine Vorabfassung.“, solange die README sie so nennt (E-38).
 
+### U-18 `uhr_ruecksprung` bei Gliedern mit Uhrstand und Bezug
+
+- Früher: TE 8., Schritt 5 sagte nur, `uhr_ruecksprung` folge „nur noch, wenn kein Bezug bestand (neustarts größer als 0 oder -1)“, nannte die Fälle ohne Bezug nur beispielhaft und legte nicht fest, welches Glied die Neustarts trägt. WATTest gab bis 0.1.3 nur einen Hinweis (i), wenn ein `uhr_ruecksprung` in einem Abschnitt mit Bezug stand.
+- **Geklärt durch TE 4.7 und 8., Stand 1af17a5** (watt_public 37ae281; 4.7, Absätze „Bezug“ und „uhr_ruecksprung bei Einträgen mit Uhrstand“; 4.1; 8., Schritt 5): „objektId ist eine laufende Nummer: Der auslösende Eintrag (seq gleich objektId, unmittelbar davor) hat neustarts größer als 0 oder -1; der Vermerk selbst hat neustarts 0.“ – „objektId timer, nachweis, start oder zeitsignal […]: Der Vermerk selbst hat neustarts größer als 0 oder -1.“ – „Einzige Ausnahme beim Uhrstand: Hat die Arbeitszeitkette noch keinen Eintrag, kann ein uhr_ruecksprung mit objektId nachweis ihr erster Eintrag sein (seq 1, prev 0, neustarts 0 […]).“ – „In eingespielten Einträgen (vor dem Eintrag wiederherstellung) beziehen sich neustarts und uhr_ruecksprung auf das Gerät, auf dem sie entstanden“. – „Einträge ohne Uhrstand (vor dem 24.10.2026, sieben Felder) folgen der Regel aus 4.1 ohne Bezug.“ 8., Schritt 5 nennt `start` und `zeitsignal` neben `timer` und `nachweis` als Vermerke, die einen Rücksprung selbst erklären.
+- Folge: P4 prüft je `uhr_ruecksprung` mit Uhrstand diese Regel. Ein Verstoß ist „?“ mit Glied-Nummer und Begründung („Die Datei entspricht an dieser Stelle nicht der Beschreibung der Technischen Erläuterung“), nie ✗; sonst ✓ (E-36). Eingespielte Glieder prüft P4 nach derselben Regel; ohne Uhrstand entfällt sie. `uhr_ruecksprung` mit `objektId` `start` oder `zeitsignal` erklärt einen Rücksprung über 2 Minuten. Tests in `tests/klarstellungen.test.ts` und `tests/signatur.test.ts`, auch mit dem Testerzeuger (`ruecksprung`).
+
 ## Offen
-
-### U-18 `uhr_ruecksprung` in einem Abschnitt mit Bezug
-
-- TE 8., Schritt 5: „Seit dem 24.10.2026 (4.7) steht bei Einträgen mit Uhrstand eine Verstellung in beide Richtungen als uhr_verstellt vor dem auslösenden Eintrag bzw. an ihrem eigenen Zeitpunkt; uhr_ruecksprung folgt dann nur noch, wenn kein Bezug bestand (neustarts größer als 0 oder -1).“ TE 4.7: „Schreibt ein Vorgang mehrere Einträge, nennt der erste die Neustarts, die folgenden 0.“ Die Fälle ohne Bezug nennt 4.7 nur beispielhaft („etwa beim ersten Eintrag nach dem Update, nach einer Wiederherstellung oder ohne Zähler“), und der Bezug selbst steht nie in der Datei.
-- Deutung: Auslösend ist bei `objektId` `timer` oder `nachweis` der Vermerk selbst, sonst das Glied unmittelbar davor (`objektId` nennt dessen `seq`). Ein Bezug bestand, wenn das Glied vor dem auslösenden den Uhrstand trägt und jedes Glied vom auslösenden bis zum Vermerk den Uhrstand mit `neustarts` 0 trägt (kein Neustart dazwischen).
-- Folge: P4 gibt dann einen Hinweis (i) mit den betroffenen Gliedern, nie ✗ oder „?“: Aus der Datei lässt sich nicht ausschließen, dass der Bezug auf einem anderen Weg fehlte; der Rücksprung selbst ist vermerkt.
 
 ### U-20 Einzelnes Ersatzzeichen in den übrigen Prüfsummen
 
 - TE 4.6 („Maskierung“) nennt die Umwandlung eines einzelnen Ersatzzeichens in „?“ für die drei Stellen mit JSON (Bestandsprüfsumme, Klartext-Export für `bestand`, `daten`). Für die übrigen Felder der Kette (4.2) und für die Prüfsummen der Nachweise (5.1), deren Werte ebenfalls „in UTF-8“ eingehen, sagt sie dazu nichts.
 - Deutung: Die Umwandlung in UTF-8 ist überall dieselbe.
 - Folge: WATTest wandelt in allen Eingaben einer Prüfsumme ein einzelnes Ersatzzeichen in „?“ (E-39). Weicht WATT ab, passt eine solche Prüfsumme nicht; das Zeichen ist über die Oberfläche praktisch nicht einzugeben.
+- **Antwort angekündigt, Lesart E-39 bestätigt:** WATT bestätigt die Lesart (alle Prüfsummen, „?“ für ein einzelnes Ersatzzeichen); die TE übernimmt das mit ihrem nächsten Stand. Bis dahin bleibt der Punkt offen, an der Prüfung ändert sich nichts.
 
 ### U-21 Inhalt des Felds `schritte` in `uhr_verstellt`
 
 - TE 4.7 und Datenformat nennen das Feld `schritte` bei summierten kleinen Schritten, beschreiben aber nicht seinen Inhalt (Anzahl oder Liste der Schritte); das Schema 19 legt `daten` nur als Text fest.
 - Folge: WATTest prüft nur, ob das Feld vorhanden ist, und rechnet nicht die einzelnen Schritte nach, sondern nur Vorzeichen und Obergrenze über nachher − vorher (U-14).
+- Stand 0.1.4: Die Bedeutung von `schritte` ändert sich mit dem nächsten Stand der TE; bis dahin bleibt die Prüfung wie beschrieben.
+
+### U-22 Gewicht eines „Hinweises zur Klärung“ in 4.7
+
+- TE 4.7 nennt zwei Abweichungen mit demselben Wortlaut „ein Hinweis zur Klärung, kein Beleg einer Manipulation“: den ersten Teil der Zerlegung unter −120 Sekunden (U-15) und einen `uhr_ruecksprung`, der nicht zur Regel für den Bezug passt (U-18: „passt er nicht zu dieser Regel; das ist ein Hinweis zur Klärung, kein Beleg einer Manipulation“).
+- Deutung: Beide sind kein ✗. Ob „Hinweis“ das Zeichen i (zählt nicht für die Gesamtzeile) oder „?“ meint, lässt der Wortlaut offen.
+- Folge: WATTest gibt nach den Aufträgen 0.1.3 und 0.1.4 beim ersten Teil einen Hinweis (i, E-28), beim Bezug „?“ (E-36). Die Gesamtzeile wird also nur im zweiten Fall „?“. Sollen beide gleich behandelt werden, genügt eine Änderung in `src/kern/schritte-kette.ts`.
