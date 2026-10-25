@@ -42,7 +42,7 @@ Buchungsdaten (Export im Überblick) und verschlüsselte Sicherungen (`.wattbak`
 
 ## Die Einzeldatei prüfen
 
-Jede Version gibt es als eine einzige HTML-Datei, die ohne Netz läuft (mit Wurzeln und Sperrliste zum Stand des Baus). Ihre SHA-256 steht in `SHA256SUMS.txt` beim Release und auf der Seite.
+Jede Version gibt es als eine einzige HTML-Datei, die ohne Netz läuft (mit Wurzeln und Sperrliste zum Stand des Baus). Ihre SHA-256 steht in `SHA256SUMS.txt` beim Release. Die Einzeldatei auf der Seite (`https://aves83.github.io/wattest/wattest-0.1.0.html`) wird täglich mit frischer Sperrliste neu gebaut; ihre Prüfsumme steht im `SHA256SUMS.txt` der Seite und weicht deshalb von der des Releases ab.
 
 ```
 sha256sum wattest-0.1.0.html
