@@ -362,7 +362,7 @@ details.aussage[open] > summary::after {
   border-radius: 50%;
   font-weight: 700;
   line-height: 1;
-  border: 2px solid var(--rand-zeichen);
+  border: 2px solid transparent;
 }
 
 .z-bestaetigt {
@@ -378,6 +378,7 @@ details.aussage[open] > summary::after {
 .z-widerlegt {
   background: var(--nein-grund);
   color: var(--nein-text);
+  border-color: var(--rand-zeichen);
 }
 
 .z-hinweis {
@@ -464,6 +465,9 @@ details.aussage[open] > summary::after {
   .karte {
     border: none;
     padding: 0;
+  }
+  .zeichen {
+    border-color: #000000;
   }
   .druckkopf {
     display: block;

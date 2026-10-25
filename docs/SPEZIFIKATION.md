@@ -1,4 +1,4 @@
-# WATTest – Spezifikation (Entwurf, Stand 25.10.2026, Entscheidungen Achim eingearbeitet)
+# WATTest – Spezifikation (Stand 25.10.2026, Entscheidungen Achim eingearbeitet; umgesetzt in WATTest 0.1.0, siehe Abschnitt 13)
 
 > **Stimmt WATT?** WATTest prüft Exporte der App WATT: ob die Arbeitszeitkette intakt ist, ob sie zu vorhandenen Ankern passt, ob die Daten zur Kette passen und, ab WATT „D“, ob die Kette vom echten WATT auf einem bestätigten Gerät stammt.
 
@@ -70,12 +70,14 @@ Rechnen im Web Worker mit Fortschritt; Ziel: 10.000 Glieder in wenigen Sekunden 
 - Beispiele: „Die Kette ist lückenlos und unverändert.“, „Die Daten entsprechen der Kette.“, „Der Anker vom 12.03.2026 passt zur Kette.“, „Die Kette stammt von WATT auf einem bestätigten Gerät.“, „Die Uhr wurde nicht verstellt.“, „Das Gerät wurde 14-mal neu gestartet.“ (Hinweis), „Die Dokumente im Aktenauszug sind unverändert.“
 - Zu jeder Aussage aufklappbar: Begründung, Fundstelle (Glied-Nummer, Datei) und Grenze („Über die Zeit vor dem ersten Anker sagt das nichts.“, aus Abschnitt 9 der Technischen Erläuterung).
 - Ein Prüffehler ist nie ✗.
+- Dazu Hinweise (i, grau) für reine Informationen wie Neustarts; sie beeinflussen die Gesamtzeile nicht (Entscheidung E-1).
+- Oben eine Gesamtzeile: ✗, wenn eine Aussage ✗ ist, sonst ?, wenn eine ? ist, sonst ✓.
 - Druckansicht bzw. PDF über den Browser mit: Prüfdatum, WATTest-Version, SHA-256 jeder geprüften Datei, Stand der Sperrliste und der Wurzeln, allen Teilbefunden. Keine persönlichen Inhalte außer Glied-Nummern und Zeitpunkten.
 
 ## 7. Sperrliste und Wurzeln
 
 - Die Sperrliste von Google (`https://android.googleapis.com/attestation/status`) ist vom Browser nicht lesbar (keine CORS-Freigabe, geprüft 24.10.2026).
-- Eine GitHub Action im Repository lädt sie täglich und legt sie mit Abrufzeitpunkt als `daten/sperrliste.json` auf die Seite; ebenso die Wurzelzertifikate.
+- Eine GitHub Action im Repository lädt sie täglich und legt sie mit Abrufzeitpunkt als `daten/sperrliste.json` auf die Seite, ohne sie einzuchecken; ebenso die Wurzelzertifikate (`daten/wurzeln.json`, von `https://android.googleapis.com/attestation/root`). Scheitert der Abruf, bleibt der eingecheckte Stand, und der Befund nennt sein Datum.
 - Die einzelne HTML-Datei enthält den Stand zum Zeitpunkt ihres Baus und nennt ihn; der Befund weist auf einen veralteten Stand hin.
 
 ## 8. Aufbau
@@ -125,3 +127,13 @@ Ziel: Statt des vollständigen Klartexts nur einen Zeitraum weitergeben und trot
 - Zum Zeitraum gehören alle Glieder eines Eintrags bzw. einer Abwesenheit, wenn irgendeine Fassung im Zeitraum liegt, damit der Abgleich je Objekt (P3) vollständig ist.
 - Sichtbar bleibt nur die Gesamtzahl der Glieder. Ein Anker auf ein verdecktes Glied prüft nur die Prüfsumme, nicht den Zeitpunkt.
 - Voraussetzung in WATT: Erweiterung der Buchungsdaten (JSON/XML im Export-Dialog) um diesen Auszug der Kette samt Signaturen und Zertifikaten; neue Formatversion bzw. Erweiterung von 19.
+
+## 13. Stand der Umsetzung (WATTest 0.1.0, 25.10.2026)
+
+- P1 bis P9 umgesetzt wie in Abschnitt 5; Einzelheiten der Deutung in `docs/ENTSCHEIDUNGEN.md` und `docs/UNKLARHEITEN.md`.
+- Abweichend von Abschnitt 9 sind PWA (Service Worker, installierbar) und QR mit der Kamera (über `BarcodeDetector`, nur wo vorhanden) schon in 0.1.0 enthalten.
+- Content Security Policy: `default-src none`, Skripte und Stile über Hashes, `worker-src self blob:`, `connect-src self` (Einzeldatei `none`), `img-src self data: blob:`, `manifest-src self`, `base-uri none`, `form-action none`.
+- Fußzeile: „WATTest 0.1.0 · © 2026 Hans-Joachim Steudel · EUPL-1.2 · Quelltext · Impressum · Datenschutz“.
+- Der Fingerabdruck des App-Signaturzertifikats steht in `daten/app-signatur.json`; bis zur Veröffentlichung leer, die Teilaussage ist dann „?“.
+- P1 prüft Pflichtfelder und Typen der gelesenen Teile gegen einen Auszug der Schemas, keinen vollständigen Schema-Validator.
+- Formatversionen 16 bis 18: P6 und P7 „?“ mit „Diese Version von WATT signiert noch nicht.“
