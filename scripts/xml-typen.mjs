@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: EUPL-1.2
 // WATTest © 2026 Hans-Joachim Steudel
 
-// Erzeugt src/kern/xml-typen.ts aus den XSDs von WATT (Versionen 17 bis 19).
+// Erzeugt src/kern/xml-typen.ts aus den XSDs von WATT (Versionen 18 und 19, Aves83/watt_public, schema/).
 // Aufruf: node scripts/xml-typen.mjs <Ordner mit watt-daten-<Version>.xsd>
-// Die XSDs liegen nicht im Repository. Veröffentlicht ist in Aves83/watt_public (schema/) die XSD 18;
-// die XSDs 17 und 19 stammen aus dem früheren Stand der Unterlagen (docs/UNKLARHEITEN.md, U-19).
+// Die XSDs liegen nicht im Repository. Eine XSD 17 ist nicht veröffentlicht (U-2); XML der Version 17 liest
+// WATTest mit derselben Tabelle, deren Typen die Felder der Version 17 enthalten.
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-const ordner = process.argv[2] ?? "referenz/schnittstelle";
+const ordner = process.argv[2] ?? "referenz/watt_public";
 const typen = {};
 const einfach = {};
 
-for (const v of [17, 18, 19]) {
+for (const v of [18, 19]) {
   const xsd = readFileSync(join(ordner, `watt-daten-${v}.xsd`), "utf8");
   for (const m of xsd.matchAll(/<xs:simpleType name="([^"]+)">\s*<xs:restriction base="([^"]+)"/g)) einfach[m[1]] = m[2];
   for (const m of xsd.matchAll(/<xs:complexType name="([^"]+)">([\s\S]*?)<\/xs:complexType>/g)) {
@@ -50,7 +50,8 @@ for (const [name, felder] of Object.entries(typen)) {
 const kopf = `// SPDX-License-Identifier: EUPL-1.2
 // WATTest © 2026 Hans-Joachim Steudel
 
-// Erzeugt von scripts/xml-typen.mjs aus den XSDs 17 bis 19 von WATT. Nicht von Hand ändern.
+// Erzeugt von scripts/xml-typen.mjs aus den XSDs 18 und 19 von WATT (Aves83/watt_public, schema/,
+// CC BY 4.0, Hans-Joachim Steudel). Nicht von Hand ändern.
 
 export type XmlTyp = { liste: string; von: string } | { felder: Record<string, string> };
 

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 // WATTest © 2026 Hans-Joachim Steudel
 
-// Klarstellungen der Technischen Erläuterung vom 25.10.2026 (docs/UNKLARHEITEN.md, U-1 bis U-13),
-// dazu U-18.
+// Klarstellungen der Technischen Erläuterung vom 25.10.2026 (docs/UNKLARHEITEN.md, U-1 bis U-15),
+// dazu U-18. U-16 steht in signatur.test.ts, U-17 in vektoren.test.ts, U-19 in eingaben.test.ts.
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
@@ -140,13 +140,93 @@ test("U-6: Rücksprung bis zu uhr_verstellt mit richtung zurueck ist erklärt, d
   assert.match(texte(b, "P4"), /Der Vermerk uhr_verstellt erklärt seinen Zeitsprung nach der Rechnung in 4\.7\./);
 });
 
-test("U-6: abweichungSekunden als Betrag bei richtung zurueck gilt ebenso", async () => {
+// U-14: abweichungSekunden mit Vorzeichen (TE 4.7, Stand 4828c89). Die frühere Ersatz-Lesart (Betrag) entfällt.
+
+async function mitVerstellung(vorherAbstand: number, sprungMs: number, daten: Record<string, unknown>, autoZeit = true): Promise<Daten> {
+  const d = await kette();
+  const letzt = Date.parse(String(d.protokoll.at(-1)!["zeitpunkt"]));
+  const vorher = letzt + vorherAbstand;
+  const nachher = vorher + sprungMs;
+  const ms = (t: number): string => new Date(t).toISOString();
+  anhaengen(d, "uhr_verstellt", "zeitsignal", ms(nachher), { vorher: ms(vorher), nachher: ms(nachher), ...daten });
+  d.protokoll.at(-1)!["autoZeit"] = autoZeit;
+  await neuVerketten(d.protokoll);
+  return d;
+}
+
+test("U-14: abweichungSekunden als Betrag bei richtung zurueck ist nicht bestätigbar", async () => {
   const d = await kette();
   const letzt = Date.parse(String(d.protokoll.at(-1)!["zeitpunkt"]));
   anhaengen(d, "uhr_verstellt", "start", iso(letzt - 570000), { vorher: iso(letzt + 30000), nachher: iso(letzt - 570000), abweichungSekunden: 600, richtung: "zurueck" });
   await neuVerketten(d.protokoll);
   const b = await befund([json("x.json", d)]);
+  assert.equal(zeichen(b, "P4"), "offen", texte(b, "P4"));
+  assert.match(texte(b, "P4"), /richtung zurueck passt nicht zu abweichungSekunden 600; nachher − vorher sind -600 Sekunden, abweichungSekunden nennt 600/);
+});
+
+test("U-14: nachher − vorher wird zur Null hin auf ganze Sekunden gekürzt, mit Vorzeichen", async () => {
+  for (const [ab, erwartet] of [[-600, "bestaetigt"], [-601, "offen"], [600, "offen"]] as const) {
+    const d = await mitVerstellung(30000, -600900, { abweichungSekunden: ab, richtung: "zurueck" });
+    const b = await befund([json("x.json", d)]);
+    assert.equal(zeichen(b, "P4"), erwartet, `${ab}:\n${texte(b, "P4")}`);
+  }
+  const vor = await befund([json("x.json", await mitVerstellung(30000, 600900, { abweichungSekunden: 600, richtung: "vor" }))]);
+  assert.equal(zeichen(vor, "P4"), "bestaetigt", texte(vor, "P4"));
+});
+
+test("U-14: Betrag mindestens 120", async () => {
+  const b119 = await befund([json("x.json", await mitVerstellung(30000, -119000, { abweichungSekunden: -119, richtung: "zurueck" }))]);
+  assert.equal(zeichen(b119, "P4"), "offen");
+  assert.match(texte(b119, "P4"), /der Betrag von abweichungSekunden \(-119\) ist kleiner als 120/);
+  const b120 = await befund([json("x.json", await mitVerstellung(30000, -120000, { abweichungSekunden: -120, richtung: "zurueck" }))]);
+  assert.equal(zeichen(b120, "P4"), "bestaetigt", texte(b120, "P4"));
+});
+
+test("U-14: schritte: Summe der Beträge mit dem Vorzeichen der Gesamtrichtung", async () => {
+  // Schritte −175 s und +25 s: Summe der Beträge 200, mit Vorzeichen −150.
+  const passt = await befund([json("x.json", await mitVerstellung(30000, -150000, { abweichungSekunden: -200, richtung: "zurueck", schritte: 2 }, false))]);
+  assert.equal(zeichen(passt, "P4"), "bestaetigt", texte(passt, "P4"));
+  const vorzeichen = await befund([json("x.json", await mitVerstellung(30000, -150000, { abweichungSekunden: 200, richtung: "zurueck", schritte: 2 }, false))]);
+  assert.equal(zeichen(vorzeichen, "P4"), "offen", texte(vorzeichen, "P4"));
+  const zuKlein = await befund([json("x.json", await mitVerstellung(30000, -250000, { abweichungSekunden: -200, richtung: "zurueck", schritte: 2 }, false))]);
+  assert.equal(zeichen(zuKlein, "P4"), "offen", texte(zuKlein, "P4"));
+});
+
+test("U-14: schritte, die sich genau aufheben, gelten als vor", async () => {
+  const vor = await befund([json("x.json", await mitVerstellung(30000, 0, { abweichungSekunden: 240, richtung: "vor", schritte: 2 }, false))]);
+  assert.equal(zeichen(vor, "P4"), "bestaetigt", texte(vor, "P4"));
+  const zurueck = await befund([json("x.json", await mitVerstellung(30000, 0, { abweichungSekunden: -240, richtung: "zurueck", schritte: 2 }, false))]);
+  assert.equal(zeichen(zurueck, "P4"), "offen", texte(zurueck, "P4"));
+});
+
+// U-15: erster Teil der Zerlegung nicht unter −120 s (Grenze eingeschlossen), bei schritte nicht negativ; darunter nur Hinweis.
+
+const ERSTER_TEIL = /liegt vorher weiter vor dem vorigen Glied, als 4\.7 es vorsieht/;
+
+function hinweisErsterTeil(b: Awaited<ReturnType<typeof befund>>): boolean {
+  return b.aussagen.some((a) => a.schritt === "P4" && a.zeichen === "hinweis" && ERSTER_TEIL.test(a.text));
+}
+
+test("U-15: erster Teil genau −120 Sekunden: kein Hinweis", async () => {
+  const b = await befund([json("x.json", await mitVerstellung(-120000, 600000, { abweichungSekunden: 600, richtung: "vor" }))]);
   assert.equal(zeichen(b, "P4"), "bestaetigt", texte(b, "P4"));
+  assert.ok(!hinweisErsterTeil(b), texte(b, "P4"));
+});
+
+test("U-15: erster Teil unter −120 Sekunden: Hinweis mit autoZeit, keine ✗ und kein ?", async () => {
+  const b = await befund([json("x.json", await mitVerstellung(-121000, 600000, { abweichungSekunden: 600, richtung: "vor" }))]);
+  assert.equal(zeichen(b, "P4"), "bestaetigt", texte(b, "P4"));
+  assert.ok(hinweisErsterTeil(b), texte(b, "P4"));
+  assert.match(texte(b, "P4"), /liegt 121 Sekunden vor Glied \d+ \([^)]*\); autoZeit true\./);
+});
+
+test("U-15: bei schritte ist schon ein negativer erster Teil ein Hinweis", async () => {
+  const null_ = await befund([json("x.json", await mitVerstellung(0, 200000, { abweichungSekunden: 200, richtung: "vor", schritte: 3 }, false))]);
+  assert.ok(!hinweisErsterTeil(null_), texte(null_, "P4"));
+  const b = await befund([json("x.json", await mitVerstellung(-1000, 200000, { abweichungSekunden: 200, richtung: "vor", schritte: 3 }, false))]);
+  assert.equal(zeichen(b, "P4"), "bestaetigt", texte(b, "P4"));
+  assert.ok(hinweisErsterTeil(b), texte(b, "P4"));
+  assert.match(texte(b, "P4"), /\(mit schritte\); autoZeit false\./);
 });
 
 test("U-5: Rücksprung bis zu uhr_verstellt mit richtung vor ist nicht erklärt", async () => {

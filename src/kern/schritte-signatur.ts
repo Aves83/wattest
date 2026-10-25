@@ -266,13 +266,29 @@ async function pruefeAttestierung(k: Kontext, schluessel: Map<string, Schluessel
           else add("widerlegt", "Die Zertifikatskette führt zu keiner der Wurzeln von Google.");
         }
       }
-      // Gültigkeit zum Zeitpunkt des Glieds schluessel
-      if (T !== null) {
-        const ausserhalb = z.map((c, i) => ({ c, i })).filter(({ c }) => T < c.nichtVor || T > c.nichtNach);
-        if (ausserhalb.length) add("offen", `Zum Zeitpunkt des Glieds (${deutsch(T)}) war ${ausserhalb.map(({ i }) => `Zertifikat ${i + 1}`).join(", ")} nicht gültig; die Uhr des Geräts ging womöglich falsch.`);
-        else add("bestaetigt", `Alle Zertifikate waren zum Zeitpunkt des Glieds (${deutsch(T)}) gültig.`);
+      // Erweiterung
+      const ext = z[0]!.erweiterungen.find((e) => e.oid === ATTESTIERUNG_OID);
+      let kd: Schluesselbeschreibung | null = null;
+      if (!ext) add("offen", "Das Blattzertifikat enthält keine Bestätigung von Android (Erweiterung 1.3.6.1.4.1.11129.2.1.17).");
+      else {
+        try {
+          kd = leseSchluesselbeschreibung(ext.wert);
+        } catch (err) {
+          add("offen", `Die Bestätigung von Android ist nicht lesbar (${(err as Error).message}).`);
+        }
+      }
+      // 1. Gültigkeit aller Zertifikate zu einem Bezugszeitpunkt, Grenzen eingeschlossen: der Zeitpunkt des Glieds
+      // schluessel; beim Vorratsschlüssel der leeren Kette (Glied mit challenge) creationDateTime, ohne es der
+      // Zeitpunkt des Glieds (4.7, Schritt 1; U-16).
+      const erzeugt = typeof d["challenge"] === "string" && kd && kd.erzeugtAm !== null && Number.isSafeInteger(kd.erzeugtAm) ? kd.erzeugtAm : null;
+      const bezug = erzeugt ?? T;
+      if (bezug !== null) {
+        const wann = erzeugt !== null ? `zum Zeitpunkt der Erzeugung laut creationDateTime (${deutsch(bezug)})` : `zum Zeitpunkt des Glieds (${deutsch(bezug)})`;
+        const ausserhalb = z.map((c, i) => ({ c, i })).filter(({ c }) => bezug < c.nichtVor || bezug > c.nichtNach);
+        if (ausserhalb.length) add("offen", `${wann[0]!.toUpperCase()}${wann.slice(1)} war ${ausserhalb.map(({ i }) => `Zertifikat ${i + 1}`).join(", ")} nicht gültig; die Uhr des Geräts ging womöglich falsch.`);
+        else add("bestaetigt", `Alle Zertifikate waren ${wann} gültig.`);
         const zwischen = z[1];
-        if (zwischen && T < zwischen.nichtVor) add("hinweis", `Das Glied schluessel liegt vor dem Beginn der Gültigkeit des Zwischenzertifikats (${deutschTag(zwischen.nichtVor)}); das ist nur eine grobe Untergrenze.`);
+        if (zwischen && bezug < zwischen.nichtVor) add("hinweis", `Der Bezugszeitpunkt liegt vor dem Beginn der Gültigkeit des Zwischenzertifikats (${deutschTag(zwischen.nichtVor)}); das ist nur eine grobe Untergrenze.`);
         else if (zwischen) add("hinweis", `Grobe Untergrenze: Der Schlüssel entstand nicht vor dem ${deutschTag(zwischen.nichtVor)} (Beginn der Gültigkeit des Zwischenzertifikats; nur bei kurzlebigen Zwischenzertifikaten aussagekräftig).`);
       }
       // 2. Sperrliste
@@ -285,17 +301,6 @@ async function pruefeAttestierung(k: Kontext, schluessel: Map<string, Schluessel
         else {
           const alt = sl.abgerufen && o.jetzt - Date.parse(sl.abgerufen) > 7 * 86400000;
           add("bestaetigt", `Kein Zertifikat steht in der Sperrliste (${stand}${alt ? "; dieser Stand ist älter als eine Woche, spätere Sperrungen kennt WATTest nicht" : ""}).`);
-        }
-      }
-      // Erweiterung
-      const ext = z[0]!.erweiterungen.find((e) => e.oid === ATTESTIERUNG_OID);
-      let kd: Schluesselbeschreibung | null = null;
-      if (!ext) add("offen", "Das Blattzertifikat enthält keine Bestätigung von Android (Erweiterung 1.3.6.1.4.1.11129.2.1.17).");
-      else {
-        try {
-          kd = leseSchluesselbeschreibung(ext.wert);
-        } catch (err) {
-          add("offen", `Die Bestätigung von Android ist nicht lesbar (${(err as Error).message}).`);
         }
       }
       if (kd) {

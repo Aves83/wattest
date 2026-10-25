@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import { before, test } from "node:test";
 import { leseQr } from "../src/kern/anker.js";
 import { ausBase64, ausHex, base64 } from "../src/kern/bytes.js";
+import { leseZertifikat } from "../src/kern/x509.js";
 import { APP_DIGEST_HEX, erzeugeKette, neuVerketten, signiereNeu, testzertifikate, type Testzertifikate } from "./erzeuger.js";
 import { befund, json, liesText, qrAus, texte, zeichen } from "./hilfen.js";
 
@@ -246,4 +247,57 @@ test("Version 19 ohne Schlüssel: P6 und P7 nicht bestätigbar", async () => {
   assert.equal(zeichen(b, "P2"), "bestaetigt", texte(b));
   assert.equal(zeichen(b, "P6"), "offen");
   assert.equal(zeichen(b, "P7"), "offen");
+});
+
+// U-16: Bezugszeitpunkt für die Gültigkeit der Zertifikate (4.7, Schritt 1).
+
+test("U-16: Vorratsschlüssel der leeren Kette: creationDateTime ist der Bezug, auch Tage vor dem Glied", async () => {
+  const e = await erzeugeKette({ eintraege: 2, zertifikate: z, bestaetigung: { erzeugtAm: Date.parse("2026-10-20T07:30:00Z") } });
+  const b = await befund([json("a.json", e.daten)], opt());
+  assert.equal(zeichen(b, "P7"), "bestaetigt", texte(b, "P7"));
+  assert.match(texte(b, "P7"), /Alle Zertifikate waren zum Zeitpunkt der Erzeugung laut creationDateTime \(20\.10\.2026 09:30\) gültig\./);
+});
+
+test("U-16: creationDateTime vor dem Zwischenzertifikat: nicht bestätigbar, obwohl das Glied im Zeitraum liegt", async () => {
+  const e = await erzeugeKette({ eintraege: 2, zertifikate: z, bestaetigung: { erzeugtAm: Date.parse("2026-10-01T00:00:00Z") - 1000 } });
+  const b = await befund([json("a.json", e.daten)], opt());
+  assert.equal(zeichen(b, "P7"), "offen", texte(b, "P7"));
+  assert.match(texte(b, "P7"), /Zum Zeitpunkt der Erzeugung laut creationDateTime \(.*\) war Zertifikat 2 nicht gültig/);
+});
+
+test("U-16: leere Kette ohne creationDateTime: Bezug ist der Zeitpunkt des Glieds", async () => {
+  const e = await erzeugeKette({ eintraege: 2, zertifikate: z, bestaetigung: { erzeugtAm: null } });
+  const b = await befund([json("a.json", e.daten)], opt());
+  assert.equal(zeichen(b, "P7"), "bestaetigt", texte(b, "P7"));
+  assert.match(texte(b, "P7"), /Alle Zertifikate waren zum Zeitpunkt des Glieds \(24\.10\.2026 10:00\) gültig\./);
+});
+
+test("U-16: Schlüssel nach vorhandenen Gliedern: nur der Zeitpunkt des Glieds zählt, creationDateTime nicht", async () => {
+  const e = await erzeugeKette({ eintraege: 3, zertifikate: z, schluesselNach: 2, bestaetigung: { erzeugtAm: Date.parse("2026-09-01T00:00:00Z") } });
+  const b = await befund([json("a.json", e.daten)], opt());
+  assert.equal(zeichen(b, "P7"), "bestaetigt", texte(b, "P7"));
+  assert.match(texte(b, "P7"), /Alle Zertifikate waren zum Zeitpunkt des Glieds \(.*\) gültig\./);
+});
+
+test("U-16: Grenzen der Gültigkeit zählen mit", async () => {
+  const beginn = Date.parse("2026-10-01T00:00:00Z");
+  const genau = await erzeugeKette({ eintraege: 1, zertifikate: z, beginn, bestaetigung: { erzeugtAm: null } });
+  const b = await befund([json("a.json", genau.daten)], opt());
+  assert.equal(zeichen(b, "P7"), "bestaetigt", texte(b, "P7"));
+  const davor = await erzeugeKette({ eintraege: 1, zertifikate: z, beginn: beginn - 1000, bestaetigung: { erzeugtAm: null } });
+  const b2 = await befund([json("a.json", davor.daten)], opt());
+  assert.equal(zeichen(b2, "P7"), "offen", texte(b2, "P7"));
+  const ende = await erzeugeKette({ eintraege: 1, zertifikate: z, beginn: Date.parse("2026-12-31T00:00:00Z"), bestaetigung: { erzeugtAm: null } });
+  const b3 = await befund([json("a.json", ende.daten)], opt({ jetzt: Date.parse("2027-01-02T00:00:00Z") }));
+  assert.equal(zeichen(b3, "P7"), "bestaetigt", texte(b3, "P7"));
+  const danach = await erzeugeKette({ eintraege: 1, zertifikate: z, beginn: Date.parse("2026-12-31T00:00:01Z"), bestaetigung: { erzeugtAm: null } });
+  const b4 = await befund([json("a.json", danach.daten)], opt({ jetzt: Date.parse("2027-01-02T00:00:00Z") }));
+  assert.equal(zeichen(b4, "P7"), "offen", texte(b4, "P7"));
+});
+
+test("U-16: Blattzertifikat mit den Standardgrenzen von Android (01.01.1970 bis 01.01.2048)", async () => {
+  const e = await erzeugeKette({ eintraege: 1, zertifikate: z });
+  const blatt = leseZertifikat(ausBase64(String((e.daten.kettenschluessel[0]!["zertifikate"] as string[])[0]))!);
+  assert.equal(blatt.nichtVor, Date.parse("1970-01-01T00:00:00Z"));
+  assert.equal(blatt.nichtNach, Date.parse("2048-01-01T00:00:00Z"));
 });

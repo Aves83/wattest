@@ -68,12 +68,14 @@ export interface Bestaetigung {
   bootzustand: number;
   gesperrt: boolean;
   mitRootOfTrust: boolean;
+  /** creationDateTime (Tag 701) in Millisekunden seit 1970; null lässt das Feld weg. */
+  erzeugtAm: number | null;
 }
 
 /** KeyDescription nach ATTESTIERUNG.md (Erweiterung 1.3.6.1.4.1.11129.2.1.17). */
 export function schluesselbeschreibung(b: Bestaetigung): Uint8Array {
   const appId = seq(set(seq(oktette(utf8(b.paket)), int(1234))), set(oktette(b.appDigest)));
-  const sw = seq(explizit(701, int(Date.parse("2026-10-24T08:00:00Z"))), explizit(709, oktette(appId)));
+  const sw = seq(...(b.erzeugtAm === null ? [] : [explizit(701, int(b.erzeugtAm))]), explizit(709, oktette(appId)));
   const hwTeile = [explizit(1, set(int(2))), explizit(705, int(150000)), explizit(706, int(202610))];
   if (b.mitRootOfTrust) hwTeile.splice(1, 0, explizit(704, seq(oktette(new Uint8Array(32).fill(7)), bool(b.gesperrt), enumWert(b.bootzustand), oktette(new Uint8Array(32).fill(9)))));
   const hw = seq(...hwTeile);
@@ -228,12 +230,13 @@ export async function erzeugeKette(a: KettenAngaben): Promise<Erzeugt> {
         versatz = 600000;
       }
     }
-    const b: Bestaetigung = { challenge, sicherheitsstufe: 1, paket: "de.achim.watt", appDigest: APP_DIGEST, bootzustand: 0, gesperrt: true, mitRootOfTrust: true, ...a.bestaetigung };
+    const b: Bestaetigung = { challenge, sicherheitsstufe: 1, paket: "de.achim.watt", appDigest: APP_DIGEST, bootzustand: 0, gesperrt: true, mitRootOfTrust: true, erzeugtAm: zeitSchluessel, ...a.bestaetigung };
     const blattDer = await zertifikat({
       seriennummer: 1n,
       aussteller: ZWISCHEN_NAME,
       inhaber: name("Android Keystore Key", "Android"),
-      nichtVor: t0,
+      // Standardgrenzen von Android, WATT setzt keine eigenen (4.7, Schritt 1).
+      nichtVor: Date.parse("1970-01-01T00:00:00Z"),
       nichtNach: Date.parse("2048-01-01T00:00:00Z"),
       spki: blatt.spki,
       signierer: z.zwischen,

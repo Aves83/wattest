@@ -1,5 +1,16 @@
 # Änderungen
 
+## 0.1.3 – 25.10.2026
+
+- Unterlagen: Technische Erläuterung und Datenformat aus Aves83/watt_public, Commit 4828c89 (Stand 85a7f6e von WATT). Die Klarstellungen zu U-14 bis U-17 sind übernommen, die Ersatz-Lesarten gestrichen; `docs/UNKLARHEITEN.md` vermerkt je Punkt „geklärt durch TE Abschnitt …“.
+- P4 (U-14): `abweichungSekunden` hat ein Vorzeichen (nachher − vorher, ganze Sekunden, zur Null hin gekürzt, negativ bei `zurueck`, Betrag mindestens 120); bei `schritte` die Summe der Beträge mit dem Vorzeichen der Gesamtrichtung, bei genauem Ausgleich `vor`. Ein Betrag bei `richtung` `zurueck` ergibt jetzt „?“.
+- P4 (U-15): Liegt der erste Teil der Zerlegung unter −120 Sekunden (Grenze eingeschlossen), bei `schritte` unter 0, gibt WATTest nur einen Hinweis mit `autoZeit` des Glieds, kein „?“ mehr.
+- P7 (U-16): Gültigkeit aller Zertifikate zu einem Bezugszeitpunkt, Grenzen eingeschlossen: Zeitpunkt des Glieds `schluessel`, beim Vorratsschlüssel der leeren Kette (Glied mit `challenge`) `creationDateTime` aus der Attestierung, ohne es der Zeitpunkt des Glieds.
+- Kanonisches JSON (U-17): Bestandsprüfsummen und Prüfsumme des Datenbestands mit eigener Maskierung nach 4.6 statt `JSON.stringify`; ein einzelnes Ersatzzeichen wird in UTF-8 zu „?“. Neues Rechenbeispiel B13.
+- Schemas (U-19): Schema-Auszug und XML-Typtabelle aus `schema/` von watt_public neu erzeugt (Inhalt unverändert, die XSD 17 wird nicht mehr gebraucht). P1 meldet für Formatversion 19 als Hinweis, dass das Schema eine Vorabfassung ist, solange die README es so nennt.
+- U-18 bleibt ein Hinweis; TE 8., Schritt 5 ist in 4828c89 unverändert. Neu offen: U-20 (Ersatzzeichen in den übrigen Prüfsummen) und U-21 (Inhalt von `schritte`).
+- Tests: B13, Tabelle der Maskierung, Ersatzzeichen, Vorzeichen und Grenzen von `abweichungSekunden`, erster Teil der Zerlegung, Bezugszeitpunkt der Zertifikate mit Grenzfällen, Hinweis auf die Vorabfassung. Der Testerzeuger setzt beim Blattzertifikat die Standardgrenzen von Android (01.01.1970 bis 01.01.2048) und `creationDateTime` wählbar.
+
 ## 0.1.2 – 25.10.2026
 
 - Unterlagen: Technische Erläuterung, Datenformat und Schemas liest WATTest jetzt aus dem öffentlichen Repository Aves83/watt_public (Commit 1b52ef6, Inhalt gleich dem bisherigen Stand; die Schemas der Version 19 sind dort noch nicht veröffentlicht, U-19). `scripts/vektoren-holen.mjs` holt die TE von dort; die Rechenbeispiele B1 bis B12 sind unverändert. README und Spezifikation verlinken die beiden Dokumente.

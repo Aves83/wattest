@@ -1,5 +1,5 @@
 {
-  "quelle": "Technische Erläuterung für Gutachter:innen von WATT (Aves83/watt_public, doc/technische-erlaeuterung.md, Commit 1b52ef6), Codeblöcke der Rechenbeispiele, Stand 25.10.2026",
+  "quelle": "Technische Erläuterung für Gutachter:innen von WATT (Aves83/watt_public, doc/technische-erlaeuterung.md, Commit 4828c89), Codeblöcke der Rechenbeispiele, Stand 25.10.2026",
   "vektoren": [
     {
       "id": "B1",
@@ -46,6 +46,29 @@
         "geaendertAm": null,
         "fach": "",
         "klasse": ""
+      }
+    },
+    {
+      "id": "B13",
+      "fundstelle": "Technische Erläuterung, Abschnitt 4.6, Rechenbeispiel B13",
+      "eingabe": "{\"id\":\"e3\",\"tag\":\"2026-09-29\",\"kategorieId\":\"korrektur\",\"unterkategorieId\":null,\"beginn\":\"2026-09-29T14:00:00Z\",\"ende\":\"2026-09-29T15:00:00Z\",\"dauerMinuten\":0,\"notiz\":\"Aufsatz \\\"Märchen\\\"\\tGröße\",\"quelle\":\"MANUELL\",\"planRef\":null,\"erfasstAm\":\"2026-09-29T15:10:00Z\",\"geaendertAm\":null,\"fach\":\"Französisch\",\"klasse\":\"7c\"}",
+      "sha256": "be0f6e05b619d12dadb72adddb87c1c0d1c6a6ddf4c32ddb3c0fdd844e43db2e",
+      "bestand": "be0f6e05b619d12dadb72adddb87c1c0",
+      "objekt": {
+        "id": "e3",
+        "tag": "2026-09-29",
+        "kategorieId": "korrektur",
+        "unterkategorieId": null,
+        "beginn": "2026-09-29T14:00:00Z",
+        "ende": "2026-09-29T15:00:00Z",
+        "dauerMinuten": 0,
+        "notiz": "Aufsatz \"Märchen\"\tGröße",
+        "quelle": "MANUELL",
+        "planRef": null,
+        "erfasstAm": "2026-09-29T15:10:00Z",
+        "geaendertAm": null,
+        "fach": "Französisch",
+        "klasse": "7c"
       }
     },
     {
