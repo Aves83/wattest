@@ -57,7 +57,11 @@ test("alle Eingaben ergeben ihre angegebene SHA-256", async () => {
   for (const x of V) assert.equal(await sha256Hex(x.eingabe), x.sha256, `${x.id} (${x.fundstelle})`);
 });
 
-for (const id of ["B1", "B2", "B10", "B9", "B11"]) {
+test("Rechenbeispiele B1 bis B15 der Technischen Erläuterung liegen vor", () => {
+  assert.deepEqual(V.map((x) => x.id).sort((a, b) => Number(a.slice(1)) - Number(b.slice(1))), Array.from({ length: 15 }, (_, i) => `B${i + 1}`));
+});
+
+for (const id of ["B1", "B2", "B10", "B9", "B11", "B15"]) {
   test(`${id}: Glied der Arbeitszeitkette nach 4.2`, async () => {
     const f = felder(v(id).eingabe);
     const g: GliedRoh = { seq: Number(f[0]), zeitpunkt: f[1], aktion: f[2], objektArt: f[3], objektId: f[4], daten: f[5], prev: f[6] };
@@ -85,6 +89,35 @@ test("B8: Bestandsprüfsumme eines Eintrags (4.6)", async () => {
   const e = x.objekt as Record<string, unknown>;
   assert.equal(bestandEintragEingabe(e), x.eingabe);
   assert.equal((await sha256Hex(bestandEintragEingabe(e))).slice(0, 32), x.bestand);
+});
+
+test("B14: Bestandsprüfsumme in Form 2 mit importiertAm am Ende (4.6)", async () => {
+  const x = v("B14");
+  const e = x.objekt as Record<string, unknown>;
+  assert.equal(bestandEintragEingabe(e, 2), x.eingabe);
+  assert.equal((await sha256Hex(bestandEintragEingabe(e, 2))).slice(0, 32), x.bestand);
+  // Form 1 desselben Eintrags ist B8; importiertAm geht dort nicht ein.
+  assert.equal(bestandEintragEingabe(e, 1), v("B8").eingabe);
+  assert.equal(bestandEintragEingabe({ ...e, importiertAm: undefined }, 2), v("B8").eingabe.replace(/}$/, ',"importiertAm":null}'));
+});
+
+test("B15: Änderungs-Glied eines eingelesenen Eintrags mit importiertAm am Ende von daten (4.1, 4.7)", () => {
+  const f = felder(v("B15").eingabe);
+  assert.equal(f[2], "GEAENDERT");
+  assert.equal(f[6], v("B11").sha256);
+  assert.equal(JSON.parse(f[5]!).importiertAm, "2026-10-20T07:30:00Z");
+  assert.ok(f[5]!.endsWith(',"importiertAm":"2026-10-20T07:30:00Z"}'));
+  assert.deepEqual(f.slice(7), ["0", "true"]);
+});
+
+test("U-20: ein einzelnes Ersatzzeichen wird in allen Prüfsummen zu „?“ (4.2, Kodierung)", async () => {
+  const ersatz = String.fromCharCode(0xdc00);
+  const glied: GliedRoh = { seq: 1, zeitpunkt: "2026-10-26T08:00:00Z", aktion: "ANGELEGT", objektArt: "eintrag", objektId: `e${ersatz}`, daten: "{}", prev: "0", neustarts: 0, autoZeit: true };
+  assert.equal(await sha256Hex(gliedEingabe(glied)), await sha256Hex(gliedEingabe({ ...glied, objektId: "e?" })));
+  const nachweis = { seq: 1, zeitpunkt: "2026-10-26T08:00:00Z", ereignis: "NACHTRAG", referenzId: `n${ersatz}`, pruefsumme: "ab", prev: "0" };
+  assert.equal(await sha256Hex(nachweisgliedEingabe(nachweis)), await sha256Hex(nachweisgliedEingabe({ ...nachweis, referenzId: "n?" })));
+  const g = v("B5").objekt as Record<string, unknown>;
+  assert.equal(await sha256Hex(gespraechEingabe({ ...g, inhalt: `x${ersatz}` })), await sha256Hex(gespraechEingabe({ ...g, inhalt: "x?" })));
 });
 
 test("B3: Prüfsumme des Datenbestands beim Neubeginn (4.6)", async () => {

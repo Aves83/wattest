@@ -171,7 +171,8 @@ test("unsignierte letzte Glieder: P6 nicht bestätigbar", async () => {
   const e = await erzeugeKette({ eintraege: 4, zertifikate: z, ohneSignaturAmEnde: 2 });
   const b = await befund([json("a.json", e.daten)], opt());
   assert.equal(zeichen(b, "P6"), "offen");
-  assert.match(texte(b, "P6"), /Die Glieder 4 bis 5 sind nicht signiert/);
+  assert.match(texte(b, "P6"), /Signaturen belegen die Herkunft der Glieder 1–3\./);
+  assert.match(texte(b, "P6"), /Die Herkunft der Glieder 4–5 lässt sich nicht bestätigen\.\n {4}Glied 4 bis 5: nach der letzten gültigen Signatur ihres Abschnitts\./);
 });
 
 test("Zertifikat mit anderem Paketnamen: P7 widerlegt", async () => {
@@ -207,12 +208,25 @@ test("Bootloader offen: P7 nicht bestätigbar", async () => {
   assert.equal(zeichen(b, "P7"), "offen");
 });
 
-test("gesperrte Seriennummer: P7 widerlegt", async () => {
+test("gesperrtes Zwischenzertifikat: P7 nicht bestätigbar mit Seriennummer, Status und Grund (E-55)", async () => {
+  // Entscheidung Achim 26.10.2026: Die Sperrliste nennt keinen Zeitpunkt der Sperre; bis 0.1.5 war das ✗ (U-25).
   const e = await erzeugeKette({ eintraege: 2, zertifikate: z });
-  const sperrliste = { abgerufen: "2026-10-25T00:00:00Z", quelle: "Test", eintraege: { [z.zwischenSeriennummer.toString(16)]: { status: "REVOKED", reason: "KEY_COMPROMISE" } } };
+  const nr = z.zwischenSeriennummer.toString(16);
+  const sperrliste = { abgerufen: "2026-10-25T00:00:00Z", quelle: "Test", eintraege: { [nr]: { status: "REVOKED", reason: "KEY_COMPROMISE" } } };
   const b = await befund([json("a.json", e.daten)], opt({ sperrliste }));
-  assert.equal(zeichen(b, "P7"), "widerlegt");
-  assert.match(texte(b, "P7"), /gesperrt/);
+  assert.equal(zeichen(b, "P7"), "offen", texte(b, "P7"));
+  assert.match(texte(b, "P7"), new RegExp(`\\? Zertifikat 2 \\(Seriennummer ${nr}\\) steht auf der Sperrliste: Status REVOKED, Grund KEY_COMPROMISE \\(Sperrliste, Stand 25\\.10\\.2026 02:00\\)\\. Die Sperrliste nennt keinen Zeitpunkt der Sperre`));
+  assert.notEqual(b.gesamt, "widerlegt");
+  assert.equal(b.gesamt, "offen");
+});
+
+test("gesperrtes Blattzertifikat ohne Grund: P7 nicht bestätigbar, Gesamtzeile höchstens „?“ (E-55)", async () => {
+  const e = await erzeugeKette({ eintraege: 2, zertifikate: z });
+  const sperrliste = { abgerufen: "2026-10-25T00:00:00Z", quelle: "Test", eintraege: { "1": { status: "SUSPENDED" } } };
+  const b = await befund([json("a.json", e.daten)], opt({ sperrliste }));
+  assert.equal(zeichen(b, "P7"), "offen", texte(b, "P7"));
+  assert.match(texte(b, "P7"), /Zertifikat 1 \(Seriennummer 1\) steht auf der Sperrliste: Status SUSPENDED, Grund nicht angegeben/);
+  assert.equal(b.gesamt, "offen");
 });
 
 test("ohne Sperrliste: P7 nicht bestätigbar", async () => {

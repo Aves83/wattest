@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // WATTest © 2026 Hans-Joachim Steudel
 
-// Liest die Rechenbeispiele B1 bis B12 aus den Codeblöcken der Technischen Erläuterung (Markdown)
+// Liest die Rechenbeispiele (B1 bis B15) aus den Codeblöcken der Technischen Erläuterung (Markdown)
 // und schreibt tests/vektoren/technische-erlaeuterung.json. Die Zerlegung in Felder (objekt) gehört
 // WATTest und bleibt aus der bisherigen Datei erhalten.
 // Ohne Pfad holt das Skript die öffentliche Fassung aus Aves83/watt_public (doc/technische-erlaeuterung.md);

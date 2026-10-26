@@ -201,8 +201,18 @@ export function jsonKanonisch(wert: unknown, einzug = 0): string {
   return schreibe(wert, "") ?? "null";
 }
 
-/** Kanonische Form eines Eintrags für die Bestandsprüfsumme (4.6). */
-export function bestandEintragEingabe(e: Record<string, unknown>): string {
+/**
+ * Form der Bestandsprüfsummen im Glied neubeginn (4.6): 1 ohne das Feld bestandsform (bis Formatversion 18),
+ * 2 bei bestandsform 2 (ab Formatversion 19, mit importiertAm am Ende). Andere Werte kennt WATTest nicht (null).
+ */
+export function bestandsform(neubeginn: Record<string, unknown> | null): 1 | 2 | null {
+  const f = neubeginn?.["bestandsform"];
+  if (f === undefined) return 1;
+  return f === 2 || f === "2" ? 2 : null;
+}
+
+/** Kanonische Form eines Eintrags für die Bestandsprüfsumme (4.6), in Form 2 mit importiertAm am Ende. */
+export function bestandEintragEingabe(e: Record<string, unknown>, form: 1 | 2 = 1): string {
   const z = (w: unknown): unknown => (w === null || w === undefined ? null : zeitpunktKanonisch(w));
   const teile: [string, unknown][] = [
     ["id", e.id ?? null],
@@ -220,11 +230,12 @@ export function bestandEintragEingabe(e: Record<string, unknown>): string {
     ["fach", e.fach ?? ""],
     ["klasse", e.klasse ?? ""],
   ];
+  if (form === 2) teile.push(["importiertAm", z(e.importiertAm)]);
   return "{" + teile.map(([k, v]) => `${jsonZeichenkette(k)}:${jsonKanonisch(v)}`).join(",") + "}";
 }
 
-/** Kanonische Form einer Abwesenheit für die Bestandsprüfsumme (4.6). */
-export function bestandAbwesenheitEingabe(a: Record<string, unknown>): string {
+/** Kanonische Form einer Abwesenheit für die Bestandsprüfsumme (4.6), in Form 2 mit importiertAm am Ende. */
+export function bestandAbwesenheitEingabe(a: Record<string, unknown>, form: 1 | 2 = 1): string {
   const z = (w: unknown): unknown => (w === null || w === undefined ? null : zeitpunktKanonisch(w));
   const teile: [string, unknown][] = [
     ["tag", a.tag ?? null],
@@ -232,6 +243,7 @@ export function bestandAbwesenheitEingabe(a: Record<string, unknown>): string {
     ["beginn", z(a.beginn)],
     ["ende", z(a.ende)],
   ];
+  if (form === 2) teile.push(["importiertAm", z(a.importiertAm)]);
   return "{" + teile.map(([k, v]) => `${jsonZeichenkette(k)}:${jsonKanonisch(v)}`).join(",") + "}";
 }
 

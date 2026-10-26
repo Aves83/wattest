@@ -233,11 +233,24 @@ export function pruefeAktenauszug(az: Aktenauszug, bindungen: { name: string; bi
   if (uebrig.length) {
     sage(k, "P8", "hinweis", `${anzahl(uebrig.length, "Datei im ZIP steht", "Dateien im ZIP stehen")} nicht in SHA256SUMS.txt.`, "Diese Dateien deckt die Liste der Prüfsummen nicht ab; WATTest prüft sie nicht.", { fundstelle: fund, details: uebrig.map((d) => ({ text: `${d.pfad}: ${d.sha256}` })) });
   }
+  // Seit Formatversion 19 liegen die Originaldokumente in Ordnern Eintrag_NN; daneben stehen die Technische
+  // Erläuterung als PDF und PRUEFEN.txt (6.). Sie sind keine Nachweise und gehen nicht in die Nachweiskette ein (U-26).
+  const relativ = (pfad: string): string => (basis && pfad.startsWith(basis) ? pfad.slice(basis.length) : pfad);
+  const inOrdner = (d: AktenDatei): boolean => /^Eintrag_\d+\//.test(relativ(d.pfad));
+  const pdfs = geprueft.filter((d) => /\.pdf$/i.test(d.pfad));
+  const mitOrdnern = geprueft.some(inOrdner);
+  const dokumente = mitOrdnern ? pdfs.filter(inOrdner) : pdfs;
+  const beigaben = geprueft.filter((d) => !dokumente.includes(d));
+  if (beigaben.length) {
+    sage(k, "P8", "hinweis", `${anzahl(beigaben.length, "Datei im Aktenauszug ist", "Dateien im Aktenauszug sind")} kein Nachweis.`, "Neben den Originaldokumenten (Ordner Eintrag_NN) enthält das ZIP des Aktenauszugs die Technische Erläuterung als PDF und die Anleitung PRUEFEN.txt zur unabhängigen Prüfung (6.). Sie stehen in SHA256SUMS.txt und sind damit geprüft, gehören aber zu keiner Anzeige und nicht zur Nachweiskette.", {
+      fundstelle: fund,
+      details: beigaben.map((d) => ({ text: `${d.pfad}${/(^|\/)PRUEFEN\.txt$/.test(d.pfad) ? " (Anleitung zur unabhängigen Prüfung)" : ""}` })),
+    });
+  }
   if (!bindungen.length) {
-    sage(k, "P8", "offen", "Die Dokumente im Aktenauszug sind nicht mit einer Nachweiskette abgeglichen.", "Ohne zugleich geladenen Klartext-Export lässt sich nicht prüfen, ob die Dokumente zu den Nachweisen in der Nachweiskette gehören. Lade dazu den Klartext-Export derselben Person.", { fundstelle: fund, grenze: GRENZE.aktenauszug });
+    sage(k, "P8", "offen", "Die Dokumente im Aktenauszug sind nicht mit einer Nachweiskette abgeglichen.", "Ohne zugleich geladenen Klartext-Export lässt sich nicht prüfen, ob die Dokumente zu den Nachweisen in der Nachweiskette gehören. Dazu lässt sich der Klartext-Export derselben Person hinzufügen.", { fundstelle: fund, grenze: GRENZE.aktenauszug });
     return;
   }
-  const dokumente = geprueft.filter((d) => /\.pdf$/i.test(d.pfad));
   const treffer: Detail[] = [];
   const ohne: Detail[] = [];
   for (const d of dokumente) {

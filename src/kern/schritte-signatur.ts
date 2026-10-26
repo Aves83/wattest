@@ -40,8 +40,18 @@ function base64Laenge(n: number): number {
 
 async function leseSchluessel(k: Kontext): Promise<Map<string, Schluessel>> {
   const out = new Map<string, Schluessel>();
+  // Fingerabdrücke sind eindeutig (Datenformat, kettenschluessel); ein doppelter macht die Zuordnung mehrdeutig: „?“.
+  const doppelt = new Set<string>();
+  const gesehen = new Set<string>();
   for (const e of liste(k.kt.daten["kettenschluessel"])) {
     const fp = String(e["fingerabdruck"] ?? "").slice(0, 200);
+    if (gesehen.has(fp)) doppelt.add(fp);
+    gesehen.add(fp);
+  }
+  for (const fp of doppelt) out.set(fp, { fingerabdruck: fp, zertifikate: [], blatt: null, der: null, unlesbar: `Der Fingerabdruck ${kurz(fp)} steht mehrfach in kettenschluessel; welche Zertifikate gelten, ist nicht eindeutig.`, widerspruch: null });
+  for (const e of liste(k.kt.daten["kettenschluessel"])) {
+    const fp = String(e["fingerabdruck"] ?? "").slice(0, 200);
+    if (doppelt.has(fp)) continue;
     const s: Schluessel = { fingerabdruck: fp, zertifikate: [], blatt: null, der: null, unlesbar: null, widerspruch: null };
     out.set(fp, s);
     const z = Array.isArray(e["zertifikate"]) ? (e["zertifikate"] as unknown[]) : [];
@@ -121,14 +131,24 @@ export async function pruefeSignaturen(k: Kontext): Promise<void> {
     sage(k, "P6", "offen", "Die Signaturen lassen sich nicht prüfen: zu viele Signaturen.", `Die Datei enthält ${zahl(alleSignaturen.length)} Signaturen, mehr als die Grenze von ${grenzeText(GRENZWERTE.signaturen)}. WATTest prüft sie nicht; das ist kein Befund über die Datei.`, { fundstelle: fund, grenze: GRENZE_HAERTUNG });
   }
 
-  // Abschnitte: vom Glied schluessel bis vor das nächste (4.7, Schritt 7).
-  // Ein Glied schluessel, dessen daten über der Grenze liegt, ergibt einen nicht lesbaren Abschnitt (UNLESBAR).
+  // Abschnitte: vom Glied schluessel bis vor das nächste, gleich mit welchem Status, und bis vor das nächste Glied
+  // wiederherstellung (4.7, Schritt 7). Ein Glied schluessel, dessen daten über der Grenze liegt, ergibt einen nicht
+  // lesbaren Abschnitt (UNLESBAR). vorWiederh: Schlüssel, dessen Abschnitt eine Wiederherstellung beendet hat.
   const UNLESBAR = "?";
   const abschnitt: (string | null)[] = [];
+  const vorWiederh: (string | null)[] = [];
   let aktuell: string | null = null;
+  let beendet: string | null = null;
   for (const x of g) {
-    if (x.objektArt === "schluessel") aktuell = x.datenUeberGrenze ? UNLESBAR : x.json?.["status"] === "verfuegbar" ? String(x.json?.["fingerabdruck"] ?? x.objektId) : null;
+    if (x.objektArt === "schluessel") {
+      aktuell = x.datenUeberGrenze ? UNLESBAR : x.json?.["status"] === "verfuegbar" ? String(x.json?.["fingerabdruck"] ?? x.objektId) : null;
+      beendet = null;
+    } else if (x.objektArt === "wiederherstellung") {
+      beendet = aktuell ?? beendet;
+      aktuell = null;
+    }
     abschnitt.push(aktuell);
+    vorWiederh.push(beendet);
   }
   const indexVon = new Map<number, number>();
   g.forEach((x, i) => x.seq !== null && !indexVon.has(x.seq) && indexVon.set(x.seq, i));
@@ -171,7 +191,8 @@ export async function pruefeSignaturen(k: Kontext): Promise<void> {
       continue;
     }
     if (abschnitt[i] !== fp) {
-      ungueltig.push({ text: `Signatur zu ${gliedName(glied)}: Sie nennt den Schlüssel ${kurz(fp)}, das Glied liegt aber im Abschnitt ${abschnitt[i] ? `des Schlüssels ${kurz(abschnitt[i]!)}` : "ohne Schlüssel"}.` });
+      const nachWiederh = abschnitt[i] === null && vorWiederh[i] === fp;
+      ungueltig.push({ text: nachWiederh ? `Signatur zu ${gliedName(glied)}: Sie nennt den Schlüssel ${kurz(fp)}, dessen Glied schluessel vor einer Wiederherstellung liegt; ab einer Wiederherstellung signiert nur ein neuer Schlüssel (4.7, Schritt 7).` : `Signatur zu ${gliedName(glied)}: Sie nennt den Schlüssel ${kurz(fp)}, das Glied liegt aber im Abschnitt ${abschnitt[i] ? `des Schlüssels ${kurz(abschnitt[i]!)}` : "ohne Schlüssel"}.` });
       setze(seq, "ungueltig");
       continue;
     }
@@ -214,7 +235,16 @@ export async function pruefeSignaturen(k: Kontext): Promise<void> {
       setze(seq, "ungueltig");
     }
   }
-  for (const [seq, m] of anzahlJeSeq) if (m > 1 && indexVon.has(seq)) unpruefbar.push({ text: `Zu Glied ${seq} stehen ${m} Signaturen; nach 4.7 signiert WATT einen noch unsignierten Kopf (U-23).`, seq });
+  // Mehrere Signaturen zu einem Glied: „nicht bestätigbar“ (4.7, 4.8); keine davon zählt als gültig, eine falsche
+  // bleibt ✗ (U-23).
+  const mehrfach = new Set<number>();
+  for (const [seq, m] of anzahlJeSeq) {
+    if (m <= 1 || !indexVon.has(seq)) continue;
+    mehrfach.add(seq);
+    unpruefbar.push({ text: `Zu Glied ${seq} stehen ${m} Signaturen; nach 4.7 gibt es je Glied höchstens eine, und WATT schreibt nie mehrere (U-23).`, seq });
+    if (k.signaturen.get(seq) !== "ungueltig") k.signaturen.set(seq, "unpruefbar");
+  }
+  for (let i = gueltigSeq.length - 1; i >= 0; i--) if (mehrfach.has(gueltigSeq[i]!)) gueltigSeq.splice(i, 1);
   k.melde(0.8, "Signaturen geprüft");
 
   for (const s of schluessel.values()) {
@@ -247,43 +277,95 @@ export async function pruefeSignaturen(k: Kontext): Promise<void> {
     );
   }
 
-  let hoechste: number | null = null;
-  for (const s of gueltigSeq) if (hoechste === null || s > hoechste) hoechste = s;
-  const hi = hoechste !== null ? indexVon.get(hoechste)! : -1;
-  if (hoechste !== null) {
-    const kopf = g[hi]!;
-    const bruch = k.ersterBruch !== null && k.ersterBruch <= hi;
+  // Herkunft (4.7, „Was eine gültige Signatur belegt“): Eine gültige Signatur bei Glied j deckt die Glieder vom
+  // letzten Glied wiederherstellung bzw. neubeginn vor j (einschließlich) bis j, ohne eine solche Grenze ab Glied 1.
+  // Die Teile der Kette zwischen diesen Grenzen heißen hier Herkunftsabschnitte.
+  const herkunft: { von: number; bis: number; hoechste: number | null }[] = [];
+  for (let i = 0; i < g.length; i++) {
+    if (i === 0 || g[i]!.objektArt === "wiederherstellung" || g[i]!.objektArt === "neubeginn") herkunft.push({ von: i, bis: i, hoechste: null });
+    herkunft[herkunft.length - 1]!.bis = i;
+  }
+  for (const seq of gueltigSeq) {
+    const i = indexVon.get(seq)!;
+    const t = herkunft.find((x) => x.von <= i && i <= x.bis)!;
+    if (t.hoechste === null || i > t.hoechste) t.hoechste = i;
+  }
+  const nr = (i: number): string => String(g[i]!.seq ?? `an Stelle ${i + 1}`);
+  const spanne = (von: number, bis: number): string => (von === bis ? `Glied ${nr(von)}` : `Glied ${nr(von)} bis ${nr(bis)}`);
+  const kurzSpanne = (von: number, bis: number): string => (von === bis ? nr(von) : `${nr(von)}–${nr(bis)}`);
+  const eingespieltBis = (t: { bis: number }): boolean => t.bis + 1 < g.length && g[t.bis + 1]!.objektArt === "wiederherstellung";
+  const gedeckt = herkunft.filter((t) => t.hoechste !== null);
+  if (gedeckt.length) {
+    const bruch = gedeckt.find((t) => k.ersterBruch !== null && k.ersterBruch <= t.hoechste!);
+    const importe = g.filter((x, i) => x.aktion === "ANGELEGT" && typeof x.json?.["importDatei"] === "string" && gedeckt.some((t) => t.von <= i && i <= t.hoechste!));
+    const details: Detail[] = gedeckt.map((t) => {
+      const kopf = g[t.hoechste!]!;
+      return {
+        text: `${spanne(t.von, t.hoechste!)}: jüngste gültige Signatur bei Glied ${nr(t.hoechste!)} (${kopf.ms !== null ? deutsch(kopf.ms) : kopf.zeitpunkt})${eingespieltBis(t) ? `; eingespielt mit der Wiederherstellung in Glied ${nr(t.bis + 1)}, belegt durch die mitgelieferten Signaturen` : ""}.`,
+      };
+    });
+    if (importe.length) details.push({ text: `${anzahl(importe.length, "eingelesene Buchung", "eingelesene Buchungen")} (importDatei, Glied ${bereiche(importe.map((x) => x.seq ?? 0), 8)}): Die Signatur belegt das Einlesen in WATT, nicht Erfassungs- und Änderungszeitpunkt aus der Datei (4.7).` });
     sage(
       k,
       "P6",
       bruch ? "widerlegt" : "bestaetigt",
-      bruch ? `Die Signatur von Glied ${hoechste} deckt einen veränderten Inhalt.` : `Der Stand bis Glied ${hoechste} ist mit dem Schlüssel der Kette signiert.`,
+      bruch ? `Die Signatur von Glied ${nr(bruch.hoechste!)} deckt einen veränderten Inhalt.` : `Signaturen belegen die Herkunft ${gedeckt.length === 1 && gedeckt[0]!.von === gedeckt[0]!.hoechste ? `von Glied ${nr(gedeckt[0]!.von)}` : `der Glieder ${gedeckt.map((t) => kurzSpanne(t.von, t.hoechste!)).join(", ")}`}.`,
       bruch
-        ? `Die Signatur von Glied ${hoechste} ist gültig, aber die Kette ist vorher unterbrochen (${gliedName(g[k.ersterBruch!]!)}); der Inhalt passt nicht mehr zum signierten Kopf.`
-        : `${anzahl(gueltigSeq.length, "Signatur ist", "Signaturen sind")} gültig, die jüngste über Glied ${hoechste} (${kopf.ms !== null ? deutsch(kopf.ms) : kopf.zeitpunkt}). Über die Hash-Kette deckt sie alle Glieder davor mit: Der Stand bis dahin lag zu diesem Zeitpunkt in einer App mit diesem Schlüssel (4.7). Ob der Schlüssel zu WATT auf einem bestätigten Gerät gehört, zeigt P7.`,
-      { fundstelle: dateiFundstelle(k, `Glied ${bereiche(gueltigSeq, 8)}`), grenze: GRENZE.signatur },
+        ? `Die Signatur von Glied ${nr(bruch.hoechste!)} ist gültig, aber die Kette ist vorher unterbrochen (${gliedName(g[k.ersterBruch!]!)}); der Inhalt passt nicht mehr zum signierten Kopf.`
+        : `${anzahl(gueltigSeq.length, "Signatur ist", "Signaturen sind")} gültig. Eine gültige Signatur bei Glied j belegt, dass der signierte Stand in einer App mit diesem Schlüssel lag; hinsichtlich der Herkunft deckt sie über die Hash-Kette nur die Glieder ihres Abschnitts, vom letzten Glied wiederherstellung bzw. neubeginn vor j (einschließlich) bis j, ohne eine solche Grenze ab Glied 1 (4.7). Ob der Schlüssel zu WATT auf einem bestätigten Gerät gehört, zeigt P7.`,
+      { fundstelle: dateiFundstelle(k, `Glied ${bereiche(gueltigSeq, 8)}`), grenze: GRENZE.herkunft, details },
     );
   }
-  if (hi < g.length - 1) {
-    const ab = g[hi + 1]!;
-    const bis = g[g.length - 1]!;
+  // Nicht gedeckt (4.7, Befund „nicht bestätigbar“): Herkunftsabschnitte ohne gültige Signatur, eingespielte Glieder
+  // ohne eigene Signatur und Glieder nach der letzten gültigen Signatur ihres Abschnitts.
+  const offenH: { von: number; bis: number; text: string }[] = [];
+  for (const t of herkunft) {
+    const von = t.hoechste === null ? t.von : t.hoechste + 1;
+    if (von > t.bis) continue;
+    const grund = eingespieltBis(t)
+      ? `eingespielt vor der Wiederherstellung in Glied ${nr(t.bis + 1)}, ${t.hoechste === null ? "ohne eigene gültige Signatur" : "nach der letzten mitgelieferten gültigen Signatur"}; eine spätere Signatur deckt sie nicht`
+      : t.hoechste === null
+        ? "keine gültige Signatur in diesem Abschnitt"
+        : "nach der letzten gültigen Signatur ihres Abschnitts";
+    offenH.push({ von, bis: t.bis, text: `${spanne(von, t.bis)}: ${grund}.` });
+  }
+  if (offenH.length) {
     sage(
       k,
       "P6",
       "offen",
-      hoechste === null ? "Kein Glied der Kette trägt eine gültige Signatur." : `${ab.seq === bis.seq ? `Glied ${ab.seq} ist` : `Die Glieder ${ab.seq} bis ${bis.seq} sind`} nicht signiert.`,
-      `Nach ${hoechste === null ? "keinem Glied" : `Glied ${hoechste}`} folgt keine gültige Signatur mehr; für diese Glieder fehlt der Nachweis, dass sie in WATT entstanden.${nichtVerfuegbar.length ? ` Die Kette vermerkt, dass kein Schlüssel verfügbar war: ${nichtVerfuegbar.map((x) => `${gliedName(x)}${x.json?.["grund"] ? ` (Grund: ${String(x.json["grund"])})` : ""}`).join("; ")}.` : ""}`,
-      { fundstelle: dateiFundstelle(k, ab.seq === bis.seq ? `Glied ${ab.seq}` : `Glied ${ab.seq} bis ${bis.seq}`), grenze: GRENZE.signatur },
+      !gedeckt.length ? "Kein Glied der Kette trägt eine gültige Signatur." : `Die Herkunft ${offenH.length === 1 && offenH[0]!.von === offenH[0]!.bis ? `von Glied ${nr(offenH[0]!.von)}` : `der Glieder ${offenH.map((o) => kurzSpanne(o.von, o.bis)).join(", ")}`} lässt sich nicht bestätigen.`,
+      `Für diese Glieder fehlt eine gültige Signatur, die sie nach 4.7 hinsichtlich der Herkunft deckt: Eingespielte Glieder vor einer Wiederherstellung belegen nur die mitgelieferten Signaturen, und Glieder nach der letzten gültigen Signatur ihres Abschnitts deckt keine. Nach 4.7 und 4.8 ist ihre Herkunft „nicht bestätigbar“, kein Beleg einer Manipulation.${nichtVerfuegbar.length ? ` Die Kette vermerkt, dass kein Schlüssel verfügbar war: ${nichtVerfuegbar.map((x) => `${gliedName(x)}${x.json?.["grund"] ? ` (Grund: ${String(x.json["grund"])})` : ""}`).join("; ")}.` : ""}`,
+      { fundstelle: dateiFundstelle(k, offenH.map((o) => spanne(o.von, o.bis)).join(", ")), grenze: GRENZE.herkunft, details: offenH.map((o) => ({ text: o.text })) },
     );
   }
+  // Bestand eines Neubeginns: keine Glieder der Kette; seine Herkunft ist nicht bestätigbar (4.7, 4.8).
+  const nb = g[0]?.objektArt === "neubeginn" ? g[0] : null;
+  if (nb) {
+    const d = nb.json ?? {};
+    const groesse = (o: unknown): number => (o && typeof o === "object" ? Object.keys(o).length : 0);
+    const e = groesse(d["eintraege"]);
+    const a = groesse(d["abwesenheiten"]);
+    const alt = !("eintraege" in d);
+    if (alt || e + a > 0) {
+      sage(
+        k,
+        "P6",
+        "offen",
+        "Die Herkunft des Bestands im Neubeginn lässt sich nicht bestätigen.",
+        `Der Bestand eines Neubeginns (${alt ? "nur über die Prüfsumme bestand" : `${anzahl(e, "Eintrag", "Einträge")} und ${anzahl(a, "Abwesenheit", "Abwesenheiten")} in ${gliedName(nb)}`}) besteht nicht aus Gliedern der Kette; keine Signatur belegt, wie er entstand. Belegt ist höchstens, dass dieser Bestand beim Neubeginn in WATT lag (4.7, 4.8).`,
+        { fundstelle: dateiFundstelle(k, gliedName(nb)), grenze: GRENZE.herkunft },
+      );
+    }
+  }
 
-  // Übersicht der Abschnitte, eingespielte Glieder und Befund der Wiederherstellungen.
+  // Übersicht der Abschnitte nach Schlüsseln, eingespielte Glieder und Befund der Wiederherstellungen.
   const letzteWiederh = g.map((x) => x.objektArt).lastIndexOf("wiederherstellung");
   const teile: Detail[] = [];
   let start = 0;
   let abschnitte = 0;
   for (let i = 1; i <= g.length; i++) {
-    if (i < g.length && abschnitt[i] === abschnitt[start] && !(letzteWiederh >= 0 && i === letzteWiederh)) continue;
+    if (i < g.length && abschnitt[i] === abschnitt[start] && g[i]!.objektArt !== "wiederherstellung") continue;
     const von = g[start]!.seq;
     const bis = g[i - 1]!.seq;
     const fp = abschnitt[start];
@@ -291,15 +373,24 @@ export async function pruefeSignaturen(k: Kontext): Promise<void> {
     const eingespielt = letzteWiederh >= 0 && i - 1 < letzteWiederh;
     abschnitte++;
     teile.push({
-      text: `Glied ${von}${von !== bis ? `–${bis}` : ""}: ${fp ? `Schlüssel ${kurz(fp)}, ${anzahl(sigs.length, "gültige Signatur", "gültige Signaturen")}${sigs.length ? `, jüngste bei Glied ${sigs.reduce((a, b) => (b > a ? b : a))}` : ""}` : "ohne Schlüssel (nicht einzeln signiert; eine spätere Signatur deckt sie über die Hash-Kette mit)"}${eingespielt ? "; eingespielt mit der Wiederherstellung, ihre Herkunft zeigen nur ihre eigenen Signaturen" : ""}.`,
+      text: `Glied ${von}${von !== bis ? `–${bis}` : ""}: ${fp ? `Schlüssel ${kurz(fp)}, ${anzahl(sigs.length, "gültige Signatur", "gültige Signaturen")}${sigs.length ? `, jüngste bei Glied ${sigs.reduce((a, b) => (b > a ? b : a))}` : ""}` : "ohne Schlüssel (nicht einzeln signiert; eine spätere Signatur desselben Herkunftsabschnitts deckt sie über die Hash-Kette mit)"}${eingespielt ? "; eingespielt mit einer Wiederherstellung, ihre Herkunft zeigen nur ihre eigenen Signaturen" : ""}.`,
     });
     start = i;
   }
-  for (const x of g.filter((y) => y.objektArt === "wiederherstellung")) {
+  const befundText: Record<string, string> = {
+    GEPRUEFT: "alle rechnerisch gültig und die Prüfungen ohne Netz bestanden",
+    UNGUELTIG: "ungültige Signaturen",
+    WIDERLEGT: "ein Schlüssel bestand die Prüfungen ohne Netz nicht",
+    NICHT_PRUEFBAR: "Prüfung nicht möglich",
+    KEINE: "keine Signaturen",
+  };
+  g.forEach((x, i) => {
+    if (x.objektArt !== "wiederherstellung") return;
     const s = x.json?.["signaturen"];
-    if (s !== undefined) teile.push({ text: `${gliedName(x)}: WATT vermerkte beim Einspielen „${String(s)}“${s === "UNGUELTIG" ? ` ab Glied ${String(x.json?.["signaturenUngueltigAb"] ?? "?")}` : ""}.` });
-  }
-  sage(k, "P6", "hinweis", `Die Kette hat ${anzahl(abschnitte, "Abschnitt", "Abschnitte")} nach Schlüsseln.`, "Ein Abschnitt reicht vom Glied schluessel bis vor das nächste (4.7). Glieder vor einem Glied wiederherstellung wurden eingespielt; ihre Herkunft zeigen nur ihre eigenen, mitgelieferten Signaturen, nicht spätere.", {
+    if (s !== undefined) teile.push({ text: `${gliedName(x)}: WATT vermerkte beim Einspielen „${String(s)}“ (${befundText[String(s)] ?? "Wert nicht aus 4.1"})${s === "UNGUELTIG" ? ` ab Glied ${String(x.json?.["signaturenUngueltigAb"] ?? "?")}` : ""}; die Kette bis zur Wurzel von Google und die Sperrliste prüft WATT dabei nicht.` });
+    if (!g.slice(i + 1).some((y) => y.objektArt === "schluessel")) teile.push({ text: `Nach ${gliedName(x)} folgt kein Glied schluessel; nach 4.7 legt WATT nach jeder Wiederherstellung einen neuen Schlüssel an.` });
+  });
+  sage(k, "P6", "hinweis", `Die Kette hat ${anzahl(abschnitte, "Abschnitt", "Abschnitte")} nach Schlüsseln.`, "Ein Abschnitt reicht vom Glied schluessel bis vor das nächste und bis vor das nächste Glied wiederherstellung (4.7, Schritt 7). Glieder vor einem Glied wiederherstellung wurden eingespielt; ihre Herkunft zeigen nur ihre eigenen, mitgelieferten Signaturen, nicht spätere. Nach jeder Wiederherstellung legt WATT einen neuen Schlüssel an.", {
     fundstelle: fund,
     details: teile,
   });
@@ -408,13 +499,18 @@ async function pruefeAttestierung(k: Kontext, schluessel: Map<string, Schluessel
         if (zwischen && bezug < zwischen.nichtVor) add("hinweis", `Der Bezugszeitpunkt liegt vor dem Beginn der Gültigkeit des Zwischenzertifikats (${deutschTag(zwischen.nichtVor)}); das ist nur eine grobe Untergrenze.`);
         else if (zwischen) add("hinweis", `Grobe Untergrenze: Der Schlüssel entstand nicht vor dem ${deutschTag(zwischen.nichtVor)} (Beginn der Gültigkeit des Zwischenzertifikats; nur bei kurzlebigen Zwischenzertifikaten aussagekräftig).`);
       }
-      // 2. Sperrliste
+      // 2. Sperrliste: Ein gesperrtes Zertifikat ist „?“, nicht ✗ (Entscheidung Achim 26.10.2026, E-55, U-25): Die
+      // Sperrliste nennt keinen Zeitpunkt der Sperre, und eine Sperre belegt keine Fälschung, nur dass die
+      // Bestätigung nicht mehr für das Gerät bürgt.
       const sl = o.sperrliste;
       if (!sl) add("offen", "Die Sperrliste von Google ist nicht verfügbar.");
       else {
-        const gesperrt = z.map((c, i) => ({ c, i, e: sl.eintraege[c.seriennummer] })).filter((v) => v.e);
+        const gesperrt = z.map((c, i) => ({ c, i, e: Object.hasOwn(sl.eintraege, c.seriennummer) ? sl.eintraege[c.seriennummer] : undefined })).filter((v) => v.e);
         const stand = sl.abgerufen ? `Stand ${deutsch(Date.parse(sl.abgerufen))}` : "Stand unbekannt";
-        if (gesperrt.length) add("widerlegt", `${gesperrt.map(({ i, e }) => `Zertifikat ${i + 1} ist gesperrt (${e!.status}${e!.reason ? `, ${e!.reason}` : ""})`).join("; ")} (Sperrliste, ${stand}).`);
+        if (gesperrt.length) {
+          const liste = gesperrt.map(({ c, i, e }) => `Zertifikat ${i + 1} (Seriennummer ${c.seriennummer}) steht auf der Sperrliste: Status ${String(e!.status)}, Grund ${e!.reason ? String(e!.reason) : "nicht angegeben"}`).join("; ");
+          add("offen", `${liste} (Sperrliste, ${stand}). Die Sperrliste nennt keinen Zeitpunkt der Sperre; ob das Zertifikat beim Signieren schon gesperrt war, lässt sich nicht feststellen. Eine Sperre belegt keine Fälschung, sondern nur, dass die Bestätigung nicht mehr für das Gerät bürgt.`);
+        }
         else {
           const alt = sl.abgerufen && o.jetzt - Date.parse(sl.abgerufen) > 7 * 86400000;
           add("bestaetigt", `Kein Zertifikat steht in der Sperrliste (${stand}${alt ? "; dieser Stand ist älter als eine Woche, spätere Sperrungen kennt WATTest nicht" : ""}).`);

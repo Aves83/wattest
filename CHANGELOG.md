@@ -1,5 +1,21 @@
 # Änderungen
 
+## 0.1.6 – 26.10.2026
+
+Nachzug auf den Stand der Technischen Erläuterung vom 26.10.2026 (watt_public, Commit 4b2ac60; TE und Datenformat auf Stand 9dfd642 von WATT, Vorabfassung). Bisher galt Commit 37ae281.
+
+- Wertung nach TE 4.8: „Hinweis“ → i, „nicht bestätigbar“ → ?; ✗ bleibt für Bruch der Kette, Datenabweichung und widerlegte Signatur. Die Zuordnung jeder Stelle aus 4.8 steht als Tabelle in der Spezifikation, Abschnitt 6.1 (E-51).
+- P2: Ein Glied ohne Uhrstand nach einem Glied mit Uhrstand ist kein Bruch, sondern „?“ mit Anzahl und erstem Glied; P2 bleibt ✓, wenn die Prüfsummen stimmen. Ein Glied mit nur einem der beiden Felder bleibt ein Bruch (4.2, E-52).
+- P4: Ein Rücksprung über 2 Minuten ohne erklärenden Vermerk ist „?“ statt ✗ (4.8, 8. Schritt 5). Ein `uhr_ruecksprung` erklärt seinen Rücksprung gleich mit welcher `objektId`; eine `objektId`, die WATT nicht schreibt, ist „?“. `uhr_verstellt` nach dem neuen Wortlaut von 4.7: `schritte` ist die Zahl der Messungen (ganze Zahl größer als 1), `abweichungSekunden` auch dann nachher − vorher, der erste Teil der Zerlegung hat auch mit `schritte` die Grenze −120 Sekunden und gilt nicht unmittelbar nach `neubeginn` oder `wiederherstellung`, `zeitpunkt` darf um die Dauer des Vorgangs vor `nachher` liegen, `objektId` kann die laufende Nummer eines Glieds `neubeginn` bzw. `wiederherstellung` sein; die Einzelheiten nennen den Anlass jedes Vermerks. Rücksprünge bis 2 Minuten sind ein eigener Hinweis (E-53, U-21, U-22).
+- P6: Herkunft nach 4.7. Ein Abschnitt endet vor jeder Wiederherstellung, eine Signatur danach mit dem alten Schlüssel ist ✗. Eine gültige Signatur deckt die Glieder ab der letzten Wiederherstellung bzw. dem Neubeginn; eingespielte Glieder ohne eigene Signatur, Glieder nach der letzten gültigen Signatur ihres Abschnitts und der Bestand eines Neubeginns sind „?“. Bei eingelesenen Buchungen belegt die Signatur das Einlesen, nicht die Zeitpunkte aus der Datei. Mehrere Signaturen zu einem Glied zählen nicht als gültig. Ein doppelter Fingerabdruck in `kettenschluessel` ist „?“ (E-54, E-60, U-23, U-24).
+- P7: Ein Zertifikat auf der Sperrliste ist „?“ statt ✗, mit Seriennummer, Status und Grund (Entscheidung Achim 26.10.2026, E-55, U-25).
+- P3: Bestandsprüfsummen in Form 2 (`bestandsform` 2, mit `importiertAm`, Rechenbeispiel B14); ein unbekannter Wert ist „?“. „Importiert am“ nach 7.1: Änderungs-Glieder mit Uhrstand tragen den Wert selbst (fehlt er, kein Vermerk), ohne Uhrstand wird er geerbt, nach einem Neubeginn an einem Datensatz des Bestands gilt der Wert der Datei (Hinweis). Fehlt „Importiert am“ in der Datei, obwohl die Kette das Einlesen belegt, ist das ein Hinweis statt ✗; ein anderer Zeitpunkt bleibt ✗ (E-56, E-57).
+- P8: Im Aktenauszug sind `PRUEFEN.txt` und die Technische Erläuterung als PDF erwartete Dateien: gegen `SHA256SUMS.txt` geprüft, nicht gegen die Nachweiskette, genannt als Hinweis (E-59, U-26).
+- P1: Die Grenzen der Schemas 19 (256 Schlüssel, 8 Zertifikate, Base64 ohne Fremdzeichen) ergeben „?“, nicht ✗ (E-60). `scripts/xml-typen.mjs` erkennt Listen auch an einer festen Höchstzahl (E-61); Schema-Auszug neu erzeugt.
+- Texte des Befunds unpersönlich: „…, sofern er beigefügt wird.“, P5 ohne Anker „Ein Prüfvermerk … lässt sich hinzufügen, um den Stand daran zu prüfen.“ (E-58).
+- Unterlagen: U-20 bis U-24 durch die TE vom 26.10.2026 geklärt; neu offen U-25 (Sperrliste bis zum nächsten Stand der TE), U-26 (Name der Technischen Erläuterung im Aktenauszug), U-27 (Glieder vor dem ersten Schlüssel). Rechenbeispiele B1 bis B15 (neu B14 und B15).
+- Tests: je Punkt oben, darunter Herkunft mit Wiederherstellung, gesperrtes Zwischen- und Blattzertifikat, Bestandsform 2, „Importiert am“ mit und ohne Uhrstand, Aktenauszug mit `PRUEFEN.txt`; geänderte Wertungen mit Verweis auf die TE.
+
 ## 0.1.5 – 25.10.2026
 
 Härtung gegen manipulierte Dateien und klarere Befunde. Die Unterlagen von WATT sind unverändert (watt_public, Commit 37ae281).

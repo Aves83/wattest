@@ -1,5 +1,5 @@
 {
-  "quelle": "Technische Erläuterung für Gutachter:innen von WATT (Aves83/watt_public, doc/technische-erlaeuterung.md, Commit 37ae281), Codeblöcke der Rechenbeispiele, Stand 25.10.2026",
+  "quelle": "Technische Erläuterung für Gutachter:innen von WATT (Aves83/watt_public, doc/technische-erlaeuterung.md, Commit 4b2ac60), Codeblöcke der Rechenbeispiele, Stand 26.10.2026",
   "vektoren": [
     {
       "id": "B1",
@@ -72,6 +72,30 @@
       }
     },
     {
+      "id": "B14",
+      "fundstelle": "Technische Erläuterung, Abschnitt 4.6, Rechenbeispiel B14",
+      "eingabe": "{\"id\":\"e1\",\"tag\":\"2026-09-28\",\"kategorieId\":\"korrektur\",\"unterkategorieId\":null,\"beginn\":\"2026-09-28T14:00:00Z\",\"ende\":\"2026-09-28T15:30:00Z\",\"dauerMinuten\":0,\"notiz\":\"Schulaufgabe 10b\",\"quelle\":\"MANUELL\",\"planRef\":null,\"erfasstAm\":\"2026-09-28T16:05:00Z\",\"geaendertAm\":null,\"fach\":\"\",\"klasse\":\"\",\"importiertAm\":\"2026-10-20T07:30:00Z\"}",
+      "sha256": "20f130875bfd1eb384eda67610412631acea29a6bc3c58bf94f7ff6f2f06c385",
+      "bestand": "20f130875bfd1eb384eda67610412631",
+      "objekt": {
+        "id": "e1",
+        "tag": "2026-09-28",
+        "kategorieId": "korrektur",
+        "unterkategorieId": null,
+        "beginn": "2026-09-28T14:00:00Z",
+        "ende": "2026-09-28T15:30:00Z",
+        "dauerMinuten": 0,
+        "notiz": "Schulaufgabe 10b",
+        "quelle": "MANUELL",
+        "planRef": null,
+        "erfasstAm": "2026-09-28T16:05:00.000Z",
+        "geaendertAm": null,
+        "fach": "",
+        "klasse": "",
+        "importiertAm": "2026-10-20T07:30:00Z"
+      }
+    },
+    {
       "id": "B3",
       "fundstelle": "Technische Erläuterung, Abschnitt 4.6, Rechenbeispiel B3",
       "eingabe": "{\n    \"format\": \"watt-daten\",\n    \"version\": 19,\n    \"exportiertAm\": \"1970-01-01T00:00:00Z\",\n    \"appVersion\": \"\",\n    \"umfang\": \"VOLLSTAENDIG\",\n    \"profil\": {\n        \"beschaeftigung\": [\n            {\n                \"ab\": \"2000-01-01\",\n                \"pflichtstunden\": null,\n                \"pflichtstundenMinuten\": null,\n                \"teilzeitStunden\": null,\n                \"altersteilzeit\": false,\n                \"pflichtstundenAnderer\": false\n            }\n        ],\n        \"regionaleFeiertage\": [\n            \"MARIAE_HIMMELFAHRT\"\n        ],\n        \"bundesland\": \"BAYERN\",\n        \"schulart\": \"BERUFLICHE_SCHULEN\",\n        \"unterart\": null,\n        \"amt\": null,\n        \"amtsform\": null,\n        \"amtBezeichnung\": \"\",\n        \"funktionenBestaetigt\": false,\n        \"vorbereitungsdienstBeginn\": null,\n        \"vorbereitungsdienstEnde\": null,\n        \"geburtHalbjahr\": null,\n        \"geburtMonat\": null,\n        \"geburtTag\": null,\n        \"gdbAnfang\": null,\n        \"gdbAenderungen\": [],\n        \"antworten\": {},\n        \"unterrichtVd\": [],\n        \"deputatStartwert\": 0,\n        \"deputatAusgleiche\": []\n    },\n    \"kategorien\": [],\n    \"ferien\": [],\n    \"sonderTage\": [],\n    \"stundenplan\": {\n        \"aktiv\": true,\n        \"abWochenAktiv\": false,\n        \"zykluslaenge\": 1,\n        \"abBezugstag\": null,\n        \"abFerienwochenUeberspringen\": true,\n        \"uebernommenBis\": null,\n        \"raster\": [],\n        \"eintraege\": [],\n        \"bloecke\": [],\n        \"ausgesetzteTage\": [],\n        \"verworfen\": [],\n        \"quelle\": \"HAND\"\n    },\n    \"eintraege\": [],\n    \"abwesenheiten\": [],\n    \"protokoll\": [],\n    \"laufenderTimer\": null,\n    \"einstellungen\": {\n        \"unterkategorienEingeblendet\": [],\n        \"schlagworteEingeblendet\": []\n    },\n    \"nachweise\": {\n        \"meineDaten\": {\n            \"name\": \"\",\n            \"schule\": \"\",\n            \"adressat\": \"\",\n            \"empfaengerEmail\": \"\",\n            \"kopien\": [\n                {\n                    \"stelle\": \"PERSONALRAT\",\n                    \"aktiv\": false,\n                    \"email\": \"\"\n                },\n                {\n                    \"stelle\": \"SCHWERBEHINDERTENVERTRETUNG\",\n                    \"aktiv\": false,\n                    \"email\": \"\"\n                },\n                {\n                    \"stelle\": \"GLEICHSTELLUNGSBEAUFTRAGTE\",\n                    \"aktiv\": false,\n                    \"email\": \"\"\n                }\n            ]\n        },\n        \"anzeigen\": [],\n        \"gespraeche\": [],\n        \"kette\": []\n    },\n    \"funktionen\": [],\n    \"kalenderlink\": null,\n    \"kalenderZuordnungen\": [],\n    \"kalenderEntscheidungen\": []\n}",
@@ -91,6 +115,12 @@
       "spkiBase64": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEhxtk9HRQgKVnxYjQycLUeu8HXymjAGpwX0qjkPSoQk8DGhJBcDJ7JzkyGhoqLKbJ530pkqlgV1MAq+WeuAfrjg==",
       "fingerabdruck": "f3bb2eab722f4dcb14beb4d98d68c33630966b7edea8f967fe9e3997fc229445",
       "signaturBase64": "MEUCIQCKS2bSW695v1wZ6feklKXmJ5BGV6FC6twMs6zdIyg1GgIgSGlYfxermK6cfq1Xq5ywcMoaNxr4cr6a0kGg2UZWjHA="
+    },
+    {
+      "id": "B15",
+      "fundstelle": "Technische Erläuterung, Abschnitt 4.7, Rechenbeispiel B15",
+      "eingabe": "1:220:2026-10-21T09:00:00Z9:GEAENDERT7:eintrag2:e1399:{\"tag\":\"2026-09-28\",\"kategorieId\":\"korrektur\",\"unterkategorieId\":null,\"beginn\":\"2026-09-28T14:00:00Z\",\"ende\":\"2026-09-28T16:00:00Z\",\"dauerMinuten\":0,\"notiz\":\"Schulaufgabe 10b\",\"quelle\":\"MANUELL\",\"planRef\":null,\"erfasstAm\":\"2026-09-28T16:05:00Z\",\"geaendertAm\":\"2026-10-21T09:00:00Z\",\"begruendung\":null,\"kategorie\":\"Korrektur und Bewertung\",\"unterkategorie\":null,\"importiertAm\":\"2026-10-20T07:30:00Z\"}64:95146a2017725f7122a29f497d6693e66bb89956eb060dab075cf3d4526a68db1:04:true",
+      "sha256": "618e031247f649b8ddfa7929bb036558f157cae6af5d56651eddff34e1a471e6"
     },
     {
       "id": "B4",

@@ -10,8 +10,8 @@ import { gliedName, type Glied } from "./klartext.js";
 import { dateiFundstelle, sage, type Kontext } from "./kontext.js";
 import { berlinMinute, deutsch, zeitpunktMs } from "./zeit.js";
 
-/** Handlungshinweis, wenn kein Anker vorliegt (Auftrag 0.1.5, B3). */
-export const HANDLUNG_ANKER = "Füge einen Prüfvermerk aus einem Bericht oder einer Anzeige hinzu (Text oder QR-Code), um den Stand daran zu prüfen.";
+/** Handlungshinweis, wenn kein Anker vorliegt (Auftrag 0.1.5, B3; unpersönlich seit 0.1.6, E-58). */
+export const HANDLUNG_ANKER = "Ein Prüfvermerk aus einem Bericht oder einer Anzeige (Text oder QR-Code) lässt sich hinzufügen, um den Stand daran zu prüfen.";
 
 function zaehler(g: Glied[], bis: number): { r: number; w: number; wa: number; i: number } {
   let r = 0;

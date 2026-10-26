@@ -20,7 +20,9 @@ for (const v of [18, 19]) {
     const name = m[1];
     const felder = (typen[name] ??= {});
     for (const e of m[2].matchAll(/<xs:element name="([^"]+)" type="([^"]+)"([^>]*)\/?>/g)) {
-      felder[e[1]] = { typ: e[2], liste: /maxOccurs="unbounded"/.test(e[3]) };
+      // Liste: maxOccurs unbounded oder eine Zahl größer als 1 (seit Version 19 z. B. 256 Schlüssel, 8 Zertifikate).
+      const max = /maxOccurs="([^"]+)"/.exec(e[3])?.[1];
+      felder[e[1]] = { typ: e[2], liste: max === "unbounded" || (max !== undefined && Number(max) > 1) };
     }
   }
 }
@@ -34,7 +36,7 @@ function grund(typ) {
   return "text";
 }
 
-// Ein Typ ist eine Liste, wenn er genau ein Element mit maxOccurs="unbounded" hat.
+// Ein Typ ist eine Liste, wenn er genau ein Element hat, das mehrfach vorkommen kann.
 const ausgabe = {};
 for (const [name, felder] of Object.entries(typen)) {
   const eintraege = Object.entries(felder);
