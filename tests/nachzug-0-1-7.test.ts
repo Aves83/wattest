@@ -2,8 +2,8 @@
 // WATTest © 2026 Hans-Joachim Steudel
 
 // Nachzug auf die Technische Erläuterung aus watt_public af05f6e (Stand 26.10.2026, Vorabfassung): Herkunft erst ab
-// dem ersten Schlüssel (4.7, U-27) mit der Abweichung U-28, Sperrliste „nicht bestätigbar“ (4.7, 4.8, U-25) und
-// Aufbau des ZIP-Archivs zum Aktenauszug (6.3, U-26).
+// dem ersten Schlüssel (4.7, U-27) mit Neubeginn bzw. Wiederherstellung unmittelbar davor (U-28, seit 3a88095 in der
+// TE), Sperrliste „nicht bestätigbar“ (4.7, 4.8, U-25) und Aufbau des ZIP-Archivs zum Aktenauszug (6.3, U-26).
 
 import assert from "node:assert/strict";
 import { before, test } from "node:test";
@@ -54,8 +54,8 @@ test("4.7, U-27: Glieder vor dem ersten Schlüssel sind „?“; belegt ist nur,
   assert.equal(bestaetigt(b), "Signaturen belegen die Herkunft der Glieder 4–5.", texte(b, "P6"));
   const a = b.aussagen.find((x) => x.schritt === "P6" && x.zeichen === "offen")!;
   assert.equal(a.text, "Die Herkunft der Glieder 1–3 lässt sich nicht bestätigen.");
-  assert.equal(a.details![0]!.text, "Glied 1 bis 3: vor dem ersten Glied schluessel mit status verfuegbar (Glied 4); keine Signatur deckt sie. Belegt ist nur, dass sie beim ersten Schlüssel in WATT lagen.");
-  assert.match(a.begruendung, /Glieder vor dem ersten Glied schluessel mit status verfuegbar deckt keine Signatur/);
+  assert.equal(a.details![0]!.text, "Glied 1 bis 3: vor dem Beginn des ersten Abschnitts beim ersten Glied schluessel mit status verfuegbar (Glied 4); keine Signatur deckt sie. Belegt ist nur, dass sie beim ersten Schlüssel in WATT lagen.");
+  assert.match(a.begruendung, /Glieder vor dem Beginn des ersten Abschnitts \(dem ersten Glied schluessel mit status verfuegbar oder einem Glied neubeginn bzw\. wiederherstellung unmittelbar davor\) deckt keine Signatur/);
   assert.match(texte(b, "P6"), /Glied 1–3: ohne Schlüssel, vor dem ersten Schlüssel \(keine Signatur deckt sie; belegt ist nur, dass sie beim ersten Schlüssel in WATT lagen\)\./);
   assert.equal(zeichen(b, "P7"), "bestaetigt", texte(b, "P7"));
   assert.equal(b.gesamt, "offen");
@@ -64,7 +64,7 @@ test("4.7, U-27: Glieder vor dem ersten Schlüssel sind „?“; belegt ist nur,
 test("4.7, U-27: ein einzelnes Glied vor dem ersten Schlüssel", async () => {
   const e = await erzeugeKette({ eintraege: 3, zertifikate: z, schluesselNach: 1 });
   const b = await befund([json("u27.json", e.daten)], opt());
-  assert.match(texte(b, "P6"), /^P6 offen: Die Herkunft von Glied 1 lässt sich nicht bestätigen\.\n {4}Glied 1: vor dem ersten Glied schluessel mit status verfuegbar \(Glied 2\); keine Signatur deckt es\. Belegt ist nur, dass es beim ersten Schlüssel in WATT lag\.$/m);
+  assert.match(texte(b, "P6"), /^P6 offen: Die Herkunft von Glied 1 lässt sich nicht bestätigen\.\n {4}Glied 1: vor dem Beginn des ersten Abschnitts beim ersten Glied schluessel mit status verfuegbar \(Glied 2\); keine Signatur deckt es\. Belegt ist nur, dass es beim ersten Schlüssel in WATT lag\.$/m);
 });
 
 test("4.7, U-27: Ohne Schlüssel mit status verfuegbar deckt keine Signatur ein Glied", async () => {
@@ -79,7 +79,7 @@ test("4.7, U-27: Ohne Schlüssel mit status verfuegbar deckt keine Signatur ein 
   assert.match(texte(b, "P6"), /Glied 1–3: ohne Schlüssel \(die Kette hat kein Glied schluessel mit status verfuegbar\)/);
 });
 
-// U-28 (Entscheidung Achim 26.10.2026): wiederherstellung bzw. neubeginn vor dem ersten Schlüssel, getrennt nur durch
+// 4.7 (U-28, seit 3a88095 in der TE): wiederherstellung bzw. neubeginn vor dem ersten Schlüssel, getrennt nur durch
 // Vermerke zur Uhr, gehört zum Abschnitt dieses Schlüssels.
 
 test("U-28: neubeginn und Vermerk zur Uhr vor dem ersten Schlüssel deckt die Signatur mit", async () => {
@@ -89,8 +89,8 @@ test("U-28: neubeginn und Vermerk zur Uhr vor dem ersten Schlüssel deckt die Si
   assert.deepEqual(e.daten.protokoll.map((x) => x["objektArt"]), ["neubeginn", "uhr_verstellt", "schluessel", "eintrag", "eintrag"]);
   const b = await befund([json("u28.json", e.daten)], opt());
   assert.equal(bestaetigt(b), "Signaturen belegen die Herkunft der Glieder 1–5.", texte(b, "P6"));
-  assert.doesNotMatch(texte(b, "P6"), /vor dem ersten Glied schluessel/);
-  assert.match(b.aussagen.find((a) => a.text === bestaetigt(b))!.begruendung, /\(U-28\)/);
+  assert.doesNotMatch(texte(b, "P6"), /vor dem Beginn des ersten Abschnitts/);
+  assert.match(b.aussagen.find((a) => a.text === bestaetigt(b))!.begruendung, /oder einem Glied neubeginn bzw\. wiederherstellung unmittelbar davor, getrennt nur durch Vermerke zur Uhr \(4\.7\)/);
 });
 
 test("U-28: steht zwischen neubeginn und dem ersten Schlüssel ein anderes Glied, beginnt die Herkunft beim Schlüssel", async () => {
@@ -101,7 +101,7 @@ test("U-28: steht zwischen neubeginn und dem ersten Schlüssel ein anderes Glied
   assert.deepEqual(e.daten.protokoll.map((x) => x["objektArt"]).slice(0, 3), ["neubeginn", "eintrag", "schluessel"]);
   const b = await befund([json("u28.json", e.daten)], opt());
   assert.equal(bestaetigt(b), "Signaturen belegen die Herkunft der Glieder 3–5.", texte(b, "P6"));
-  assert.match(texte(b, "P6"), /^P6 offen: Die Herkunft der Glieder 1–2 lässt sich nicht bestätigen\.\n {4}Glied 1 bis 2: vor dem ersten Glied schluessel mit status verfuegbar \(Glied 3\)/m);
+  assert.match(texte(b, "P6"), /^P6 offen: Die Herkunft der Glieder 1–2 lässt sich nicht bestätigen\.\n {4}Glied 1 bis 2: vor dem Beginn des ersten Abschnitts beim ersten Glied schluessel mit status verfuegbar \(Glied 3\)/m);
 });
 
 test("U-28: wiederherstellung und Vermerk zur Uhr vor dem ersten Schlüssel: gedeckt ab der Wiederherstellung, davor „?“", async () => {
@@ -111,7 +111,7 @@ test("U-28: wiederherstellung und Vermerk zur Uhr vor dem ersten Schlüssel: ged
   assert.deepEqual(e.daten.protokoll.map((x) => x["objektArt"]).slice(0, 5), ["eintrag", "eintrag", "wiederherstellung", "uhr_verstellt", "schluessel"]);
   const b = await befund([json("u28.json", e.daten)], opt());
   assert.equal(bestaetigt(b), "Signaturen belegen die Herkunft der Glieder 3–7.", texte(b, "P6"));
-  assert.match(texte(b, "P6"), /Glied 1 bis 2: vor dem ersten Glied schluessel mit status verfuegbar \(Glied 5\); keine Signatur deckt sie\. Belegt ist nur, dass sie beim ersten Schlüssel in WATT lagen; eingespielt vor der Wiederherstellung in Glied 3\./);
+  assert.match(texte(b, "P6"), /Glied 1 bis 2: vor dem Beginn des ersten Abschnitts bei Glied 3 \(wiederherstellung unmittelbar vor dem ersten Glied schluessel mit status verfuegbar, Glied 5\); keine Signatur deckt sie\. Belegt ist nur, dass sie beim ersten Schlüssel in WATT lagen; eingespielt vor der Wiederherstellung in Glied 3\./);
 });
 
 test("U-28: Vermerk zur Uhr und ein anderes Glied zwischen Wiederherstellung und erstem Schlüssel: Herkunft ab dem Schlüssel", async () => {
@@ -121,14 +121,14 @@ test("U-28: Vermerk zur Uhr und ein anderes Glied zwischen Wiederherstellung und
   assert.deepEqual(e.daten.protokoll.map((x) => x["objektArt"]).slice(0, 5), ["eintrag", "wiederherstellung", "uhr_verstellt", "eintrag", "schluessel"]);
   const b = await befund([json("u28.json", e.daten)], opt());
   assert.equal(bestaetigt(b), "Signaturen belegen die Herkunft der Glieder 5–7.", texte(b, "P6"));
-  assert.match(texte(b, "P6"), /Glied 1 bis 4: vor dem ersten Glied schluessel mit status verfuegbar \(Glied 5\)/);
+  assert.match(texte(b, "P6"), /Glied 1 bis 4: vor dem Beginn des ersten Abschnitts beim ersten Glied schluessel mit status verfuegbar \(Glied 5\)/);
 });
 
 // 4.7 und 4.8 (U-25): Ein Zertifikat auf der Sperrliste ist „nicht bestätigbar“, nicht „widerlegt“.
 
 test("4.7, 4.8: Zertifikat auf der Sperrliste ist „?“ nach der TE; die Gesamtzeile ist nie ✗", async () => {
   const te = liesText("tests/vektoren/technische-erlaeuterung.json");
-  assert.match(te, /af05f6e/);
+  assert.match(te, /3a88095/);
   const e = await erzeugeKette({ eintraege: 2, zertifikate: z });
   const sperrliste = { abgerufen: "2026-10-26T00:00:00Z", quelle: "Test", eintraege: { [z.zwischenSeriennummer.toString(16)]: { status: "REVOKED", reason: "KEY_COMPROMISE" } } };
   const b = await befund([json("s.json", e.daten)], opt({ sperrliste }));
@@ -211,7 +211,8 @@ const abweichungen: [string, (d: Datei[]) => void, ((t: string) => string | Uint
   ["Ordner Eintrag_00", (d) => (d[0]!.pfad = "Eintrag_00/Anschreiben.pdf"), null, /Eintrag_00\/Anschreiben\.pdf: liegt nicht in einem Ordner Eintrag_NN/],
   ["Unterordner", (d) => (d[0]!.pfad = "Eintrag_01/x/Anschreiben.pdf"), null, /Eintrag_01\/x\/Anschreiben\.pdf: liegt nicht in einem Ordner Eintrag_NN/],
   ["weitere Datei in der Wurzel", (d) => d.splice(2, 0, { pfad: "Aktenauszug.pdf", inhalt: "%PDF" }), null, /Aktenauszug\.pdf: In der Wurzel stehen nach 6\.3 nur Technische-Erlaeuterung\.pdf, PRUEFEN\.txt, SHA256SUMS\.txt\./],
-  ["Dateiname nicht bereinigt", (d) => (d[0]!.pfad = "Eintrag_01/ Anschreiben.pdf"), null, /Der Dateiname ist nicht nach 6\.3 bereinigt \(bereinigt: „Anschreiben\.pdf“\)/],
+  // Leerraum am Ende bleibt nur nach der Kürzung auf 120 Zeichen; am Anfang kann er aus WATT stammen (E-67).
+  ["Dateiname nicht bereinigt", (d) => (d[0]!.pfad = "Eintrag_01/Anschreiben.pdf "), null, /Der Dateiname ist nicht nach 6\.3 bereinigt \(bereinigt: „Anschreiben\.pdf“\)/],
   ["Dateiname mit Punktfolge", (d) => (d[0]!.pfad = "Eintrag_01/a..pdf"), null, /bereinigt: „a_pdf“/],
   ["Technische Erläuterung fehlt", (d) => d.splice(2, 1), null, /Technische-Erlaeuterung\.pdf fehlt in der Wurzel\./],
   ["Technische Erläuterung unter anderem Namen", (d) => (d[2]!.pfad = "Technische_Erlaeuterung.pdf"), null, /Technische-Erlaeuterung\.pdf fehlt in der Wurzel\./],

@@ -214,6 +214,31 @@ export function bereinigeDateiname(name: string): string {
   return /^\p{White_Space}*$/u.test(s) ? "dokument" : s;
 }
 
+/**
+ * Ob ein Name ein Ergebnis der Bereinigung nach 6.3 sein kann (E-67): keines der Zeichen aus Schritt 1, kein „..“,
+ * kein Punkt am Anfang, höchstens 120 Zeichen, nicht leer und nicht nur Leerraum. Leerraum am Anfang bleibt, wenn
+ * Schritt 4 Punkte davor entfernt hat („. x.pdf“ ergibt „ x.pdf“), am Ende nur nach der Kürzung auf genau 120 Zeichen.
+ */
+function ergebnisDerBereinigung(s: string): boolean {
+  if (!s.length || s.length > 120 || /^\p{White_Space}*$/u.test(s)) return false;
+  if (/[\\/:*?"<>|\u0000-\u001f\u007f]/.test(s) || s.includes("..") || s.startsWith(".")) return false;
+  return s.length === 120 || !/\p{White_Space}$/u.test(s);
+}
+
+/**
+ * Ob ein Name im Ordner Eintrag_NN so aus WATT stammen kann (6.3): Er ist selbst ein Ergebnis der Bereinigung, oder er
+ * trägt vor der Endung (ab dem letzten Punkt, ohne Punkt am Ende) einen Zusatz „ (n)“ mit n ab 2 für gleiche Namen, und
+ * der Name ohne diesen einen Zusatz ist eines; die Kürzung auf 120 Zeichen gilt vor dem Zusatz. Ob der Zusatz von WATT
+ * stammt und n die kleinste freie Zahl ist, lässt sich ohne die gespeicherten Namen nicht prüfen.
+ */
+export function istBereinigt(name: string): boolean {
+  if (ergebnisDerBereinigung(name)) return true;
+  const punkt = name.lastIndexOf(".");
+  const stamm = punkt < 0 ? name : name.slice(0, punkt);
+  const m = /^([\s\S]*) \((?:[2-9]|[1-9]\d+)\)$/.exec(stamm);
+  return m !== null && ergebnisDerBereinigung(m[1]! + (punkt < 0 ? "" : name.slice(punkt)));
+}
+
 const BOM = (b: Uint8Array): boolean => b.length >= 3 && b[0] === 0xef && b[1] === 0xbb && b[2] === 0xbf;
 const ORDNER = /^Eintrag_(0[1-9]|[1-9]\d+)\/([^/]+)$/;
 const WURZEL = ["Technische-Erlaeuterung.pdf", "PRUEFEN.txt", "SHA256SUMS.txt"];
@@ -238,7 +263,7 @@ function pruefeAufbau(az: Aktenauszug, relativ: (pfad: string) => string | null)
     const m = ORDNER.exec(p);
     if (m) {
       r = Math.min(Number(m[1]), Number.MAX_SAFE_INTEGER - 2 * WURZEL.length);
-      if (bereinigeDateiname(m[2]!) !== m[2]) abw.push({ text: `${d.pfad}: Der Dateiname ist nicht nach 6.3 bereinigt (bereinigt: „${bereinigeDateiname(m[2]!)}“).` });
+      if (!istBereinigt(m[2]!)) abw.push({ text: `${d.pfad}: Der Dateiname ist nicht nach 6.3 bereinigt (bereinigt: „${bereinigeDateiname(m[2]!)}“).` });
     } else if (WURZEL.includes(p)) {
       r = Number.MAX_SAFE_INTEGER - WURZEL.length + WURZEL.indexOf(p);
     } else {
@@ -338,9 +363,9 @@ export function pruefeAktenauszug(az: Aktenauszug, bindungen: { name: string; bi
   if (az.dateien.some((d) => innen(d.pfad) === "PRUEFEN.txt")) {
     const aufbau = pruefeAufbau(az, innen);
     if (aufbau.length) {
-      sage(k, "P8", "offen", "Der Aufbau des ZIP-Archivs weicht von 6.3 ab.", "WATT schreibt das ZIP zum Aktenauszug ab Formatversion 19 immer nach 6.3: Ordner Eintrag_NN mit bereinigten Dateinamen, in der Wurzel nur Technische-Erlaeuterung.pdf, PRUEFEN.txt und als letzte Datei SHA256SUMS.txt mit einer Zeile je anderer Datei, alle Einträge mit derselben Änderungszeit. Ein anderer Aufbau belegt keine Veränderung der Dokumente; dass das Archiv so aus WATT stammt, lässt sich aber nicht bestätigen (4.8).", { fundstelle: fund, grenze: GRENZE.aktenauszug, details: aufbau });
+      sage(k, "P8", "offen", "Der Aufbau des ZIP-Archivs weicht von 6.3 ab.", "WATT schreibt das ZIP zum Aktenauszug ab Formatversion 19 immer nach 6.3: Ordner Eintrag_NN mit bereinigten Dateinamen (gleiche Namen in einem Ordner mit „ (n)“ vor der Endung), in der Wurzel nur Technische-Erlaeuterung.pdf, PRUEFEN.txt und als letzte Datei SHA256SUMS.txt mit einer Zeile je anderer Datei, alle Einträge mit derselben Änderungszeit. Ein anderer Aufbau belegt keine Veränderung der Dokumente; dass das Archiv so aus WATT stammt, lässt sich aber nicht bestätigen (4.8).", { fundstelle: fund, grenze: GRENZE.aufbau, details: aufbau });
     } else {
-      sage(k, "P8", "bestaetigt", "Der Aufbau des ZIP-Archivs entspricht 6.3.", "Ordner Eintrag_NN mit bereinigten Dateinamen, in der Wurzel nur Technische-Erlaeuterung.pdf, PRUEFEN.txt (UTF-8 ohne BOM, CRLF) und als letzte Datei SHA256SUMS.txt (ohne BOM, LF, eine Zeile je anderer Datei in Archivreihenfolge), alle Einträge mit derselben Änderungszeit.", { fundstelle: fund, grenze: GRENZE.aktenauszug });
+      sage(k, "P8", "bestaetigt", "Der Aufbau des ZIP-Archivs entspricht 6.3.", "Ordner Eintrag_NN mit bereinigten Dateinamen (gleiche Namen in einem Ordner mit „ (n)“ vor der Endung), in der Wurzel nur Technische-Erlaeuterung.pdf, PRUEFEN.txt (UTF-8 ohne BOM, CRLF) und als letzte Datei SHA256SUMS.txt (ohne BOM, LF, eine Zeile je anderer Datei in Archivreihenfolge), alle Einträge mit derselben Änderungszeit.", { fundstelle: fund, grenze: GRENZE.aufbau });
     }
   } else {
     sage(k, "P8", "hinweis", "Das ZIP enthält keine PRUEFEN.txt; seinen Aufbau prüft WATTest nicht.", "PRUEFEN.txt liegt ab Formatversion 19 im ZIP des Aktenauszugs; erst dafür legt die Technische Erläuterung den Aufbau fest (6.3). WATTest prüft hier nur die Dateien gegen SHA256SUMS.txt.", { fundstelle: fund });

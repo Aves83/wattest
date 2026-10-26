@@ -1,5 +1,14 @@
 # Änderungen
 
+## 0.1.8 – 27.10.2026
+
+Nachzug auf den Stand a612454 der Technischen Erläuterung (watt_public, Commit 3a88095 vom 26.10.2026, Vorabfassung). Bisher galt Commit af05f6e.
+
+- P6: TE 4.7 regelt den Beginn der Herkunft jetzt so, wie WATTest es seit 0.1.7 tut: Der Abschnitt beginnt beim letzten Glied `wiederherstellung` bzw. `neubeginn` vor j, wenn es nach dem ersten Glied `schluessel` mit status `verfuegbar` liegt oder zwischen ihm und dem nächsten solchen Schlüssel nur Vermerke zur Uhr stehen, sonst beim ersten Schlüssel (U-28 geklärt, E-63, E-64). Die Wertungen bleiben; Begründung und Einzelheiten verweisen auf 4.7 statt auf U-28 und sagen wie die TE „vor dem Beginn des ersten Abschnitts“. Eine `wiederherstellung` als Eintrag 1 beginnt nach dem ausdrücklichen Satz der TE zu Eintrag 1 keinen Abschnitt (U-29, offen; bis 0.1.7 ✓, jetzt „?“).
+- P8: Gleiche Dateinamen in einem Ordner `Eintrag_NN` erhalten nach TE 6.3 vor der Endung „ (n)“ mit n ab 2. Ein solcher Name ist keine Abweichung im Aufbau mehr; die 120 Zeichen gelten für den Namen ohne Zusatz. Ob ein Name bereinigt ist, prüft P8 jetzt danach, ob er ein Ergebnis der sechs Schritte sein kann: Leerraum am Anfang (nach entfernten Punkten) und am Ende nach der Kürzung auf genau 120 Zeichen sind keine Abweichung mehr (E-67). Zwei exakt gleiche Pfade bleiben „?“. Die Grenze der Prüfung (gespeicherte Namen unbekannt) steht in `GRENZE.aufbau`.
+- Unterlagen: Diff af05f6e..3a88095 von `doc/technische-erlaeuterung.md`, `doc/datenformat.md` und `schema/` gelesen. Geändert hat sich nur die TE (1., 4.7, 6.3, 8. Schritt 9, Tabelle 12); Datenformat, Schemas und Rechenbeispiele B1 bis B15 sind unverändert (`tests/vektoren/` nennt jetzt 3a88095).
+- Tests: Wiederherstellung nach dem ersten Schlüssel mit anderen Gliedern bis zum neuen Schlüssel, Wiederherstellung als Eintrag 1, gleiche Namen mit „ (2)“ und „ (3)“, Name ohne Punkt, 120 Zeichen plus Zusatz (zulässig und zu lang), Groß- und Kleinschreibung, exakt doppelter Pfad, Ergebnisse der Bereinigung mit und ohne Zusatz; Verweise der Tests aus 0.1.7 angepasst, der Test „Dateiname nicht bereinigt“ mit Leerraum am Ende statt am Anfang (E-67).
+
 ## 0.1.7 – 26.10.2026
 
 Nachzug auf den Stand faea58b der Technischen Erläuterung (watt_public, Commit af05f6e vom 26.10.2026, Vorabfassung aus „Spezifikation Teil 2“). Bisher galt Commit f314de3. Hashes von watt_public seit 0.1.7 nach der Bereinigung vom 26.10.2026: Die Historie von watt_public wurde umgeschrieben (nur Autor und Commit-Nachrichten, Inhalte unverändert); alle Verweise in WATTest, auch in den Einträgen unten, nennen die neuen Hashes.

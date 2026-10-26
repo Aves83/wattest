@@ -37,9 +37,9 @@ Buchungsdaten (Export im Überblick) und verschlüsselte Sicherungen (`.wattbak`
 | P3 | Daten und Kette | Kette nachspielen (7.) und mit `eintraege` und `abwesenheiten` vergleichen, mit Bestandsform 1 und 2 (4.6) und „Importiert am“ nach 7.1 |
 | P4 | Zeit | Zeitstempel und Vermerke zur Geräteuhr in einer Aussage (8., Schritt 5; ein unerklärter Rücksprung ist „?“), Zerlegung bei `uhr_verstellt` nach 4.7, Bezug bei `uhr_ruecksprung`, Neustarts, automatische Uhrzeit |
 | P5 | Anker | Glied, Prüfsumme, Zeitpunkt und Zähler des Ankers (6.1, 6.2); ohne Anker „?“ mit dem Hinweis, einen Prüfvermerk hinzuzufügen |
-| P6 | Signaturen | `watt-kopf-1:<hash>` mit dem Schlüssel des Abschnitts; Herkunft je Abschnitt ab der letzten Wiederherstellung bzw. dem Neubeginn, frühestens ab dem ersten Schlüssel; Glieder davor „?“ (4.7) (ab Datenformat 19; davor einmal „?“, kein negativer Befund) |
+| P6 | Signaturen | `watt-kopf-1:<hash>` mit dem Schlüssel des Abschnitts; Herkunft je Abschnitt ab der letzten Wiederherstellung bzw. dem Neubeginn, frühestens ab dem ersten Schlüssel oder einem Neubeginn bzw. einer Wiederherstellung unmittelbar davor; Glieder davor „?“ (4.7) (ab Datenformat 19; davor einmal „?“, kein negativer Befund) |
 | P7 | Attestierung | Zertifikatskette bis zu einer Wurzel von Google, Gültigkeit zum Zeitpunkt der Erzeugung (4.7, Schritt 1), Sperrliste (ein gesperrtes Zertifikat ist „?“), Paketname und Signaturzertifikat der App (Fingerabdruck aus 4.7, Schritt 3), Sicherheitsstufe, RootOfTrust, Challenge (ab Datenformat 19; davor Hinweis „Entfällt“) |
-| P8 | Nachweise | Nachweiskette nach 5.1, Inhalte der Anzeigen und Gesprächsnotizen, Aktenauszug gegen `SHA256SUMS.txt` und die Dokumente gegen die Nachweiskette (`PRUEFEN.txt` und die Technische Erläuterung nur gegen `SHA256SUMS.txt`), Aufbau des ZIP-Archivs nach 6.3 (Abweichung „?“) |
+| P8 | Nachweise | Nachweiskette nach 5.1, Inhalte der Anzeigen und Gesprächsnotizen, Aktenauszug gegen `SHA256SUMS.txt` und die Dokumente gegen die Nachweiskette (`PRUEFEN.txt` und die Technische Erläuterung nur gegen `SHA256SUMS.txt`), Aufbau des ZIP-Archivs nach 6.3 mit „ (n)“ bei gleichen Namen (Abweichung „?“) |
 | P9 | Besondere Glieder | Neubeginne (mit Prüfsumme des Bestands nach 4.6), Wiederherstellungen, Löschungen, Änderungen mit Kommentar, Nachträge nach 4.5, eingelesene Buchungen |
 
 ### Dateien von Dritten
@@ -48,14 +48,14 @@ WATTest liest fremde Dateien nur innerhalb fester, großzügiger Grenzen: Datei 
 
 ## Die Einzeldatei prüfen
 
-Jede Version gibt es als eine einzige HTML-Datei, die ohne Netz läuft (mit Wurzeln und Sperrliste zum Stand des Baus). Ihre SHA-256 steht in `SHA256SUMS.txt` beim Release. Die Einzeldatei auf der Seite (`https://aves83.github.io/wattest/wattest-0.1.7.html`) wird täglich mit frischer Sperrliste neu gebaut; ihre Prüfsumme steht im `SHA256SUMS.txt` der Seite und weicht deshalb von der des Releases ab.
+Jede Version gibt es als eine einzige HTML-Datei, die ohne Netz läuft (mit Wurzeln und Sperrliste zum Stand des Baus). Ihre SHA-256 steht in `SHA256SUMS.txt` beim Release. Die Einzeldatei auf der Seite (`https://aves83.github.io/wattest/wattest-0.1.8.html`) wird täglich mit frischer Sperrliste neu gebaut; ihre Prüfsumme steht im `SHA256SUMS.txt` der Seite und weicht deshalb von der des Releases ab.
 
 ```
-sha256sum wattest-0.1.7.html
+sha256sum wattest-0.1.8.html
 ```
 
 ```
-Get-FileHash wattest-0.1.7.html -Algorithm SHA256
+Get-FileHash wattest-0.1.8.html -Algorithm SHA256
 ```
 
 Der Bau ist reproduzierbar: Aus demselben Commit und denselben Daten (`daten/`) entsteht dieselbe Datei.
