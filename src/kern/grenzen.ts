@@ -30,6 +30,8 @@ export const GRENZE = {
     "Die Übersicht zeigt, was die Kette selbst vermerkt; Erfassungs- und Änderungszeitpunkte eingelesener Buchungen stammen aus der Datei des anderen Geräts (Technische Erläuterung, 7.1 und 9).",
   aktenauszug:
     "SHA256SUMS.txt liegt im selben ZIP wie die Dokumente; allein belegt sie nur, dass Liste und Dateien zusammenpassen. Erst der Abgleich mit der Nachweiskette oder einem Anker bindet sie an WATT (Technische Erläuterung, 5.1 und 8).",
+  aufbau:
+    "Die gespeicherten Dateinamen kennt WATTest nicht: Ob ein Zusatz „ (n)“ von WATT stammt und n die kleinste freie Zahl ist, ob ein Name schon vorher so lautete und ob die Nummer eines Ordners die im Aktenauszug ist, zeigt der Aufbau nicht. Dass die Dokumente unverändert sind, zeigen nur die Prüfsummen (Technische Erläuterung, 6.3 und 8).",
 } as const;
 
 // Feste Grenzen für Eingaben von Dritten (Härtung, WATTest 0.1.5). Großzügig gewählt: Echte Exporte von WATT liegen

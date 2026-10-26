@@ -279,18 +279,18 @@ export async function pruefeSignaturen(k: Kontext): Promise<void> {
     );
   }
 
-  // Herkunft (4.7, „Was eine gültige Signatur belegt“): Eine gültige Signatur bei Glied j deckt die Glieder vom
-  // letzten Glied wiederherstellung bzw. neubeginn vor j (einschließlich) bis j, frühestens ab dem ersten Glied
-  // schluessel mit status verfuegbar (U-27). Abweichend von der TE beginnt die Herkunft schon beim Glied
-  // wiederherstellung bzw. neubeginn vor diesem ersten Schlüssel, wenn dazwischen nur Vermerke zur Uhr stehen
-  // (Entscheidung Achim 26.10.2026, U-28). Glieder davor deckt keine Signatur. Die Teile der Kette zwischen diesen
-  // Grenzen heißen hier Herkunftsabschnitte.
+  // Herkunft (4.7, „Was eine gültige Signatur belegt“): Eine gültige Signatur bei Glied j deckt die Glieder ihres
+  // Abschnitts vom Beginn (einschließlich) bis j. Der Abschnitt beginnt beim letzten Glied wiederherstellung bzw.
+  // neubeginn vor j, wenn es nach dem ersten Glied schluessel mit status verfuegbar liegt oder wenn zwischen ihm und
+  // dem nächsten solchen Schlüssel nur Vermerke zur Uhr stehen (E-63, E-64); sonst beim ersten Schlüssel. Bei Eintrag 1
+  // beginnt ein Abschnitt nur mit neubeginn oder dem ersten Schlüssel (U-29). Glieder vor dem Beginn des ersten
+  // Abschnitts deckt keine Signatur. Die Teile der Kette zwischen diesen Grenzen heißen hier Herkunftsabschnitte.
   const ersterSchluessel = g.findIndex((x) => x.objektArt === "schluessel" && !x.datenUeberGrenze && x.json?.["status"] === "verfuegbar");
   let beginn = ersterSchluessel < 0 ? g.length : ersterSchluessel;
   if (ersterSchluessel > 0) {
     let w = ersterSchluessel - 1;
     while (w >= 0 && UHR_VERMERKE.has(g[w]!.objektArt)) w--;
-    if (w >= 0 && (g[w]!.objektArt === "wiederherstellung" || g[w]!.objektArt === "neubeginn")) beginn = w;
+    if (w >= 0 && (g[w]!.objektArt === "neubeginn" || (g[w]!.objektArt === "wiederherstellung" && w > 0))) beginn = w;
   }
   const herkunft: { von: number; bis: number; hoechste: number | null }[] = [];
   for (let i = beginn; i < g.length; i++) {
@@ -324,7 +324,7 @@ export async function pruefeSignaturen(k: Kontext): Promise<void> {
       bruch ? `Die Signatur von Glied ${nr(bruch.hoechste!)} deckt einen veränderten Inhalt.` : `Signaturen belegen die Herkunft ${gedeckt.length === 1 && gedeckt[0]!.von === gedeckt[0]!.hoechste ? `von Glied ${nr(gedeckt[0]!.von)}` : `der Glieder ${gedeckt.map((t) => kurzSpanne(t.von, t.hoechste!)).join(", ")}`}.`,
       bruch
         ? `Die Signatur von Glied ${nr(bruch.hoechste!)} ist gültig, aber die Kette ist vorher unterbrochen (${gliedName(g[k.ersterBruch!]!)}); der Inhalt passt nicht mehr zum signierten Kopf.`
-        : `${anzahl(gueltigSeq.length, "Signatur ist", "Signaturen sind")} gültig. Eine gültige Signatur bei Glied j belegt, dass der signierte Stand in einer App mit diesem Schlüssel lag; hinsichtlich der Herkunft deckt sie über die Hash-Kette nur die Glieder ihres Abschnitts, vom letzten Glied wiederherstellung bzw. neubeginn vor j (einschließlich) bis j, frühestens ab dem ersten Glied schluessel mit status verfuegbar (4.7). Ein Glied wiederherstellung bzw. neubeginn unmittelbar vor diesem ersten Schlüssel, getrennt nur durch Vermerke zur Uhr, zählt WATTest samt diesen Vermerken mit (U-28). Ob der Schlüssel zu WATT auf einem bestätigten Gerät gehört, zeigt P7.`,
+        : `${anzahl(gueltigSeq.length, "Signatur ist", "Signaturen sind")} gültig. Eine gültige Signatur bei Glied j belegt, dass der signierte Stand in einer App mit diesem Schlüssel lag; hinsichtlich der Herkunft deckt sie über die Hash-Kette nur die Glieder ihres Abschnitts, vom letzten Glied wiederherstellung bzw. neubeginn vor j (einschließlich) bis j, frühestens ab dem ersten Glied schluessel mit status verfuegbar oder einem Glied neubeginn bzw. wiederherstellung unmittelbar davor, getrennt nur durch Vermerke zur Uhr (4.7). Ob der Schlüssel zu WATT auf einem bestätigten Gerät gehört, zeigt P7.`,
       { fundstelle: dateiFundstelle(k, `Glied ${bereiche(gueltigSeq, 8)}`), grenze: GRENZE.herkunft, details },
     );
   }
@@ -336,7 +336,7 @@ export async function pruefeSignaturen(k: Kontext): Promise<void> {
     const grund =
       ersterSchluessel < 0
         ? `die Kette hat kein Glied schluessel mit status verfuegbar; keine Signatur deckt ${beginn === 1 ? "es" : "sie"}`
-        : `vor dem ersten Glied schluessel mit status verfuegbar (${gliedName(g[ersterSchluessel]!)}); keine Signatur deckt ${beginn === 1 ? "es. Belegt ist nur, dass es beim ersten Schlüssel in WATT lag" : "sie. Belegt ist nur, dass sie beim ersten Schlüssel in WATT lagen"}${g[beginn]?.objektArt === "wiederherstellung" ? `; eingespielt vor der Wiederherstellung in Glied ${nr(beginn)}` : ""}`;
+        : `vor dem Beginn des ersten Abschnitts ${beginn === ersterSchluessel ? `beim ersten Glied schluessel mit status verfuegbar (${gliedName(g[ersterSchluessel]!)})` : `bei ${gliedName(g[beginn]!)} (${g[beginn]!.objektArt} unmittelbar vor dem ersten Glied schluessel mit status verfuegbar, ${gliedName(g[ersterSchluessel]!)})`}; keine Signatur deckt ${beginn === 1 ? "es. Belegt ist nur, dass es beim ersten Schlüssel in WATT lag" : "sie. Belegt ist nur, dass sie beim ersten Schlüssel in WATT lagen"}${g[beginn]?.objektArt === "wiederherstellung" ? `; eingespielt vor der Wiederherstellung in Glied ${nr(beginn)}` : ""}`;
     offenH.push({ von: 0, bis: beginn - 1, text: `${spanne(0, beginn - 1)}: ${grund}.` });
   }
   for (const t of herkunft) {
@@ -355,7 +355,7 @@ export async function pruefeSignaturen(k: Kontext): Promise<void> {
       "P6",
       "offen",
       !gedeckt.length ? "Kein Glied der Kette trägt eine gültige Signatur." : `Die Herkunft ${offenH.length === 1 && offenH[0]!.von === offenH[0]!.bis ? `von Glied ${nr(offenH[0]!.von)}` : `der Glieder ${offenH.map((o) => kurzSpanne(o.von, o.bis)).join(", ")}`} lässt sich nicht bestätigen.`,
-      `Für diese Glieder fehlt eine gültige Signatur, die sie nach 4.7 hinsichtlich der Herkunft deckt: Glieder vor dem ersten Glied schluessel mit status verfuegbar deckt keine Signatur (etwa aus der Zeit vor dem Update auf eine Fassung mit Signatur); belegt ist nur, dass sie beim ersten Schlüssel in WATT lagen. Eingespielte Glieder vor einer Wiederherstellung belegen nur die mitgelieferten Signaturen, und Glieder nach der letzten gültigen Signatur ihres Abschnitts deckt keine. Nach 4.7 und 4.8 ist ihre Herkunft „nicht bestätigbar“, kein Beleg einer Manipulation.${nichtVerfuegbar.length ? ` Die Kette vermerkt, dass kein Schlüssel verfügbar war: ${nichtVerfuegbar.map((x) => `${gliedName(x)}${x.json?.["grund"] ? ` (Grund: ${String(x.json["grund"])})` : ""}`).join("; ")}.` : ""}`,
+      `Für diese Glieder fehlt eine gültige Signatur, die sie nach 4.7 hinsichtlich der Herkunft deckt: Glieder vor dem Beginn des ersten Abschnitts (dem ersten Glied schluessel mit status verfuegbar oder einem Glied neubeginn bzw. wiederherstellung unmittelbar davor) deckt keine Signatur (etwa aus der Zeit vor dem Update auf eine Fassung mit Signatur); belegt ist nur, dass sie beim ersten Schlüssel in WATT lagen. Eingespielte Glieder vor einer Wiederherstellung belegen nur die mitgelieferten Signaturen, und Glieder nach der letzten gültigen Signatur ihres Abschnitts deckt keine. Nach 4.7 und 4.8 ist ihre Herkunft „nicht bestätigbar“, kein Beleg einer Manipulation.${nichtVerfuegbar.length ? ` Die Kette vermerkt, dass kein Schlüssel verfügbar war: ${nichtVerfuegbar.map((x) => `${gliedName(x)}${x.json?.["grund"] ? ` (Grund: ${String(x.json["grund"])})` : ""}`).join("; ")}.` : ""}`,
       { fundstelle: dateiFundstelle(k, offenH.map((o) => spanne(o.von, o.bis)).join(", ")), grenze: GRENZE.herkunft, details: offenH.map((o) => ({ text: o.text })) },
     );
   }

@@ -72,13 +72,13 @@ test("App mit fremdem Signaturzertifikat gegen den Fingerabdruck von WATT: P7 wi
 // Challenge (TE 4.7): hash des Kopfs vor dem Glied schluessel; Ausnahme uhr_verstellt mit objektId glied.
 
 /**
- * Herkunft seit 0.1.7 (TE 4.7, watt_public af05f6e, U-27): Signaturen decken die Glieder erst ab dem ersten Glied
+ * Herkunft seit 0.1.7 (TE 4.7, watt_public af05f6e, U-27; seit 3a88095 „Beginn des ersten Abschnitts“): Signaturen decken die Glieder erst ab dem ersten Glied
  * schluessel mit status verfuegbar; die Glieder davor sind „?“, die übrigen bleiben ✓.
  */
 function vorErstemSchluessel(b: Awaited<ReturnType<typeof befund>>, gedeckt: string, davor: string): void {
   assert.equal(zeichen(b, "P6"), "offen", texte(b, "P6"));
   assert.ok(b.aussagen.some((a) => a.schritt === "P6" && a.zeichen === "bestaetigt" && a.text === `Signaturen belegen die Herkunft der Glieder ${gedeckt}.`), texte(b, "P6"));
-  assert.match(texte(b, "P6"), new RegExp(`^P6 offen: Die Herkunft (der Glieder|von Glied) ${davor} lässt sich nicht bestätigen\.\n {4}Glied [^:]+: vor dem ersten Glied schluessel mit status verfuegbar`, "m"));
+  assert.match(texte(b, "P6"), new RegExp(`^P6 offen: Die Herkunft (der Glieder|von Glied) ${davor} lässt sich nicht bestätigen\.\n {4}Glied [^:]+: vor dem Beginn des ersten Abschnitts beim ersten Glied schluessel mit status verfuegbar`, "m"));
 }
 
 test("Schlüssel nach vorhandenen Gliedern: Challenge ist der hash des Kopfs", async () => {
