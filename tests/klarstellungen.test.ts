@@ -182,21 +182,27 @@ test("U-14: Betrag mindestens 120", async () => {
   assert.equal(zeichen(b120, "P4"), "bestaetigt", texte(b120, "P4"));
 });
 
-test("U-14: schritte: Summe der Beträge mit dem Vorzeichen der Gesamtrichtung", async () => {
-  // Schritte −175 s und +25 s: Summe der Beträge 200, mit Vorzeichen −150.
-  const passt = await befund([json("x.json", await mitVerstellung(30000, -150000, { abweichungSekunden: -200, richtung: "zurueck", schritte: 2 }, false))]);
+// U-21: schritte ist die Zahl der Messungen (ganze Zahl größer als 1); abweichungSekunden ist auch dann
+// nachher − vorher (TE 4.7, Stand 26.10.2026). Die frühere Lesart „Summe der Beträge“ entfällt.
+
+test("U-21: schritte: abweichungSekunden gleicht nachher − vorher wie ohne schritte", async () => {
+  const passt = await befund([json("x.json", await mitVerstellung(30000, -150000, { abweichungSekunden: -150, richtung: "zurueck", schritte: 2 }, false))]);
   assert.equal(zeichen(passt, "P4"), "bestaetigt", texte(passt, "P4"));
-  const vorzeichen = await befund([json("x.json", await mitVerstellung(30000, -150000, { abweichungSekunden: 200, richtung: "zurueck", schritte: 2 }, false))]);
-  assert.equal(zeichen(vorzeichen, "P4"), "offen", texte(vorzeichen, "P4"));
-  const zuKlein = await befund([json("x.json", await mitVerstellung(30000, -250000, { abweichungSekunden: -200, richtung: "zurueck", schritte: 2 }, false))]);
-  assert.equal(zeichen(zuKlein, "P4"), "offen", texte(zuKlein, "P4"));
+  assert.match(texte(passt, "P4"), /Uhr zurückgestellt um 3 Minuten \(nach einer von Android gemeldeten Änderung der Uhrzeit, aus 2 Messungen\)/);
+  // Summe der Beträge (frühere Lesart) passt nicht mehr.
+  const summe = await befund([json("x.json", await mitVerstellung(30000, -150000, { abweichungSekunden: -200, richtung: "zurueck", schritte: 2 }, false))]);
+  assert.equal(zeichen(summe, "P4"), "offen", texte(summe, "P4"));
+  assert.match(texte(summe, "P4"), /nachher − vorher sind -150 Sekunden, abweichungSekunden nennt -200/);
 });
 
-test("U-14: schritte, die sich genau aufheben, gelten als vor", async () => {
-  const vor = await befund([json("x.json", await mitVerstellung(30000, 0, { abweichungSekunden: 240, richtung: "vor", schritte: 2 }, false))]);
-  assert.equal(zeichen(vor, "P4"), "bestaetigt", texte(vor, "P4"));
-  const zurueck = await befund([json("x.json", await mitVerstellung(30000, 0, { abweichungSekunden: -240, richtung: "zurueck", schritte: 2 }, false))]);
-  assert.equal(zeichen(zurueck, "P4"), "offen", texte(zurueck, "P4"));
+test("U-21: schritte muss eine ganze Zahl größer als 1 sein", async () => {
+  for (const schritte of [1, 0, 2.5, "3", -4]) {
+    const b = await befund([json("x.json", await mitVerstellung(30000, 600000, { abweichungSekunden: 600, richtung: "vor", schritte }, false))]);
+    assert.equal(zeichen(b, "P4"), "offen", `${String(schritte)}:\n${texte(b, "P4")}`);
+    assert.match(texte(b, "P4"), /schritte \([^)]*\) ist keine ganze Zahl größer als 1/);
+  }
+  const ohne = await befund([json("x.json", await mitVerstellung(30000, 600000, { abweichungSekunden: 600, richtung: "vor" }, false))]);
+  assert.equal(zeichen(ohne, "P4"), "bestaetigt", texte(ohne, "P4"));
 });
 
 // U-15: erster Teil der Zerlegung nicht unter −120 s (Grenze eingeschlossen), bei schritte nicht negativ; darunter nur Hinweis.
@@ -220,13 +226,50 @@ test("U-15: erster Teil unter −120 Sekunden: Hinweis mit autoZeit, keine ✗ u
   assert.match(texte(b, "P4"), /liegt 121 Sekunden vor Glied \d+ \([^)]*\); autoZeit true\./);
 });
 
-test("U-15: bei schritte ist schon ein negativer erster Teil ein Hinweis", async () => {
-  const null_ = await befund([json("x.json", await mitVerstellung(0, 200000, { abweichungSekunden: 200, richtung: "vor", schritte: 3 }, false))]);
-  assert.ok(!hinweisErsterTeil(null_), texte(null_, "P4"));
-  const b = await befund([json("x.json", await mitVerstellung(-1000, 200000, { abweichungSekunden: 200, richtung: "vor", schritte: 3 }, false))]);
+test("U-15: bei schritte gilt dieselbe Grenze von −120 Sekunden (TE 4.7, Stand 26.10.2026)", async () => {
+  const b119 = await befund([json("x.json", await mitVerstellung(-119000, 200000, { abweichungSekunden: 200, richtung: "vor", schritte: 3 }, false))]);
+  assert.equal(zeichen(b119, "P4"), "bestaetigt", texte(b119, "P4"));
+  assert.ok(!hinweisErsterTeil(b119), texte(b119, "P4"));
+  const b = await befund([json("x.json", await mitVerstellung(-121000, 200000, { abweichungSekunden: 200, richtung: "vor", schritte: 3 }, false))]);
   assert.equal(zeichen(b, "P4"), "bestaetigt", texte(b, "P4"));
   assert.ok(hinweisErsterTeil(b), texte(b, "P4"));
   assert.match(texte(b, "P4"), /\(mit schritte\); autoZeit false\./);
+});
+
+test("U-15: nach einer Wiederherstellung gilt die Regel zum ersten Teil erst ab dem ersten Glied des Geräts", async () => {
+  const d = await kette();
+  const letzt = Date.parse(String(d.protokoll.at(-1)!["zeitpunkt"]));
+  anhaengen(d, "wiederherstellung", "", iso(letzt + 60000), { exportiertAm: iso(letzt), verschluesselt: false, vorherAnzahl: 0, vorherLetzterHash: "0", vorgeschichte: "NICHT_ABGLEICHBAR" });
+  d.protokoll.at(-1)!["neustarts"] = -1;
+  const w = d.protokoll.length;
+  // Der Vermerk folgt dem Glied wiederherstellung (objektId dessen seq); vorher liegt weit vor diesem.
+  anhaengen(d, "uhr_verstellt", String(w), iso(letzt + 660000), { vorher: iso(letzt - 600000), nachher: iso(letzt + 660000), abweichungSekunden: 1260, richtung: "vor" });
+  await neuVerketten(d.protokoll);
+  const b = await befund([json("x.json", d)]);
+  assert.equal(zeichen(b, "P4"), "bestaetigt", texte(b, "P4"));
+  assert.ok(!hinweisErsterTeil(b), texte(b, "P4"));
+  assert.match(texte(b, "P4"), new RegExp(`Uhr vorgestellt um 21 Minuten \\(nach Glied ${w} \\(Neubeginn oder Wiederherstellung\\)\\)`));
+});
+
+test("uhr_verstellt: objektId nach 4.7, sonst nicht bestätigbar", async () => {
+  // Laufende Nummer, die kein Glied neubeginn oder wiederherstellung nennt, und ein unbekannter Anlass.
+  for (const objektId of ["2", "app"]) {
+    const d = await kette();
+    const letzt = Date.parse(String(d.protokoll.at(-1)!["zeitpunkt"]));
+    anhaengen(d, "uhr_verstellt", objektId, iso(letzt + 630000), { vorher: iso(letzt + 30000), nachher: iso(letzt + 630000), abweichungSekunden: 600, richtung: "vor" });
+    await neuVerketten(d.protokoll);
+    const b = await befund([json("x.json", d)]);
+    assert.equal(zeichen(b, "P4"), "offen", `${objektId}:\n${texte(b, "P4")}`);
+    assert.match(texte(b, "P4"), objektId === "2" ? /objektId 2 nennt kein Glied neubeginn oder wiederherstellung/ : /objektId app ist kein Anlass aus 4\.7/);
+  }
+  for (const objektId of ["glied", "zeitsignal", "timer", "nachweis", "start"]) {
+    const d = await kette();
+    const letzt = Date.parse(String(d.protokoll.at(-1)!["zeitpunkt"]));
+    anhaengen(d, "uhr_verstellt", objektId, iso(letzt + 630000), { vorher: iso(letzt + 30000), nachher: iso(letzt + 630000), abweichungSekunden: 600, richtung: "vor" });
+    await neuVerketten(d.protokoll);
+    const b = await befund([json("x.json", d)]);
+    assert.equal(zeichen(b, "P4"), "bestaetigt", `${objektId}:\n${texte(b, "P4")}`);
+  }
 });
 
 test("U-5: Rücksprung bis zu uhr_verstellt mit richtung vor ist nicht erklärt", async () => {
@@ -235,8 +278,10 @@ test("U-5: Rücksprung bis zu uhr_verstellt mit richtung vor ist nicht erklärt"
   anhaengen(d, "uhr_verstellt", "zeitsignal", iso(letzt - 570000), { vorher: iso(letzt + 30000), nachher: iso(letzt - 570000), abweichungSekunden: 600, richtung: "vor" });
   await neuVerketten(d.protokoll);
   const b = await befund([json("x.json", d)]);
-  assert.equal(zeichen(b, "P4"), "widerlegt");
+  // Unerklärter Rücksprung: nach 4.8 und 8., Schritt 5 „nicht bestätigbar“ (bis 0.1.5 ✗).
+  assert.equal(zeichen(b, "P4"), "offen");
   assert.match(texte(b, "P4"), /passen nicht zur Rechnung|passt nicht zur Rechnung/);
+  assert.match(texte(b, "P4"), /^P4 offen: Die Uhr sprang 1 Mal um mehr als 2 Minuten zurück, ohne dass die Kette es vermerkt\./m);
 });
 
 test("U-5: Rücksprung beim Festhalten eines Nachweises (uhr_ruecksprung mit objektId nachweis) ist erklärt", async () => {
@@ -257,7 +302,8 @@ test("U-5: Rücksprung nach einem Glied uhr_verstellt ist nicht mehr durch diese
   anhaengen(d, "uhr_abweichung", "timer", iso(letzt + 60000), { art: "korrektur" });
   await neuVerketten(d.protokoll);
   const b = await befund([json("x.json", d)]);
-  assert.equal(zeichen(b, "P4"), "widerlegt", texte(b, "P4"));
+  assert.equal(zeichen(b, "P4"), "offen", texte(b, "P4"));
+  assert.match(texte(b, "P4"), /ohne dass die Kette es vermerkt/);
 });
 
 test("U-6: abweichungSekunden passt nicht zu nachher − vorher: P4 nicht bestätigbar", async () => {
@@ -270,14 +316,26 @@ test("U-6: abweichungSekunden passt nicht zu nachher − vorher: P4 nicht bestä
   assert.match(texte(b, "P4"), /nachher − vorher sind 600 Sekunden, abweichungSekunden nennt 500/);
 });
 
-test("U-6: zeitpunkt von uhr_verstellt gleicht nicht nachher: P4 nicht bestätigbar", async () => {
+test("U-6: zeitpunkt von uhr_verstellt nach nachher: P4 nicht bestätigbar", async () => {
   const d = await kette();
   const letzt = Date.parse(String(d.protokoll.at(-1)!["zeitpunkt"]));
   anhaengen(d, "uhr_verstellt", "glied", iso(letzt + 700000), { vorher: iso(letzt + 30000), nachher: iso(letzt + 630000), abweichungSekunden: 600, richtung: "vor" });
   await neuVerketten(d.protokoll);
   const b = await befund([json("x.json", d)]);
   assert.equal(zeichen(b, "P4"), "offen", texte(b, "P4"));
-  assert.match(texte(b, "P4"), /gleicht nicht nachher/);
+  assert.match(texte(b, "P4"), /zeitpunkt \([^)]*\) liegt nach nachher/);
+});
+
+test("U-6: zeitpunkt von uhr_verstellt vor nachher (Dauer des Vorgangs) und folgendes Glied mit anderem Zeitpunkt (4.4, 4.7)", async () => {
+  // TE 4.7, Stand 26.10.2026: zeitpunkt liegt höchstens um die Dauer des Vorgangs vor nachher; nach
+  // „Sofort wieder löschen“ kann das folgende Glied einen anderen Zeitpunkt haben (4.4).
+  const d = await kette();
+  const letzt = Date.parse(String(d.protokoll.at(-1)!["zeitpunkt"]));
+  anhaengen(d, "uhr_verstellt", "glied", iso(letzt + 629000), { vorher: iso(letzt + 30000), nachher: iso(letzt + 630000), abweichungSekunden: 600, richtung: "vor" });
+  anhaengen(d, "uhr_abweichung", "timer", iso(letzt + 700000), { art: "korrektur" });
+  await neuVerketten(d.protokoll);
+  const b = await befund([json("x.json", d)]);
+  assert.equal(zeichen(b, "P4"), "bestaetigt", texte(b, "P4"));
 });
 
 // U-18: uhr_ruecksprung bei Gliedern mit Uhrstand nur ohne Bezug (TE 4.7, „Bezug“ und „uhr_ruecksprung bei Einträgen
@@ -355,12 +413,16 @@ test("U-18: uhr_ruecksprung mit objektId start oder zeitsignal erklärt einen R�
     const b = await befund([json("x.json", d)]);
     assert.equal(zeichen(b, "P4"), "bestaetigt", texte(b, "P4"));
     assert.match(texte(b, "P4"), /^P4 bestaetigt: Die Zeitstempel steigen an\. Die Geräteuhr wurde einmal verstellt oder sprang zurück; jeder Fall ist vermerkt \(Glied \d+\)\./m);
-    assert.match(texte(b, "P4"), anlass === "start" ? /Rücksprung der Uhr beim Start der App von / : /Rücksprung der Uhr nach einer von Android gemeldeten Änderung der Uhrzeit von /);
-    // Mit einer anderen objektId ist derselbe Rücksprung nicht erklärt.
+    assert.match(texte(b, "P4"), anlass === "start" ? /Rücksprung der Uhr beim Öffnen der App oder einer Seite von / : /Rücksprung der Uhr nach einer von Android gemeldeten Änderung der Uhrzeit von /);
+    // Ein Vermerk zur Uhr erklärt seinen Rücksprung gleich mit welcher objektId (4.1, 8., Schritt 5, Stand
+    // 26.10.2026); eine objektId, die WATT nicht schreibt, ist aber „nicht bestätigbar“.
     const v = d.protokoll.find((x) => x["objektArt"] === "uhr_ruecksprung")!;
     v["objektId"] = "app";
     await neuVerketten(d.protokoll);
-    assert.equal(zeichen(await befund([json("x.json", d)]), "P4"), "widerlegt");
+    const b2 = await befund([json("x.json", d)]);
+    assert.equal(zeichen(b2, "P4"), "offen", texte(b2, "P4"));
+    assert.doesNotMatch(texte(b2, "P4"), /ohne dass die Kette es vermerkt/);
+    assert.match(texte(b2, "P4"), /objektId app ist weder eine laufende Nummer noch timer, nachweis, start oder zeitsignal/);
   }
 });
 

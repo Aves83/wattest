@@ -38,11 +38,11 @@ test("ohne Anker: P5 nicht bestätigbar mit Handlungshinweis, Gesamtzeile nennt 
   const b = await befund([beispiel("cherimoya-18.json")]);
   assert.equal(zeichen(b, "P5"), "offen");
   const p5 = b.aussagen.find((x) => x.schritt === "P5")!;
-  assert.equal(p5.text, "Es liegt kein Anker vor. Füge einen Prüfvermerk aus einem Bericht oder einer Anzeige hinzu (Text oder QR-Code), um den Stand daran zu prüfen.");
+  assert.equal(p5.text, "Es liegt kein Anker vor. Ein Prüfvermerk aus einem Bericht oder einer Anzeige (Text oder QR-Code) lässt sich hinzufügen, um den Stand daran zu prüfen.");
   // Wortlaut aus dem Feldtest (Auftrag 0.1.5, B1).
   assert.equal(
     b.gesamtText,
-    "Nicht alles lässt sich bestätigen; nichts ist widerlegt. Die Datei ist in sich stimmig. WATT signiert erst ab Datenformat 19; dass diese Datei (Datenformat 18) keine Signatur hat, ist kein negativer Befund. Den Zeitpunkt bestätigt ein Prüfvermerk aus einem Bericht oder einer Anzeige, wenn du ihn hinzufügst.",
+    "Nicht alles lässt sich bestätigen; nichts ist widerlegt. Die Datei ist in sich stimmig. WATT signiert erst ab Datenformat 19; dass diese Datei (Datenformat 18) keine Signatur hat, ist kein negativer Befund. Den Zeitpunkt bestätigt ein Prüfvermerk aus einem Bericht oder einer Anzeige, sofern er beigefügt wird.",
   );
 });
 

@@ -140,12 +140,27 @@ test("P3: geänderte Abwesenheit ist widerlegt, dienstfreie Tage bleiben außen 
   assert.match(texte(b, "P3"), /Abwesenheit am 2026-09-30 .*abweichend in ende/);
 });
 
-test("P3: entfernte Markierung „importiert“ ist widerlegt", async () => {
+test("P3: fehlende Markierung „importiert“ ist nach 4.8 ein Hinweis, ein anderer Zeitpunkt bleibt widerlegt", async () => {
+  // TE 4.8 und 7.1 (Stand 26.10.2026): Fehlt „Importiert am“, obwohl die Kette das Einlesen belegt, ist das ein
+  // Hinweis (WATT ergänzt ihn beim Einspielen); bis 0.1.5 war das ✗.
   const d = lade();
   d.eintraege[0]!["importiertAm"] = null;
   const b = await befund([json("x.json", d)]);
+  assert.equal(zeichen(b, "P3"), "bestaetigt", texte(b, "P3"));
+  assert.match(texte(b, "P3"), /^P3 hinweis: Bei 1 Datensatz fehlt „Importiert am“ in der Datei, obwohl die Kette das Einlesen belegt\./m);
+  d.eintraege[0]!["importiertAm"] = "2026-10-02T11:00:00Z";
+  const b2 = await befund([json("x.json", d)]);
+  assert.equal(zeichen(b2, "P3"), "widerlegt");
+  assert.match(texte(b2, "P3"), /abweichend in importiertAm/);
+});
+
+test("P3: hinzugefügte Markierung „importiert“ ist widerlegt", async () => {
+  const d = lade();
+  const e = d.eintraege.find((x) => x["importiertAm"] === null)!;
+  e["importiertAm"] = "2026-10-02T10:00:00Z";
+  const b = await befund([json("x.json", d)]);
   assert.equal(zeichen(b, "P3"), "widerlegt");
-  assert.match(texte(b, "P3"), /importiertAm/);
+  assert.match(texte(b, "P3"), /abweichend in importiertAm/);
 });
 
 test("P3: Neubeginn mit Bestand wird als Ausgangsstand genommen", async () => {
@@ -176,13 +191,24 @@ test("P3: Neubeginn mit Bestand wird als Ausgangsstand genommen", async () => {
 
 // P4 Zeit
 
-test("P4: Rücksprung über 2 Minuten ohne uhr_ruecksprung ist widerlegt", async () => {
+test("P4: Rücksprung über 2 Minuten ohne uhr_ruecksprung ist nach 4.8 nicht bestätigbar", async () => {
+  // TE 4.8 und 8., Schritt 5 (Stand 26.10.2026): „sonst ist die Stelle nicht bestätigbar“; bis 0.1.5 war das ✗.
   const d = lade();
   d.protokoll[6]!["zeitpunkt"] = "2026-10-02T07:50:00.123Z";
   await neuVerketten(d.protokoll);
   const b = await befund([json("x.json", d)]);
   assert.equal(zeichen(b, "P2"), "bestaetigt");
-  assert.equal(zeichen(b, "P4"), "widerlegt", texte(b, "P4"));
+  assert.equal(zeichen(b, "P4"), "offen", texte(b, "P4"));
+  assert.match(texte(b, "P4"), /ohne dass die Kette es vermerkt\.\n {4}Glied 7 /);
+  assert.notEqual(b.gesamt, "widerlegt");
+});
+
+test("P4: nachträglich geänderter Zeitpunkt ohne neue Prüfsumme bleibt ein Bruch", async () => {
+  const d = lade();
+  d.protokoll[6]!["zeitpunkt"] = "2026-10-02T07:50:00.123Z";
+  const b = await befund([json("x.json", d)]);
+  assert.equal(zeichen(b, "P2"), "widerlegt");
+  assert.equal(b.gesamt, "widerlegt");
 });
 
 test("P4: Rücksprung mit folgendem uhr_ruecksprung ist vermerkt", async () => {

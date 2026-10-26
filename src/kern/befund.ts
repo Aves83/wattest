@@ -133,7 +133,7 @@ function lage(aussagen: Aussage[], formate: (number | null)[]): string[] {
     const wer = alt.length > 1 ? `diese Dateien (Datenformat ${aufzaehlung(alt.map(String))}) keine Signatur haben` : `diese Datei (Datenformat ${alt[0] ?? "?"}) keine Signatur hat`;
     saetze.push(`WATT signiert erst ab Datenformat 19; dass ${wer}, ist kein negativer Befund.`);
   }
-  if (ohneAnker) saetze.push("Den Zeitpunkt bestätigt ein Prüfvermerk aus einem Bericht oder einer Anzeige, wenn du ihn hinzufügst.");
+  if (ohneAnker) saetze.push("Den Zeitpunkt bestätigt ein Prüfvermerk aus einem Bericht oder einer Anzeige, sofern er beigefügt wird.");
   return saetze;
 }
 

@@ -7,8 +7,12 @@
 
 import { SCHEMA_AUSZUG } from "./schema-auszug.js";
 
+/** Muster der Schemas 19 für Base64 ohne Fremdzeichen (kettenschluessel, kettensignaturen). */
+const BASE64 = "^[A-Za-z0-9+/]+={0,2}$";
+
 export interface SchemaFehler {
-  art: "fehlt" | "typ" | "unbekannt";
+  /** grenze: mehr Elemente als maxItems; seit Version 19 die Grenzen beim Lesen (E-41, E-60): „?“, nicht ✗ */
+  art: "fehlt" | "typ" | "unbekannt" | "grenze";
   pfad: string;
   text: string;
 }
@@ -78,7 +82,9 @@ class Pruefer {
     if ("const" in s && w !== s["const"]) this.fehler.push({ art: "typ", pfad, text: `${pfad}: erwartet ${JSON.stringify(s["const"])}` });
     if (Array.isArray(s["enum"]) && !(s["enum"] as unknown[]).includes(w)) this.fehler.push({ art: "typ", pfad, text: `${pfad}: Wert ${JSON.stringify(w)} ist nicht erlaubt` });
     if (typeof s["pattern"] === "string" && typeof w === "string" && !muster(s["pattern"] as string).test(w)) {
-      this.fehler.push({ art: "typ", pfad, text: `${pfad}: Form ungültig` });
+      // Base64 ohne Fremdzeichen (Zertifikate und Signaturen, seit Version 19): eine Grenze beim Lesen, kein Typfehler.
+      if (s["pattern"] === BASE64) this.fehler.push({ art: "grenze", pfad, text: `${pfad}: kein Base64 ohne Fremdzeichen` });
+      else this.fehler.push({ art: "typ", pfad, text: `${pfad}: Form ungültig` });
     }
     if (typeof w === "number") {
       if (typeof s["minimum"] === "number" && w < (s["minimum"] as number)) this.fehler.push({ art: "typ", pfad, text: `${pfad}: kleiner als ${s["minimum"]}` });
@@ -86,7 +92,7 @@ class Pruefer {
     }
     if (Array.isArray(w)) {
       if (typeof s["minItems"] === "number" && w.length < (s["minItems"] as number)) this.fehler.push({ art: "typ", pfad, text: `${pfad}: zu wenige Elemente` });
-      if (typeof s["maxItems"] === "number" && w.length > (s["maxItems"] as number)) this.fehler.push({ art: "typ", pfad, text: `${pfad}: zu viele Elemente` });
+      if (typeof s["maxItems"] === "number" && w.length > (s["maxItems"] as number)) this.fehler.push({ art: "grenze", pfad, text: `${pfad}: mehr als ${s["maxItems"]} Elemente` });
       if (s["items"]) w.forEach((x, i) => this.pruefeIntern(x, s["items"] as Schema, `${pfad}[${i}]`));
     }
     if (w && typeof w === "object" && !Array.isArray(w)) {

@@ -5,7 +5,7 @@
 
 import { anzahl, bereiche, type Detail } from "./befund.js";
 import { GRENZE, GRENZE_HAERTUNG, GRENZWERTE } from "./grenzen.js";
-import { bestandAbwesenheitEingabe, bestandEintragEingabe } from "./kanonisch.js";
+import { bestandAbwesenheitEingabe, bestandEintragEingabe, bestandsform } from "./kanonisch.js";
 import { gliedName, liste, type Glied } from "./klartext.js";
 import { dateiFundstelle, sage, type Kontext } from "./kontext.js";
 import { sha256Hex } from "./sha.js";
@@ -22,9 +22,28 @@ interface Objekt {
   /** Stand laut letztem Glied; null, wenn nur aus dem Bestand des Neubeginns bekannt */
   daten: Record<string, unknown> | null;
   bestand: string | null;
-  /** Zeitpunkt des Anlage-Glieds mit importDatei, sonst null */
+  /** Form der Bestandsprüfsumme (4.6), nur bei Objekten aus dem Bestand eines Neubeginns */
+  form: 1 | 2;
+  /** „Importiert am“ laut Kette (7.1): Zeitpunkt des Anlage-Glieds mit importDatei bzw. importiertAm des letzten Änderungs-Glieds mit Uhrstand, sonst null */
   importiertAm: string | null;
+  /** Die Kette belegt „Importiert am“ nicht; es gilt der Wert der Datei (7.1, 9.), mit Grund */
+  importUnbelegt: string | null;
   letztes: Glied | null;
+}
+
+/**
+ * „Importiert am“ nach einem Glied GEAENDERT (4.1, 7.1): Mit Uhrstand trägt das Glied den Wert selbst als
+ * importiertAm am Ende von daten; fehlt das Feld, gilt kein Vermerk, auch nach einem Neubeginn. Ohne Uhrstand
+ * (bis Formatversion 18) erbt es den Wert des vorigen Stands; ändert es einen Datensatz aus dem Bestand eines
+ * Neubeginns, belegt die Kette den Wert nicht.
+ */
+function importNachAenderung(x: Glied, vorhanden: Objekt | undefined): Pick<Objekt, "importiertAm" | "importUnbelegt"> {
+  if (x.form === "neun") {
+    const w = x.json?.["importiertAm"];
+    return { importiertAm: w === undefined || w === null ? null : String(w), importUnbelegt: null };
+  }
+  if (vorhanden && vorhanden.daten === null) return { importiertAm: null, importUnbelegt: `${gliedName(x)} ohne Uhrstand ändert einen Datensatz aus dem Bestand des Neubeginns; der Bestand trägt nur Prüfsummen` };
+  return { importiertAm: vorhanden?.importiertAm ?? null, importUnbelegt: vorhanden?.importUnbelegt ?? null };
 }
 
 function normal(feld: string, w: unknown): string {
@@ -49,6 +68,11 @@ function vergleiche(felder: readonly string[], kette: Record<string, unknown>, d
   return abw;
 }
 
+function zeitText(w: string): string {
+  const ms = zeitpunktMs(w);
+  return ms === null ? w : deutsch(ms);
+}
+
 function objektName(art: "eintrag" | "abwesenheit", id: string): string {
   return art === "eintrag" ? `Eintrag ${id}` : `Abwesenheit am ${id}`;
 }
@@ -61,6 +85,8 @@ export async function pruefeDaten(k: Kontext): Promise<void> {
   const abwesenheiten = new Map<string, Objekt>();
   const probleme: Detail[] = [];
   const nurBestand: string[] = [];
+  // Neubeginn mit einem Wert von bestandsform, den WATTest nicht kennt: Bestandsprüfsummen nicht nachrechenbar, „?“.
+  let formUnbekannt: Glied | null = null;
   // Objekte mit einem Glied, dessen daten über der Grenze der Verschachtelung liegt: nicht nachspielbar, „?“.
   const ueberGrenze: Glied[] = [];
   const offen = new Set<string>();
@@ -71,8 +97,17 @@ export async function pruefeDaten(k: Kontext): Promise<void> {
     if (x.objektArt === "neubeginn") {
       const d = x.json;
       if (d && d["eintraege"] && typeof d["eintraege"] === "object") {
-        for (const [id, h] of Object.entries(d["eintraege"] as Record<string, unknown>)) eintraege.set(id, { daten: null, bestand: String(h), importiertAm: null, letztes: null });
-        for (const [tag, h] of Object.entries((d["abwesenheiten"] ?? {}) as Record<string, unknown>)) abwesenheiten.set(tag, { daten: null, bestand: String(h), importiertAm: null, letztes: null });
+        const form = bestandsform(d);
+        if (form === null) formUnbekannt = x;
+        const neu = (h: unknown): Objekt => ({ daten: null, bestand: String(h), form: form ?? 1, importiertAm: null, importUnbelegt: null, letztes: null });
+        for (const [id, h] of Object.entries(d["eintraege"] as Record<string, unknown>)) {
+          eintraege.set(id, neu(h));
+          if (form === null) offen.add(`eintrag:${id}`);
+        }
+        for (const [tag, h] of Object.entries((d["abwesenheiten"] ?? {}) as Record<string, unknown>)) {
+          abwesenheiten.set(tag, neu(h));
+          if (form === null) offen.add(`abwesenheit:${tag}`);
+        }
       } else neubeginnAlt = x;
       continue;
     }
@@ -93,10 +128,11 @@ export async function pruefeDaten(k: Kontext): Promise<void> {
     const vorhanden = karte.get(x.objektId);
     if (x.aktion === "ANGELEGT") {
       if (vorhanden) probleme.push({ text: `${name}: wird angelegt, besteht aber schon.` });
-      karte.set(x.objektId, { daten: x.json, bestand: null, importiertAm: typeof x.json["importDatei"] === "string" ? x.zeitpunkt : null, letztes: x });
+      // Anlage: „Importiert am“ ist der Zeitpunkt des Glieds mit importDatei; ohne importDatei beginnt sie ohne (7.1).
+      karte.set(x.objektId, { daten: x.json, bestand: null, form: 1, importiertAm: typeof x.json["importDatei"] === "string" ? x.zeitpunkt : null, importUnbelegt: null, letztes: x });
     } else if (x.aktion === "GEAENDERT") {
       if (!vorhanden) probleme.push({ text: `${name}: wird geändert, besteht aber nicht.` });
-      karte.set(x.objektId, { daten: x.json, bestand: null, importiertAm: vorhanden?.importiertAm ?? null, letztes: x });
+      karte.set(x.objektId, { daten: x.json, bestand: null, form: 1, ...importNachAenderung(x, vorhanden), letztes: x });
     } else if (x.aktion === "GELOESCHT") {
       if (!vorhanden) probleme.push({ text: `${name}: wird gelöscht, besteht aber nicht.` });
       karte.delete(x.objektId);
@@ -106,6 +142,25 @@ export async function pruefeDaten(k: Kontext): Promise<void> {
 
   const abweichungen: Detail[] = [];
   const pruefeImport = version >= 18;
+  // „Importiert am“ fehlt in der Datei, obwohl die Kette das Einlesen belegt: Hinweis, keine Abweichung (4.8, 7.1).
+  const importFehlt: Detail[] = [];
+  const importUnbelegt: Detail[] = [];
+  /** Vergleicht „Importiert am“ aus Kette und Datei; ergibt true bei einer Abweichung. */
+  const importAbweichend = (name: string, o: Objekt, datei: Record<string, unknown>): boolean => {
+    if (!pruefeImport) return false;
+    const inDatei = normal("importiertAm", datei["importiertAm"]);
+    if (o.importUnbelegt) {
+      importUnbelegt.push({ text: `${name}: ${o.importUnbelegt}; in der Datei ${inDatei === "null" ? "ohne „Importiert am“" : `„Importiert am“ ${String(datei["importiertAm"])}`}.` });
+      return false;
+    }
+    const inKette = normal("importiertAm", o.importiertAm);
+    if (inDatei === inKette) return false;
+    if (inDatei === "null") {
+      importFehlt.push({ text: `${name} (${gliedName(o.letztes!)}): Die Kette belegt das Einlesen am ${zeitText(o.importiertAm!)}, die Datei nennt kein „Importiert am“.` });
+      return false;
+    }
+    return true;
+  };
   const neubeginnMs = neubeginnAlt?.ms ?? null;
 
   const dateiEintraege = liste(k.kt.daten["eintraege"]);
@@ -126,12 +181,13 @@ export async function pruefeDaten(k: Kontext): Promise<void> {
       continue;
     }
     if (o.daten === null) {
-      const h = (await sha256Hex(bestandEintragEingabe(e))).slice(0, 32);
-      if (h !== o.bestand) abweichungen.push({ text: `${objektName("eintrag", id)}: passt nicht zur Bestandsprüfsumme im Neubeginn (4.6).` });
+      const h = (await sha256Hex(bestandEintragEingabe(e, o.form))).slice(0, 32);
+      if (h !== o.bestand) abweichungen.push({ text: `${objektName("eintrag", id)}: passt nicht zur Bestandsprüfsumme im Neubeginn (4.6, Form ${o.form}).` });
+      else if (o.form === 1 && pruefeImport && e["importiertAm"] !== undefined && e["importiertAm"] !== null) importUnbelegt.push({ text: `${objektName("eintrag", id)}: Bestand eines Neubeginns in Form 1 ohne Glied seither; „Importiert am“ ${String(e["importiertAm"])} steht nur in der Datei.` });
       continue;
     }
     const felder = vergleiche(EINTRAG_FELDER, o.daten, e);
-    if (pruefeImport && normal("importiertAm", e["importiertAm"]) !== normal("importiertAm", o.importiertAm)) felder.push("importiertAm");
+    if (importAbweichend(objektName("eintrag", id), o, e)) felder.push("importiertAm");
     if (felder.length) abweichungen.push({ text: `${objektName("eintrag", id)} (zuletzt ${gliedName(o.letztes!)}): abweichend in ${felder.join(", ")}.` });
   }
   for (const [id, o] of eintraege) {
@@ -160,12 +216,13 @@ export async function pruefeDaten(k: Kontext): Promise<void> {
       continue;
     }
     if (o.daten === null) {
-      const h = (await sha256Hex(bestandAbwesenheitEingabe(a))).slice(0, 32);
-      if (h !== o.bestand) abweichungen.push({ text: `${objektName("abwesenheit", tag)}: passt nicht zur Bestandsprüfsumme im Neubeginn (4.6).` });
+      const h = (await sha256Hex(bestandAbwesenheitEingabe(a, o.form))).slice(0, 32);
+      if (h !== o.bestand) abweichungen.push({ text: `${objektName("abwesenheit", tag)}: passt nicht zur Bestandsprüfsumme im Neubeginn (4.6, Form ${o.form}).` });
+      else if (o.form === 1 && pruefeImport && a["importiertAm"] !== undefined && a["importiertAm"] !== null) importUnbelegt.push({ text: `${objektName("abwesenheit", tag)}: Bestand eines Neubeginns in Form 1 ohne Glied seither; „Importiert am“ ${String(a["importiertAm"])} steht nur in der Datei.` });
       continue;
     }
     const felder = vergleiche(ABWESENHEIT_FELDER, o.daten, a);
-    if (pruefeImport && normal("importiertAm", a["importiertAm"]) !== normal("importiertAm", o.importiertAm)) felder.push("importiertAm");
+    if (importAbweichend(objektName("abwesenheit", tag), o, a)) felder.push("importiertAm");
     if (felder.length) abweichungen.push({ text: `${objektName("abwesenheit", tag)} (zuletzt ${gliedName(o.letztes!)}): abweichend in ${felder.join(", ")}.` });
   }
   for (const [tag, o] of abwesenheiten) {
@@ -187,6 +244,26 @@ export async function pruefeDaten(k: Kontext): Promise<void> {
       grenze: GRENZE.daten,
     });
   }
+  if (importFehlt.length) {
+    sage(k, "P3", "hinweis", `Bei ${anzahl(importFehlt.length, "Datensatz", "Datensätzen")} fehlt „Importiert am“ in der Datei, obwohl die Kette das Einlesen belegt.`, "Bis WATT 0.8 „Cherimoya“ verlor eine bearbeitete eingelesene Abwesenheit den Vermerk „Importiert am“; WATT ergänzt ihn beim Einspielen aus dem Protokoll (7.1). Nach 4.8 ist das ein Hinweis, keine Abweichung der Daten. Ein abweichender Zeitpunkt bliebe eine Abweichung.", {
+      fundstelle: fund,
+      grenze: GRENZE.daten,
+      details: importFehlt,
+    });
+  }
+  if (importUnbelegt.length) {
+    sage(k, "P3", "hinweis", `Bei ${anzahl(importUnbelegt.length, "Datensatz", "Datensätzen")} belegt die Kette „Importiert am“ nicht; es gilt der Wert der Datei.`, "Änderungs-Glieder ohne Uhrstand (bis Formatversion 18) erben „Importiert am“ vom vorigen Stand. Ändert ein solches Glied nach einem Neubeginn einen Datensatz des Bestands, belegt das Protokoll den geerbten Wert nicht, weil der Bestand nur Prüfsummen trägt; ebenso bei Datensätzen aus einem Neubeginn in Form 1 ohne Glied seither (7.1).", {
+      fundstelle: fund,
+      grenze: GRENZE.importiertAm,
+      details: importUnbelegt,
+    });
+  }
+  if (formUnbekannt) {
+    sage(k, "P3", "offen", "Die Bestandsprüfsummen des Neubeginns lassen sich nicht nachrechnen.", `${gliedName(formUnbekannt)} nennt bestandsform ${String(formUnbekannt.json?.["bestandsform"]).slice(0, 40)}. Die Technische Erläuterung kennt nur Form 1 (ohne das Feld) und Form 2 (4.6); die Datensätze des Bestands ohne Glied seither bleiben beim Abgleich außen vor.`, {
+      fundstelle: dateiFundstelle(k, gliedName(formUnbekannt)),
+      grenze: GRENZE.daten,
+    });
+  }
   if (ueberGrenze.length) {
     sage(k, "P3", "offen", `${anzahl(ueberGrenze.length, "Glied lässt", "Glieder lassen")} sich nicht nachspielen.`, `Das Feld daten dieser Glieder ist tiefer verschachtelt als die Grenze von ${GRENZWERTE.jsonTiefe} Ebenen; WATTest liest es nicht. Die betroffenen Einträge und Abwesenheiten bleiben beim Abgleich außen vor; über sie sagt P3 nichts.`, {
       fundstelle: dateiFundstelle(k, `Glied ${bereiche(ueberGrenze.map((x) => x.seq ?? x.index + 1))}`),
@@ -195,7 +272,7 @@ export async function pruefeDaten(k: Kontext): Promise<void> {
     });
   }
   if (nurBestand.length && neubeginnAlt) {
-    sage(k, "P3", "offen", `${anzahl(nurBestand.length, "Datensatz ist", "Datensätze sind")} nur über die Prüfsumme des Neubeginns belegt.`, `Der Neubeginn am ${neubeginnAlt.ms !== null ? deutsch(neubeginnAlt.ms) : neubeginnAlt.zeitpunkt} entstand vor dem 19.10.2026 und nennt keinen Bestand je Eintrag. Einträge ohne Glied seither gelten nach 7. als Bestand, wenn sie davor erfasst und zuletzt geändert wurden; ihr Inhalt lässt sich nur über die Prüfsumme des Datenbestands (4.6) belegen, die einen Export unmittelbar nach dem Neubeginn braucht.`, {
+    sage(k, "P3", "offen", `${anzahl(nurBestand.length, "Datensatz ist", "Datensätze sind")} nur über die Prüfsumme des Neubeginns belegt.`, `Der Neubeginn am ${neubeginnAlt.ms !== null ? deutsch(neubeginnAlt.ms) : neubeginnAlt.zeitpunkt} entstand vor Formatversion 18 und nennt keinen Bestand je Eintrag. Einträge ohne Glied seither gelten nach 7. als Bestand, wenn sie davor erfasst und zuletzt geändert wurden; ihr Inhalt lässt sich nur über die Prüfsumme des Datenbestands (4.6) belegen, die einen Export unmittelbar nach dem Neubeginn braucht.`, {
       fundstelle: dateiFundstelle(k, gliedName(neubeginnAlt)),
       grenze: GRENZE.daten,
       details: nurBestand.slice(0, 100).map((id) => ({ text: id })),

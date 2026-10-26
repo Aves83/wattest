@@ -2,9 +2,9 @@
 
 Stellen, an denen die Unterlagen (Technische Erläuterung, Datenformat, Schemas, Beispieldateien) unklar sind oder einander widersprechen. WATTest entscheidet nach dem Wortlaut der Technischen Erläuterung (TE); jede Stelle nennt Zitat, Deutung und Folge.
 
-Stand: WATTest 0.1.5, Unterlagen vom 25.10.2026 aus dem öffentlichen Repository [Aves83/watt_public](https://github.com/Aves83/watt_public) (Commit 37ae281: `doc/technische-erlaeuterung.md`, `doc/datenformat.md`, `schema/` mit den Schemas der Version 19 als Vorabfassung; TE und Datenformat auf dem Stand 1af17a5 von WATT, Kopfzeile „WATT-Version: Vorabfassung“). Die TE vom 25.10.2026 klärt U-1 bis U-18, die Schemas in watt_public klären U-19; WATTest folgt jeweils nur noch der Lesart der TE, Ersatz-Lesarten sind gestrichen. Offen sind U-20 (Antwort angekündigt), U-21 (Bedeutung von `schritte` ändert sich mit dem nächsten Stand der TE), U-22 und die neuen Punkte U-23 und U-24 aus der Härtung (0.1.5; der Stand der TE ist unverändert 37ae281).
+Stand: WATTest 0.1.6, Unterlagen vom 26.10.2026 aus dem öffentlichen Repository [Aves83/watt_public](https://github.com/Aves83/watt_public) (Commit 4b2ac60: `doc/technische-erlaeuterung.md`, `doc/datenformat.md`, `schema/` mit den Schemas der Version 19 als Vorabfassung; TE und Datenformat auf dem Stand 9dfd642 von WATT, Kopfzeile „WATT-Version: Vorabfassung · Stand: 26.10.2026“; bis 0.1.5 galt Commit 37ae281). Die TE vom 25.10.2026 klärt U-1 bis U-18, die Schemas in watt_public klären U-19, die TE vom 26.10.2026 klärt U-20 bis U-24; WATTest folgt jeweils nur noch der Lesart der TE. Offen sind U-25 (Sperrliste, Entscheidung Achim vor dem nächsten Stand der TE), U-26 (Name der Technischen Erläuterung im Aktenauszug) und U-27 (Glieder vor dem ersten Schlüssel).
 
-Keine der drei Beispieldateien (`apfel-16`, `bergamotte-17`, `cherimoya-18`) weicht von der Beschreibung ab: Alle Prüfsummen der Arbeitszeitkette, der Nachweiskette, der Anzeige, der Gesprächsnotiz und des Nachtrags lassen sich nach 4.2 und 5.1 nachrechnen, und der Abgleich nach 7. ergibt keine Abweichung. Die Rechenbeispiele B1 bis B13 aus den Codeblöcken der TE sind in 37ae281 unverändert.
+Keine der drei Beispieldateien (`apfel-16`, `bergamotte-17`, `cherimoya-18`) weicht von der Beschreibung ab: Alle Prüfsummen der Arbeitszeitkette, der Nachweiskette, der Anzeige, der Gesprächsnotiz und des Nachtrags lassen sich nach 4.2 und 5.1 nachrechnen, und der Abgleich nach 7. ergibt keine Abweichung. Die Rechenbeispiele B1 bis B13 aus den Codeblöcken der TE sind in 4b2ac60 unverändert; neu sind B14 (Bestandsprüfsumme in Form 2) und B15 (Änderungs-Glied eines eingelesenen Eintrags mit `importiertAm`), beide in `tests/vektoren/`.
 
 ## Geklärt
 
@@ -116,37 +116,54 @@ Keine der drei Beispieldateien (`apfel-16`, `bergamotte-17`, `cherimoya-18`) wei
 - **Geklärt durch TE 4.7 und 8., Stand 1af17a5** (watt_public 37ae281; 4.7, Absätze „Bezug“ und „uhr_ruecksprung bei Einträgen mit Uhrstand“; 4.1; 8., Schritt 5): „objektId ist eine laufende Nummer: Der auslösende Eintrag (seq gleich objektId, unmittelbar davor) hat neustarts größer als 0 oder -1; der Vermerk selbst hat neustarts 0.“ – „objektId timer, nachweis, start oder zeitsignal […]: Der Vermerk selbst hat neustarts größer als 0 oder -1.“ – „Einzige Ausnahme beim Uhrstand: Hat die Arbeitszeitkette noch keinen Eintrag, kann ein uhr_ruecksprung mit objektId nachweis ihr erster Eintrag sein (seq 1, prev 0, neustarts 0 […]).“ – „In eingespielten Einträgen (vor dem Eintrag wiederherstellung) beziehen sich neustarts und uhr_ruecksprung auf das Gerät, auf dem sie entstanden“. – „Einträge ohne Uhrstand (vor dem 24.10.2026, sieben Felder) folgen der Regel aus 4.1 ohne Bezug.“ 8., Schritt 5 nennt `start` und `zeitsignal` neben `timer` und `nachweis` als Vermerke, die einen Rücksprung selbst erklären.
 - Folge: P4 prüft je `uhr_ruecksprung` mit Uhrstand diese Regel. Ein Verstoß ist „?“ mit Glied-Nummer und Begründung („Die Datei entspricht an dieser Stelle nicht der Beschreibung der Technischen Erläuterung“), nie ✗; sonst ✓ (E-36). Eingespielte Glieder prüft P4 nach derselben Regel; ohne Uhrstand entfällt sie. `uhr_ruecksprung` mit `objektId` `start` oder `zeitsignal` erklärt einen Rücksprung über 2 Minuten. Tests in `tests/klarstellungen.test.ts` und `tests/signatur.test.ts`, auch mit dem Testerzeuger (`ruecksprung`).
 
-## Offen
-
 ### U-20 Einzelnes Ersatzzeichen in den übrigen Prüfsummen
 
-- TE 4.6 („Maskierung“) nennt die Umwandlung eines einzelnen Ersatzzeichens in „?“ für die drei Stellen mit JSON (Bestandsprüfsumme, Klartext-Export für `bestand`, `daten`). Für die übrigen Felder der Kette (4.2) und für die Prüfsummen der Nachweise (5.1), deren Werte ebenfalls „in UTF-8“ eingehen, sagt sie dazu nichts.
-- Deutung: Die Umwandlung in UTF-8 ist überall dieselbe.
-- Folge: WATTest wandelt in allen Eingaben einer Prüfsumme ein einzelnes Ersatzzeichen in „?“ (E-39). Weicht WATT ab, passt eine solche Prüfsumme nicht; das Zeichen ist über die Oberfläche praktisch nicht einzugeben.
-- **Antwort angekündigt, Lesart E-39 bestätigt:** WATT bestätigt die Lesart (alle Prüfsummen, „?“ für ein einzelnes Ersatzzeichen); die TE übernimmt das mit ihrem nächsten Stand. Bis dahin bleibt der Punkt offen, an der Prüfung ändert sich nichts.
+- Früher: TE 4.6 („Maskierung“) nannte die Umwandlung eines einzelnen Ersatzzeichens in „?“ nur für die drei Stellen mit JSON; WATTest wandelte es in allen Eingaben einer Prüfsumme so um (E-39).
+- **Geklärt durch TE Abschnitt 4.2 („Kodierung“), Stand 26.10.2026 (watt_public 4b2ac60):** „Alle Eingaben aller Prüfsummen dieser Erläuterung (Felder der Ketten, daten, Bestand, Bestandsprüfsummen, Prüfsummen der Nachweise und Dokumente) wandelt WATT mit derselben Funktion in UTF-8 um. Ein einzelnes Ersatzzeichen (ungültiges UTF-16 ohne Partner, über die Oberfläche praktisch nicht einzugeben) wird dabei überall zu einem Fragezeichen (Byte 0x3F); Prüfende rechnen mit diesem Byte.“ Ebenso Datenformat, „protokoll“.
+- Folge: wie bisher (E-39); Test für Glied, Nachweisglied und Gesprächsnotiz in `tests/vektoren.test.ts`.
 
 ### U-21 Inhalt des Felds `schritte` in `uhr_verstellt`
 
-- TE 4.7 und Datenformat nennen das Feld `schritte` bei summierten kleinen Schritten, beschreiben aber nicht seinen Inhalt (Anzahl oder Liste der Schritte); das Schema 19 legt `daten` nur als Text fest.
-- Folge: WATTest prüft nur, ob das Feld vorhanden ist, und rechnet nicht die einzelnen Schritte nach, sondern nur Vorzeichen und Obergrenze über nachher − vorher (U-14).
-- Stand 0.1.4: Die Bedeutung von `schritte` ändert sich mit dem nächsten Stand der TE; bis dahin bleibt die Prüfung wie beschrieben.
+- Früher: TE 4.7 und Datenformat nannten `schritte` bei summierten kleinen Schritten, ohne den Inhalt zu beschreiben; `abweichungSekunden` war bei `schritte` die Summe der Beträge, der erste Teil der Zerlegung durfte dann nicht negativ sein. WATTest prüfte nur Vorzeichen und Obergrenze.
+- **Geklärt durch TE Abschnitt 4.7 („Anker“, „Verstellung der Geräteuhr“, „Zeitpunkt des Eintrags uhr_verstellt“), Stand 26.10.2026:** WATT vergleicht an einem festen Anker je Gerätestart; „schritte steht nur, wenn sich die Verstellung aus mehreren Messungen ergibt: die Zahl der Messungen seit dem letzten Vermerk (bzw. seit dem Anker), bei denen sich der Versatz um mindestens eine Sekunde geändert hat, … eine ganze Zahl größer als 1; ein einzelner Sprung hat kein Feld schritte.“ – „Der zweite Teil ist die Verstellung seit dem letzten Vermerk; er gleicht abweichungSekunden …, mit und ohne schritte.“ – „Der erste Teil ist nicht kleiner als −2 Minuten (−120 Sekunden, Grenze eingeschlossen), mit und ohne schritte; ausgenommen sind nur nachgeführte Korrekturen der Netzzeit zurück … Nach einer Wiederherstellung oder einem Neubeginn gilt die Regel erst ab dem ersten Eintrag des Geräts danach“. Dazu: zeitpunkt „liegt höchstens um dessen Dauer vor nachher“; `objektId` auch „die laufende Nummer eines Eintrags neubeginn oder wiederherstellung (der Vermerk folgt diesem …)“; nach „Sofort wieder löschen“ kann das folgende Glied fehlen (4.4).
+- Folge: P4 verlangt `abweichungSekunden` = nachher − vorher auch mit `schritte`, `schritte` als ganze Zahl größer als 1, `zeitpunkt` nicht nach `nachher`, eine `objektId` nach 4.7; der Hinweis zum ersten Teil gilt ab −120 Sekunden auch mit `schritte` und nicht unmittelbar nach `neubeginn` oder `wiederherstellung`; ein anderer Zeitpunkt des folgenden Glieds bei `glied` ist kein Befund mehr (E-28, E-53).
 
 ### U-22 Gewicht eines „Hinweises zur Klärung“ in 4.7
 
-- TE 4.7 nennt zwei Abweichungen mit demselben Wortlaut „ein Hinweis zur Klärung, kein Beleg einer Manipulation“: den ersten Teil der Zerlegung unter −120 Sekunden (U-15) und einen `uhr_ruecksprung`, der nicht zur Regel für den Bezug passt (U-18: „passt er nicht zu dieser Regel; das ist ein Hinweis zur Klärung, kein Beleg einer Manipulation“).
-- Deutung: Beide sind kein ✗. Ob „Hinweis“ das Zeichen i (zählt nicht für die Gesamtzeile) oder „?“ meint, lässt der Wortlaut offen.
-- Folge: WATTest gibt nach den Aufträgen 0.1.3 und 0.1.4 beim ersten Teil einen Hinweis (i, E-28), beim Bezug „?“ (E-36). Die Gesamtzeile wird also nur im zweiten Fall „?“. Sollen beide gleich behandelt werden, genügt eine Änderung in `src/kern/schritte-kette.ts`.
+- Früher: TE 4.7 nannte den ersten Teil der Zerlegung unter −120 Sekunden und einen `uhr_ruecksprung` gegen die Regel zum Bezug gleich „ein Hinweis zur Klärung, kein Beleg einer Manipulation“; WATTest gab beim ersten einen Hinweis (i), beim zweiten „?“.
+- **Geklärt durch TE Abschnitt 4.8 („Wertung von Unregelmäßigkeiten“), Stand 26.10.2026:** „Hinweis: … ein erster Teil der Zerlegung eines Zeitsprungs außerhalb der Grenze (4.7) …“ – „Nicht bestätigbar: Stellen, die WATT so nie schreibt. Dazu gehören ein uhr_ruecksprung, der nicht zur Regel zum Bezug passt (4.7) …“. 4.7 sagt jetzt ebenso „das ist ein Befund der Stufe ‚nicht bestätigbar‘ (4.8)“ bzw. „ein Hinweis (4.8)“.
+- Folge: WATTest wertete schon so; nur die Begründungen zitieren jetzt 4.8. Die Zuordnung aller Stellen aus 4.8 steht in der Spezifikation, Abschnitt 6.1 (E-51).
 
 ### U-23 Mehrere Signaturen zu einem Glied und Signaturen zu Gliedern, die es nicht gibt
 
-- TE 4.7, „Signatur und Deutung“: „Nach jedem Vorgang, der Einträge anhängt, signiert WATT den neuen Kopf […]. Die Signaturen stehen getrennt von der Kette (Liste kettensignaturen mit seq, fingerabdruck und signatur in Base64, DER) […]. Vor jedem Dokument signiert WATT einen noch unsignierten Kopf, sofern möglich“. Prüfverfahren, Schritt 7: „Jede Signatur mit dem Schlüssel ihres Abschnitts über watt-kopf-1:\<hash des Eintrags seq> prüfen.“
-- Die TE sagt nicht ausdrücklich, ob zu einer `seq` höchstens eine Signatur stehen kann, und nicht, was eine Signatur bedeutet, deren `seq` in der Kette fehlt (etwa nach einem gekürzten Export).
-- Deutung: „einen noch unsignierten Kopf“ legt eine Signatur je Kopf nahe; eine Signatur ohne Glied lässt sich nach Schritt 7 nicht prüfen.
-- Folge: Beides ist „?“ mit Fundstelle, nie ✗ (E-44). Jede Signatur wird einzeln geprüft; eine lesbare, aber falsche bleibt ✗.
+- Früher: Die TE sagte nicht, ob zu einer `seq` höchstens eine Signatur stehen kann, und nicht, was eine Signatur zu einem fehlenden Glied bedeutet; WATTest wertete beides als „?“ (E-44).
+- **Geklärt durch TE Abschnitt 4.7 („Signatur“), Stand 26.10.2026, ebenso Datenformat (`kettensignaturen`):** „Je Eintrag gibt es höchstens eine Signatur, und nur zu Einträgen der Kette (seq von 1 bis zum Kopf). Mehrere Signaturen zu einem Eintrag schreibt WATT nie; eine Datei mit mehreren Signaturen zu einem Eintrag oder mit einer Signatur außerhalb der Kette ist für WATT ungültig und wird nicht eingespielt. Ein Prüfwerkzeug wertet mehrere Signaturen zu einem Eintrag als ‚nicht bestätigbar‘ (4.8).“
+- Folge: Mehrere Signaturen zu einem Glied bleiben „?“; seit 0.1.6 zählt keine davon als gültig für die Herkunft (E-54). Eine Signatur außerhalb der Kette und eine `seq` unter 1 bleiben wie in E-44 („?“; `seq` unter 1 zusätzlich P1 ✗ nach dem Schema), denn die TE nennt für ein Prüfwerkzeug keine andere Stufe.
 
 ### U-24 Fehlender Eintrag in `kettenschluessel`
 
-- TE 4.7: „Die Zertifikate selbst stehen in der Liste kettenschluessel von Sicherung und Klartext (Base64, DER, Blatt zuerst).“ Befund „widerlegt“: „fingerabdruck oder zertifikateSha256 passen nicht zu den Zertifikaten“.
-- Die TE nennt nicht den Fall, dass zu einem Eintrag `schluessel` mit status `verfuegbar` die Zertifikate ganz fehlen, und keine Grenzen für Anzahl und Größe der Zertifikate.
-- Deutung: Ohne Zertifikate gibt es nichts, wozu Fingerabdruck und `zertifikateSha256` nicht passen könnten; die Prüfung ist nicht möglich.
-- Folge: Seit 0.1.5 „?“ in P6 und P7 (bis 0.1.4 ✗); ebenso für unlesbare Zertifikate und solche über den Grenzen aus E-41 (E-43).
+- Früher: Die TE nannte den Fall nicht, dass zu einem Glied `schluessel` mit status `verfuegbar` die Zertifikate fehlen; WATTest wertete das seit 0.1.5 als „?“ (bis 0.1.4 ✗).
+- **Geklärt durch TE Abschnitt 4.7, Stand 26.10.2026:** „Zu jedem Eintrag schluessel mit status verfuegbar steht sein Schlüssel in kettenschluessel, auch nach Wiederherstellung und Neubeginn … Fehlt der Schlüssel zu einem solchen Eintrag, schreibt WATT das so nie; die Signaturen seines Abschnitts lassen sich ohne ihn weder bestätigen noch widerlegen. Das ist ‚nicht bestätigbar‘ (4.8), nicht ‚widerlegt‘.“ – „seine Signaturen zählen dann weder als gültig noch als ungültig.“ Das Datenformat nennt dazu die Grenzen beim Lesen (256 Schlüssel, 1 bis 8 Zertifikate, 8 KB, Signatur bis 128 Bytes).
+- Folge: wie seit 0.1.5 (E-43): P6 „?“ für die Signaturen des Abschnitts (weder gültig noch ungültig), P7 „?“. Die Grenzen stimmen mit `GRENZWERTE` überein (Spezifikation, Abschnitt 14).
+
+## Offen
+
+### U-25 Zertifikat auf der Sperrliste
+
+- TE 4.7, „Befund in drei Stufen“, widerlegt: „… ein Zertifikat ist nicht vom nächsten signiert oder steht auf der Sperrliste; die Kette führt nicht zu einer Wurzel von Google.“
+- Deutung (Entscheidung Achim 26.10.2026): Die Sperrliste von Google nennt keinen Zeitpunkt der Sperre; ob das Zertifikat beim Signieren schon gesperrt war, lässt sich nicht feststellen. Eine Sperre belegt keine Fälschung, sondern nur, dass die Bestätigung nicht mehr für das Gerät bürgt. WATT ändert 4.7 im nächsten Paket entsprechend.
+- Folge: Seit 0.1.6 ist ein gesperrtes Zertifikat in P7 „?“ mit Seriennummer, Status und Grund aus der Sperrliste, nicht ✗ (E-55); die Gesamtzeile wird dadurch höchstens „?“. Der Punkt wird mit dem nächsten Stand der TE geschlossen.
+
+### U-26 Technische Erläuterung im ZIP des Aktenauszugs
+
+- TE 6. („Aktenauszug“), Stand 26.10.2026: „optional ZIP-Archiv mit den unveränderten Originaldokumenten (Ordner Eintrag_NN je Eintrag), der Technischen Erläuterung als PDF, der Anleitung PRUEFEN.txt zur unabhängigen Prüfung mit WATTest (ab Formatversion 19; Text in UTF-8 mit Windows-Zeilenenden) und der Liste SHA256SUMS.txt mit den SHA-256-Prüfsummen all dieser Dateien, also auch der von PRUEFEN.txt.“
+- Die TE nennt weder Namen noch Ort der PDF mit der Technischen Erläuterung und nicht, wie viele Ziffern NN hat. Ohne Unterscheidung prüfte WATTest diese PDF gegen die Nachweiskette und meldete „?“, weil sie zu keiner Anzeige gehört.
+- Deutung: Nachweise liegen in den Ordnern `Eintrag_NN`; alles andere im ZIP sind Beigaben.
+- Folge: Enthält der Aktenauszug Ordner `Eintrag_<Ziffern>/`, gleicht P8 nur deren PDF mit der Nachweiskette ab; die übrigen Dateien (darunter die Technische Erläuterung und `PRUEFEN.txt`) prüft es nur gegen `SHA256SUMS.txt` und nennt sie als Hinweis (E-59). Ohne solche Ordner (ältere Aktenauszüge) wie bisher alle PDF.
+
+### U-27 Glieder vor dem ersten Schlüssel
+
+- TE 4.7, „Was eine gültige Signatur belegt“: Eine gültige Signatur bei Eintrag j deckt „nur die Einträge ihres Abschnitts: vom letzten Eintrag wiederherstellung bzw. neubeginn vor j (einschließlich) bis j, ohne eine solche Grenze ab Eintrag 1.“ Zugleich nennt die Liste „nicht bestätigbar“ im selben Abschnitt „Einträge vor dem ersten Schlüssel oder nach einem Eintrag nicht_verfuegbar“.
+- Unklar ist, ob Glieder vor dem ersten Glied `schluessel` (etwa aus der Zeit vor dem Update) durch eine spätere gültige Signatur ohne Wiederherstellung dazwischen gedeckt sind.
+- Deutung: Die Regel zur Herkunft ist die genauere Stelle und nennt „ab Eintrag 1“ ausdrücklich; die Liste meint Glieder, die keine spätere gültige Signatur deckt (etwa eine Kette, die nach dem Update nie signiert wurde).
+- Folge: P6 zählt Glieder vor dem ersten Schlüssel zur Herkunft einer späteren gültigen Signatur desselben Herkunftsabschnitts (wie bis 0.1.5); die Übersicht der Abschnitte sagt „ohne Schlüssel (nicht einzeln signiert; eine spätere Signatur desselben Herkunftsabschnitts deckt sie über die Hash-Kette mit)“. Soll die Liste gelten, genügt eine Änderung in `src/kern/schritte-signatur.ts` (Beginn der Herkunftsabschnitte).

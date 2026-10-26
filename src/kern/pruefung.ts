@@ -181,7 +181,8 @@ function pruefeFormat(k: Kontext): void {
     sage(k, "P1", "offen", "WATT exportiert XML erst ab Formatversion 18.", `Die Datei ist XML im Datenformat ${v}. Ausgelieferte Fassungen von WATT exportieren XML ab Formatversion 18 (WATT 0.8.109 „Cherimoya“); ein XML Schema ist erst ab Version 18 veröffentlicht (Technische Erläuterung 8., Schritt 1; Datenformat, XML-Darstellung). Die übrigen Schritte rechnen trotzdem nach den bekannten Regeln.`, { fundstelle: fund, grenze });
   }
   const fehler = pruefeSchema(d, v);
-  const harte = fehler.filter((f) => f.art !== "unbekannt");
+  const harte = fehler.filter((f) => f.art === "fehlt" || f.art === "typ");
+  const grenzen = fehler.filter((f) => f.art === "grenze");
   const unbekannt = fehler.filter((f) => f.art === "unbekannt");
   const schema = kt.quelle === "json" ? `watt-daten-${v}.schema.json` : `watt-daten-${v}.xsd (über die Abbildung auf das JSON und watt-daten-${v}.schema.json)`;
   if (harte.length) {
@@ -193,6 +194,13 @@ function pruefeFormat(k: Kontext): void {
   } else if (!xmlVor18) {
     const exp = typeof d["exportiertAm"] === "string" ? d["exportiertAm"] : "?";
     sage(k, "P1", "bestaetigt", `Die Datei ist ein vollständiger Klartext-Export im Datenformat ${v}${kt.quelle === "xml" ? " (XML)" : ""}.`, `format watt-daten, version ${v}, exportiert am ${exp} aus WATT ${String(d["appVersion"] ?? "")}. Pflichtfelder und Typen der gelesenen Teile entsprechen ${schema}.`, { fundstelle: fund, grenze });
+  }
+  if (grenzen.length) {
+    sage(k, "P1", "offen", "Die Datei hält Grenzen des Datenformats nicht ein.", `Das Schema ${schema} begrenzt die Zahl der Schlüssel (256) und der Zertifikate je Schlüssel (8) und verlangt für Zertifikate und Signaturen Base64 ohne Fremdzeichen (keine Zeilenumbrüche). WATT spielt eine solche Datei nicht ein (Datenformat, kettenschluessel und kettensignaturen). WATTest prüft Schlüssel über den Grenzen nicht (P6, P7); eine überschrittene Grenze ist kein Befund über die Herkunft.`, {
+      fundstelle: fund,
+      grenze: GRENZE_HAERTUNG,
+      details: grenzen.slice(0, 100).map((f) => ({ text: f.text })),
+    });
   }
   if (unbekannt.length || kt.xmlUnbekannt.length) {
     sage(k, "P1", "offen", "Die Datei enthält Felder, die das Datenformat nicht kennt.", "Das Schema der Version erlaubt keine weiteren Felder. WATTest übergeht sie; ob sie eine Bedeutung haben, lässt sich nicht sagen.", {
