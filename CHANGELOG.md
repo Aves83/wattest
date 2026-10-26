@@ -1,8 +1,19 @@
 # Änderungen
 
+## 0.1.7 – 26.10.2026
+
+Nachzug auf den Stand faea58b der Technischen Erläuterung (watt_public, Commit af05f6e vom 26.10.2026, Vorabfassung aus „Spezifikation Teil 2“). Bisher galt Commit f314de3. Hashes von watt_public seit 0.1.7 nach der Bereinigung vom 26.10.2026: Die Historie von watt_public wurde umgeschrieben (nur Autor und Commit-Nachrichten, Inhalte unverändert); alle Verweise in WATTest, auch in den Einträgen unten, nennen die neuen Hashes.
+
+- P6: Die Herkunft der Signaturen beginnt nach TE 4.7 frühestens beim ersten Glied `schluessel` mit status `verfuegbar`. Glieder davor sind „?“ mit dem Satz „Belegt ist nur, dass sie beim ersten Schlüssel in WATT lagen.“ (bis 0.1.6 deckte eine spätere Signatur sie mit; U-27). Abweichend von der TE gehört ein Glied `neubeginn` bzw. `wiederherstellung` vor dem ersten Schlüssel samt den Vermerken zur Uhr dazwischen zum Abschnitt dieses Schlüssels (Entscheidung Achim 26.10.2026, U-28, E-63, E-64).
+- P7: Ein Zertifikat auf der Sperrliste ist jetzt auch nach der TE (4.7, 4.8) „nicht bestätigbar“; die Wertung („?“) bleibt (U-25).
+- P8: Aufbau des ZIP-Archivs zum Aktenauszug nach TE 6.3, wenn es eine `PRUEFEN.txt` enthält: Ordner `Eintrag_NN` (mindestens zwei Ziffern, ab 01, steigend, Lücken zulässig), Dateinamen nach den sechs Schritten der Bereinigung, in der Wurzel nur `Technische-Erlaeuterung.pdf`, `PRUEFEN.txt` (UTF-8 ohne BOM, CRLF) und als letzte Datei `SHA256SUMS.txt` (ohne BOM, LF, eine Zeile je anderer Datei in Archivreihenfolge, keine für sich selbst), gleiche Änderungszeit aller Einträge. Eine Abweichung ist „?“, eine veränderte Datei bleibt ✗ (U-26, E-62). Bei mehreren `SHA256SUMS.txt` gilt die flachste (E-66). Der ZIP-Leser liefert dazu die Änderungszeit der Einträge.
+- Texte: Datenschutzhinweis und Einleitung der Startseite ohne Anrede („… verlässt den Rechner.“); ein Test durchsucht alle sichtbaren Texte nach „du“, „dein…“, „dir“, „dich“ (E-65). Der unerklärte Rücksprung bleibt „?“.
+- Unterlagen: Diff f314de3..af05f6e von `doc/technische-erlaeuterung.md`, `doc/datenformat.md` und `schema/` gelesen. Neu für die Prüfung: 4.7 (Herkunft ab dem ersten Schlüssel, Sperrliste), 4.8 (Sperrliste), 6.3 (ZIP des Aktenauszugs), 8. Schritt 8 und 9. Datenformat nur mit umbenannten Kennungen aus Prüfberichten, Schemas unverändert, Rechenbeispiele B1 bis B15 unverändert. U-25 bis U-27 geklärt, U-28 neu offen.
+- Tests: Herkunft vor dem ersten Schlüssel (mehrere Glieder, ein Glied, kein verfügbarer Schlüssel), U-28 mit `neubeginn` und `wiederherstellung` (mit und ohne anderes Glied vor dem Schlüssel), Sperrliste nach der TE, Bereinigung der Dateinamen, Aktenauszug nach 6.3 und jede einzelne Abweichung („?“, nie ✗), Anrede; bestehende Tests mit Gliedern vor dem ersten Schlüssel erwarten dort jetzt „?“ (Verweis auf U-27).
+
 ## 0.1.6 – 26.10.2026
 
-Nachzug auf den Stand der Technischen Erläuterung vom 26.10.2026 (watt_public, Commit 4b2ac60; TE und Datenformat auf Stand 9dfd642 von WATT, Vorabfassung). Bisher galt Commit 37ae281.
+Nachzug auf den Stand der Technischen Erläuterung vom 26.10.2026 (watt_public, Commit f314de3; TE und Datenformat auf Stand 9dfd642 von WATT, Vorabfassung). Bisher galt Commit 2256305.
 
 - Wertung nach TE 4.8: „Hinweis“ → i, „nicht bestätigbar“ → ?; ✗ bleibt für Bruch der Kette, Datenabweichung und widerlegte Signatur. Die Zuordnung jeder Stelle aus 4.8 steht als Tabelle in der Spezifikation, Abschnitt 6.1 (E-51).
 - P2: Ein Glied ohne Uhrstand nach einem Glied mit Uhrstand ist kein Bruch, sondern „?“ mit Anzahl und erstem Glied; P2 bleibt ✓, wenn die Prüfsummen stimmen. Ein Glied mit nur einem der beiden Felder bleibt ein Bruch (4.2, E-52).
@@ -18,7 +29,7 @@ Nachzug auf den Stand der Technischen Erläuterung vom 26.10.2026 (watt_public, 
 
 ## 0.1.5 – 25.10.2026
 
-Härtung gegen manipulierte Dateien und klarere Befunde. Die Unterlagen von WATT sind unverändert (watt_public, Commit 37ae281).
+Härtung gegen manipulierte Dateien und klarere Befunde. Die Unterlagen von WATT sind unverändert (watt_public, Commit 2256305).
 
 - Feste Grenzen für Eingaben von Dritten, zentral in `src/kern/grenzen.ts` und in der Spezifikation (Abschnitt 14): Datei 200 MB, 1 Mio. Glieder, 1 Mio. Signaturen, 256 Schlüssel, 8 Zertifikate je Schlüssel, Zertifikat 8 KB, Signatur 128 Bytes, Verschachtelung DER 32, JSON und XML 64 Ebenen, XML 32 Attribute, ZIP 10.000 Einträge, 200 MB je Eintrag, 512 MB zusammen, Verhältnis 250 : 1. Darüber „?“ mit Hinweis auf die Grenze, nie ✗ und kein Absturz (E-41).
 - DER/X.509: keine unbestimmten Längen, Tag-Nummern bis 16.383 in minimaler Form, Längen gegen das Ende der Daten, Verschachtelung geprüft ohne Rekursion, jedes Zertifikat genau ein Element aus drei Teilen ohne Rest; fehlende Teile ergeben einen DER-Fehler statt einer Ausnahme. Ein unlesbares Zertifikat ist „?“, nie ✗; ist nur ein Zwischenzertifikat unlesbar, prüft P6 die Signaturen mit dem Blatt (E-43). Ein fehlender Eintrag in `kettenschluessel` ist jetzt „?“ statt ✗ (U-24).
@@ -33,7 +44,7 @@ Härtung gegen manipulierte Dateien und klarere Befunde. Die Unterlagen von WATT
 
 ## 0.1.4 – 25.10.2026
 
-- Unterlagen: Technische Erläuterung und Datenformat aus Aves83/watt_public, Commit 37ae281 (Stand 1af17a5 von WATT, Vorabfassung). Rechenbeispiele B1 bis B13 und Schemas inhaltlich unverändert.
+- Unterlagen: Technische Erläuterung und Datenformat aus Aves83/watt_public, Commit 2256305 (Stand 1af17a5 von WATT, Vorabfassung). Rechenbeispiele B1 bis B13 und Schemas inhaltlich unverändert.
 - P4 (U-18, geklärt durch TE 4.7 und 8.): Bei `uhr_ruecksprung` mit Uhrstand gilt die Regel der TE zum Bezug. Bei `objektId` mit laufender Nummer hat das auslösende Glied davor `neustarts` größer als 0 oder -1 und der Vermerk selbst 0; bei `timer`, `nachweis`, `start` und `zeitsignal` hat der Vermerk selbst `neustarts` größer als 0 oder -1. Ausnahme: `nachweis` als erstes Glied einer leeren Kette mit 0. Eingespielte Glieder vor einer `wiederherstellung` folgen derselben Regel; ohne Uhrstand entfällt sie. Ein Verstoß ist „?“ mit Glied-Nummer und Begründung, nie ✗; der bisherige Hinweis „uhr_ruecksprung trotz Bezug“ entfällt.
 - P4: `uhr_ruecksprung` mit `objektId` `start` oder `zeitsignal` erklärt einen Rücksprung über 2 Minuten (8., Schritt 5); die Liste der Vermerke nennt beide Anlässe.
 - U-20: WATT bestätigt die Lesart von E-39, die TE übernimmt sie mit dem nächsten Stand; bis dahin offen. U-21 bleibt offen (Bedeutung von `schritte` ändert sich mit dem nächsten Stand der TE), die Prüfung bleibt wie bisher. Neu offen: U-22 (gleicher Wortlaut „Hinweis zur Klärung“ bei U-15 und U-18, unterschiedlich gewertet).
@@ -41,18 +52,18 @@ Härtung gegen manipulierte Dateien und klarere Befunde. Die Unterlagen von WATT
 
 ## 0.1.3 – 25.10.2026
 
-- Unterlagen: Technische Erläuterung und Datenformat aus Aves83/watt_public, Commit 4828c89 (Stand 85a7f6e von WATT). Die Klarstellungen zu U-14 bis U-17 sind übernommen, die Ersatz-Lesarten gestrichen; `docs/UNKLARHEITEN.md` vermerkt je Punkt „geklärt durch TE Abschnitt …“.
+- Unterlagen: Technische Erläuterung und Datenformat aus Aves83/watt_public, Commit 29e8679 (Stand 85a7f6e von WATT). Die Klarstellungen zu U-14 bis U-17 sind übernommen, die Ersatz-Lesarten gestrichen; `docs/UNKLARHEITEN.md` vermerkt je Punkt „geklärt durch TE Abschnitt …“.
 - P4 (U-14): `abweichungSekunden` hat ein Vorzeichen (nachher − vorher, ganze Sekunden, zur Null hin gekürzt, negativ bei `zurueck`, Betrag mindestens 120); bei `schritte` die Summe der Beträge mit dem Vorzeichen der Gesamtrichtung, bei genauem Ausgleich `vor`. Ein Betrag bei `richtung` `zurueck` ergibt jetzt „?“.
 - P4 (U-15): Liegt der erste Teil der Zerlegung unter −120 Sekunden (Grenze eingeschlossen), bei `schritte` unter 0, gibt WATTest nur einen Hinweis mit `autoZeit` des Glieds, kein „?“ mehr.
 - P7 (U-16): Gültigkeit aller Zertifikate zu einem Bezugszeitpunkt, Grenzen eingeschlossen: Zeitpunkt des Glieds `schluessel`, beim Vorratsschlüssel der leeren Kette (Glied mit `challenge`) `creationDateTime` aus der Attestierung, ohne es der Zeitpunkt des Glieds.
 - Kanonisches JSON (U-17): Bestandsprüfsummen und Prüfsumme des Datenbestands mit eigener Maskierung nach 4.6 statt `JSON.stringify`; ein einzelnes Ersatzzeichen wird in UTF-8 zu „?“. Neues Rechenbeispiel B13.
 - Schemas (U-19): Schema-Auszug und XML-Typtabelle aus `schema/` von watt_public neu erzeugt (Inhalt unverändert, die XSD 17 wird nicht mehr gebraucht). P1 meldet für Formatversion 19 als Hinweis, dass das Schema eine Vorabfassung ist, solange die README es so nennt.
-- U-18 bleibt ein Hinweis; TE 8., Schritt 5 ist in 4828c89 unverändert. Neu offen: U-20 (Ersatzzeichen in den übrigen Prüfsummen) und U-21 (Inhalt von `schritte`).
+- U-18 bleibt ein Hinweis; TE 8., Schritt 5 ist in 29e8679 unverändert. Neu offen: U-20 (Ersatzzeichen in den übrigen Prüfsummen) und U-21 (Inhalt von `schritte`).
 - Tests: B13, Tabelle der Maskierung, Ersatzzeichen, Vorzeichen und Grenzen von `abweichungSekunden`, erster Teil der Zerlegung, Bezugszeitpunkt der Zertifikate mit Grenzfällen, Hinweis auf die Vorabfassung. Der Testerzeuger setzt beim Blattzertifikat die Standardgrenzen von Android (01.01.1970 bis 01.01.2048) und `creationDateTime` wählbar.
 
 ## 0.1.2 – 25.10.2026
 
-- Unterlagen: Technische Erläuterung, Datenformat und Schemas liest WATTest jetzt aus dem öffentlichen Repository Aves83/watt_public (Commit 1b52ef6, Inhalt gleich dem bisherigen Stand; die Schemas der Version 19 sind dort noch nicht veröffentlicht, U-19). `scripts/vektoren-holen.mjs` holt die TE von dort; die Rechenbeispiele B1 bis B12 sind unverändert. README und Spezifikation verlinken die beiden Dokumente.
+- Unterlagen: Technische Erläuterung, Datenformat und Schemas liest WATTest jetzt aus dem öffentlichen Repository Aves83/watt_public (Commit 3170836, Inhalt gleich dem bisherigen Stand; die Schemas der Version 19 sind dort noch nicht veröffentlicht, U-19). `scripts/vektoren-holen.mjs` holt die TE von dort; die Rechenbeispiele B1 bis B12 sind unverändert. README und Spezifikation verlinken die beiden Dokumente.
 - Startseite: neuer Absatz „Über WATT“ unter der Einleitung, mit Links auf WATT, die Technische Erläuterung und den Quelltext (in neuem Tab).
 - Fußzeile: zusätzlich „WATT“ mit Link auf https://aves83.github.io/watt_public/.
 - Datenschutzhinweis: Verantwortlicher ohne Anschrift. Das Impressum bleibt unverändert.

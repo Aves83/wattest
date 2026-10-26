@@ -15,6 +15,8 @@ export interface ZipEintrag {
   groesse: number;
   komprimiert: number;
   crc32: number;
+  /** Änderungszeit aus dem Verzeichnis, DOS-Datum und -Uhrzeit wie gespeichert (Datum · 65536 + Uhrzeit) */
+  zeit: number;
   istOrdner: boolean;
   lesen(): Promise<Uint8Array>;
 }
@@ -113,6 +115,7 @@ export function leseZip(bytes: Uint8Array): ZipEintrag[] {
     if (p + 46 > cdEnde || dv.getUint32(p, true) !== 0x02014b50) throw new ZipFehler("ZIP-Verzeichnis beschädigt.");
     const flags = dv.getUint16(p + 8, true);
     const methode = dv.getUint16(p + 10, true);
+    const zeit = dv.getUint16(p + 14, true) * 65536 + dv.getUint16(p + 12, true);
     const crc = dv.getUint32(p + 16, true);
     const komprimiert = dv.getUint32(p + 20, true);
     const groesse = dv.getUint32(p + 24, true);
@@ -146,6 +149,7 @@ export function leseZip(bytes: Uint8Array): ZipEintrag[] {
       groesse,
       komprimiert,
       crc32: crc,
+      zeit,
       istOrdner: pfad.endsWith("/"),
       async lesen() {
         const roh = bytes.subarray(start, start + komprimiert);

@@ -14,7 +14,7 @@ import { SCHEMA_VORABFASSUNG } from "./schema-auszug.js";
 import { pruefeAnker } from "./schritte-anker.js";
 import { pruefeDaten } from "./schritte-daten.js";
 import { pruefeBesondere, pruefeKette, pruefeZeit } from "./schritte-kette.js";
-import { pruefeAktenauszug, pruefeNachweise, type Aktenauszug, type Dokumentbindung } from "./schritte-nachweis.js";
+import { pruefeAktenauszug, pruefeNachweise, type AktenDatei, type Aktenauszug, type Dokumentbindung } from "./schritte-nachweis.js";
 import { pruefeSignaturen } from "./schritte-signatur.js";
 import { sha256Hex } from "./sha.js";
 import { leseXml, xmlZuJson } from "./xml.js";
@@ -127,10 +127,15 @@ async function erkenne(datei: Eingabedatei): Promise<Erkannt> {
       return { art: "hinweis", text: `„${datei.name}“ ist ein ZIP, das WATTest nicht liest.`, begruendung: `${e.message} WATTest weist solche ZIP-Dateien ab, statt sie zu entpacken; das ist kein Befund über den Inhalt.`, grenze: GRENZE_HAERTUNG };
     }
     try {
-      const summen = eintraege.find((e) => /(^|\/)SHA256SUMS\.txt$/.test(e.pfad));
+      // Die flachste SHA256SUMS.txt gilt; ein Dokument gleichen Namens in einem Ordner Eintrag_NN ist keine Liste.
+      const summen = eintraege.filter((e) => /(^|\/)SHA256SUMS\.txt$/.test(e.pfad)).sort((a, b) => a.pfad.split("/").length - b.pfad.split("/").length)[0];
       if (summen) {
-        const dateien = [];
-        for (const e of eintraege) dateien.push({ pfad: e.pfad, groesse: e.groesse, sha256: await sha256Hex(await e.lesen()) });
+        // Reihenfolge, Änderungszeit und die Bytes von PRUEFEN.txt und SHA256SUMS.txt braucht die Prüfung des Aufbaus (6.3).
+        const dateien: AktenDatei[] = [];
+        for (const e of eintraege) {
+          const inhalt = await e.lesen();
+          dateien.push({ pfad: e.pfad, groesse: e.groesse, sha256: await sha256Hex(inhalt), zeit: e.zeit, ...(/(^|\/)(PRUEFEN|SHA256SUMS)\.txt$/.test(e.pfad) ? { roh: inhalt } : {}) });
+        }
         return { art: "aktenauszug", az: { name: datei.name, dateien, summenPfad: summen.pfad, summenText: textAus(await summen.lesen(), false) } };
       }
       const haupt = eintraege.filter((e) => !/(^|\/)anhaenge\//.test(e.pfad) && /\.(json|xml)$/i.test(e.pfad));

@@ -4,7 +4,7 @@
 // P8: Nachweiskette, Inhaltsprüfsummen (Technische Erläuterung 5., 5.1) und Aktenauszug mit SHA256SUMS.txt.
 
 import { anzahl, type Aussage, type Detail } from "./befund.js";
-import { ausBase64 } from "./bytes.js";
+import { ausBase64, textAus } from "./bytes.js";
 import { GRENZE } from "./grenzen.js";
 import { anzeigeEingabe, gespraechEingabe, nachtragEingabe, nachweisgliedEingabe, type AnzeigeRoh, type DokumentFeld } from "./kanonisch.js";
 import { liste, objekt } from "./klartext.js";
@@ -15,6 +15,10 @@ export interface AktenDatei {
   pfad: string;
   groesse: number;
   sha256: string;
+  /** Änderungszeit im ZIP (DOS-Datum · 65536 + Uhrzeit) */
+  zeit?: number;
+  /** Bytes von PRUEFEN.txt und SHA256SUMS.txt für die Prüfung des Aufbaus (6.3) */
+  roh?: Uint8Array;
 }
 
 export interface Aktenauszug {
@@ -200,6 +204,100 @@ export function leseSummen(text: string): { summen: Map<string, string>; fehler:
   return { summen, fehler };
 }
 
+/** Bereinigt den Dateinamen eines Dokuments wie WATT im ZIP des Aktenauszugs (6.3, Schritte 1 bis 6). */
+export function bereinigeDateiname(name: string): string {
+  let s = name.replace(/[\\/:*?"<>|\u0000-\u001f\u007f]/g, "_");
+  s = s.replaceAll("..", "_");
+  s = s.replace(/^\p{White_Space}+|\p{White_Space}+$/gu, "");
+  s = s.replace(/^\.+/, "");
+  s = s.slice(0, 120);
+  return /^\p{White_Space}*$/u.test(s) ? "dokument" : s;
+}
+
+const BOM = (b: Uint8Array): boolean => b.length >= 3 && b[0] === 0xef && b[1] === 0xbb && b[2] === 0xbf;
+const ORDNER = /^Eintrag_(0[1-9]|[1-9]\d+)\/([^/]+)$/;
+const WURZEL = ["Technische-Erlaeuterung.pdf", "PRUEFEN.txt", "SHA256SUMS.txt"];
+
+/**
+ * Aufbau des ZIP-Archivs nach 6.3: Ordner Eintrag_NN mit bereinigten Dateinamen, in der Wurzel nur die Technische
+ * Erläuterung, PRUEFEN.txt (CRLF, ohne BOM) und als letzte Datei SHA256SUMS.txt (LF, ohne BOM, eine Zeile je anderer
+ * Datei in Archivreihenfolge), alle Einträge mit derselben Änderungszeit. Liefert die Abweichungen.
+ */
+function pruefeAufbau(az: Aktenauszug, relativ: (pfad: string) => string | null): Detail[] {
+  const abw: Detail[] = [];
+  const pfade = az.dateien.map((d) => relativ(d.pfad));
+  let rang = -1;
+  let vorher = "";
+  az.dateien.forEach((d, i) => {
+    const p = pfade[i];
+    if (p === null) {
+      abw.push({ text: `${d.pfad}: liegt außerhalb des Ordners von SHA256SUMS.txt.` });
+      return;
+    }
+    let r: number;
+    const m = ORDNER.exec(p);
+    if (m) {
+      r = Math.min(Number(m[1]), Number.MAX_SAFE_INTEGER - 2 * WURZEL.length);
+      if (bereinigeDateiname(m[2]!) !== m[2]) abw.push({ text: `${d.pfad}: Der Dateiname ist nicht nach 6.3 bereinigt (bereinigt: „${bereinigeDateiname(m[2]!)}“).` });
+    } else if (WURZEL.includes(p)) {
+      r = Number.MAX_SAFE_INTEGER - WURZEL.length + WURZEL.indexOf(p);
+    } else {
+      abw.push({ text: p.includes("/") ? `${d.pfad}: liegt nicht in einem Ordner Eintrag_NN (mindestens zwei Ziffern, ab 01).` : `${d.pfad}: In der Wurzel stehen nach 6.3 nur ${WURZEL.join(", ")}.` });
+      return;
+    }
+    if (r < rang) abw.push({ text: `${d.pfad}: steht im Archiv nach ${vorher}; 6.3 legt die Reihenfolge Eintrag_01, Eintrag_02, …, Technische-Erlaeuterung.pdf, PRUEFEN.txt, SHA256SUMS.txt fest.` });
+    else {
+      rang = r;
+      vorher = d.pfad;
+    }
+  });
+  if (!pfade.includes("Technische-Erlaeuterung.pdf")) abw.push({ text: "Technische-Erlaeuterung.pdf fehlt in der Wurzel." });
+  const zeiten = new Set(az.dateien.map((d) => d.zeit));
+  if (zeiten.size > 1) abw.push({ text: `Die Einträge tragen ${zeiten.size} verschiedene Änderungszeiten; nach 6.3 tragen alle den Zeitpunkt der Erstellung.` });
+
+  const pruefen = az.dateien.find((_, i) => pfade[i] === "PRUEFEN.txt");
+  if (pruefen?.roh) {
+    const b = pruefen.roh;
+    if (BOM(b)) abw.push({ text: "PRUEFEN.txt beginnt mit einem BOM." });
+    try {
+      new TextDecoder("utf-8", { fatal: true }).decode(b);
+    } catch {
+      abw.push({ text: "PRUEFEN.txt ist kein gültiges UTF-8." });
+    }
+    let lf = 0;
+    let cr = 0;
+    for (let j = 0; j < b.length; j++) {
+      if (b[j] === 0x0a && b[j - 1] !== 0x0d) lf++;
+      if (b[j] === 0x0d && b[j + 1] !== 0x0a) cr++;
+    }
+    if (lf || cr) abw.push({ text: `PRUEFEN.txt hat ${lf ? `${anzahl(lf, "Zeilenende", "Zeilenenden")} LF` : ""}${lf && cr ? " und " : ""}${cr ? `${anzahl(cr, "einzelnes", "einzelne")} CR` : ""}; nach 6.3 endet jede Zeile mit CRLF.` });
+  }
+
+  const letzte = az.dateien.length - 1;
+  const summen = az.dateien.find((d) => d.pfad === az.summenPfad);
+  if (az.dateien[letzte]?.pfad !== az.summenPfad) abw.push({ text: "SHA256SUMS.txt ist nicht die letzte Datei im Archiv." });
+  if (summen?.roh) {
+    const b = summen.roh;
+    if (BOM(b)) abw.push({ text: "SHA256SUMS.txt beginnt mit einem BOM." });
+    const text = textAus(BOM(b) ? b.subarray(3) : b, false);
+    if (text.includes("\r")) abw.push({ text: "SHA256SUMS.txt enthält CR; nach 6.3 endet jede Zeile mit LF." });
+    if (text.length && !text.endsWith("\n")) abw.push({ text: "SHA256SUMS.txt endet nicht mit einem Zeilenende." });
+    const zeilen = text.replace(/\r/g, "").split("\n");
+    if (zeilen.at(-1) === "") zeilen.pop();
+    const genannt: string[] = [];
+    zeilen.forEach((z, j) => {
+      const m = /^[0-9a-f]{64} {2}(.+)$/.exec(z);
+      if (!m) abw.push({ text: `SHA256SUMS.txt, Zeile ${j + 1}: nicht in der Form „64 Zeichen Hexadezimal in Kleinbuchstaben, zwei Leerzeichen, Pfad“.` });
+      else genannt.push(m[1]!);
+    });
+    if (genannt.includes("SHA256SUMS.txt")) abw.push({ text: "SHA256SUMS.txt nennt sich selbst." });
+    const andere = genannt.filter((p) => p !== "SHA256SUMS.txt");
+    const erwartet = az.dateien.flatMap((d, i) => (d.pfad === az.summenPfad || pfade[i] === null ? [] : [pfade[i]!]));
+    if (andere.length !== erwartet.length || andere.some((p, j) => p !== erwartet[j])) abw.push({ text: "SHA256SUMS.txt nennt nicht genau die übrigen Dateien des Archivs in seiner Reihenfolge, je eine Zeile." });
+  }
+  return abw;
+}
+
 export function pruefeAktenauszug(az: Aktenauszug, bindungen: { name: string; bindung: Dokumentbindung }[], aussagen: Aussage[]): void {
   const k = { aussagen, datei: az.name };
   const fund = `Datei „${az.name}“`;
@@ -233,8 +331,22 @@ export function pruefeAktenauszug(az: Aktenauszug, bindungen: { name: string; bi
   if (uebrig.length) {
     sage(k, "P8", "hinweis", `${anzahl(uebrig.length, "Datei im ZIP steht", "Dateien im ZIP stehen")} nicht in SHA256SUMS.txt.`, "Diese Dateien deckt die Liste der Prüfsummen nicht ab; WATTest prüft sie nicht.", { fundstelle: fund, details: uebrig.map((d) => ({ text: `${d.pfad}: ${d.sha256}` })) });
   }
+  // Aufbau nach 6.3 (U-26): PRUEFEN.txt gibt es ab Formatversion 19; ohne sie kann das ZIP aus einer älteren Fassung
+  // stammen, deren Aufbau die TE nicht festlegt. Eine Abweichung belegt keine Veränderung der Dokumente (das zeigen
+  // die Prüfsummen), aber so schreibt WATT das Archiv nie: „nicht bestätigbar“ (4.8).
+  const innen = (pfad: string): string | null => (pfad.startsWith(basis) ? pfad.slice(basis.length) : null);
+  if (az.dateien.some((d) => innen(d.pfad) === "PRUEFEN.txt")) {
+    const aufbau = pruefeAufbau(az, innen);
+    if (aufbau.length) {
+      sage(k, "P8", "offen", "Der Aufbau des ZIP-Archivs weicht von 6.3 ab.", "WATT schreibt das ZIP zum Aktenauszug ab Formatversion 19 immer nach 6.3: Ordner Eintrag_NN mit bereinigten Dateinamen, in der Wurzel nur Technische-Erlaeuterung.pdf, PRUEFEN.txt und als letzte Datei SHA256SUMS.txt mit einer Zeile je anderer Datei, alle Einträge mit derselben Änderungszeit. Ein anderer Aufbau belegt keine Veränderung der Dokumente; dass das Archiv so aus WATT stammt, lässt sich aber nicht bestätigen (4.8).", { fundstelle: fund, grenze: GRENZE.aktenauszug, details: aufbau });
+    } else {
+      sage(k, "P8", "bestaetigt", "Der Aufbau des ZIP-Archivs entspricht 6.3.", "Ordner Eintrag_NN mit bereinigten Dateinamen, in der Wurzel nur Technische-Erlaeuterung.pdf, PRUEFEN.txt (UTF-8 ohne BOM, CRLF) und als letzte Datei SHA256SUMS.txt (ohne BOM, LF, eine Zeile je anderer Datei in Archivreihenfolge), alle Einträge mit derselben Änderungszeit.", { fundstelle: fund, grenze: GRENZE.aktenauszug });
+    }
+  } else {
+    sage(k, "P8", "hinweis", "Das ZIP enthält keine PRUEFEN.txt; seinen Aufbau prüft WATTest nicht.", "PRUEFEN.txt liegt ab Formatversion 19 im ZIP des Aktenauszugs; erst dafür legt die Technische Erläuterung den Aufbau fest (6.3). WATTest prüft hier nur die Dateien gegen SHA256SUMS.txt.", { fundstelle: fund });
+  }
   // Seit Formatversion 19 liegen die Originaldokumente in Ordnern Eintrag_NN; daneben stehen die Technische
-  // Erläuterung als PDF und PRUEFEN.txt (6.). Sie sind keine Nachweise und gehen nicht in die Nachweiskette ein (U-26).
+  // Erläuterung als PDF und PRUEFEN.txt (6.3). Sie sind keine Nachweise und gehen nicht in die Nachweiskette ein.
   const relativ = (pfad: string): string => (basis && pfad.startsWith(basis) ? pfad.slice(basis.length) : pfad);
   const inOrdner = (d: AktenDatei): boolean => /^Eintrag_\d+\//.test(relativ(d.pfad));
   const pdfs = geprueft.filter((d) => /\.pdf$/i.test(d.pfad));
@@ -242,7 +354,7 @@ export function pruefeAktenauszug(az: Aktenauszug, bindungen: { name: string; bi
   const dokumente = mitOrdnern ? pdfs.filter(inOrdner) : pdfs;
   const beigaben = geprueft.filter((d) => !dokumente.includes(d));
   if (beigaben.length) {
-    sage(k, "P8", "hinweis", `${anzahl(beigaben.length, "Datei im Aktenauszug ist", "Dateien im Aktenauszug sind")} kein Nachweis.`, "Neben den Originaldokumenten (Ordner Eintrag_NN) enthält das ZIP des Aktenauszugs die Technische Erläuterung als PDF und die Anleitung PRUEFEN.txt zur unabhängigen Prüfung (6.). Sie stehen in SHA256SUMS.txt und sind damit geprüft, gehören aber zu keiner Anzeige und nicht zur Nachweiskette.", {
+    sage(k, "P8", "hinweis", `${anzahl(beigaben.length, "Datei im Aktenauszug ist", "Dateien im Aktenauszug sind")} kein Nachweis.`, "Neben den Originaldokumenten (Ordner Eintrag_NN) enthält das ZIP des Aktenauszugs die Technische Erläuterung als PDF und die Anleitung PRUEFEN.txt zur unabhängigen Prüfung (6.3). Sie stehen in SHA256SUMS.txt und sind damit geprüft, gehören aber zu keiner Anzeige und nicht zur Nachweiskette.", {
       fundstelle: fund,
       details: beigaben.map((d) => ({ text: `${d.pfad}${/(^|\/)PRUEFEN\.txt$/.test(d.pfad) ? " (Anleitung zur unabhängigen Prüfung)" : ""}` })),
     });
