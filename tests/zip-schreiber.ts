@@ -36,6 +36,8 @@ export interface RohEintrag {
   groesse: number;
   crc: number;
   methode: 0 | 8;
+  /** Änderungszeit als DOS-Uhrzeit und -Datum (Vorgabe 0) */
+  zeit?: { uhrzeit: number; datum: number };
 }
 
 /** ZIP aus rohen Einträgen; Größen und CRC stehen so im Verzeichnis, wie angegeben. */
@@ -51,6 +53,8 @@ export function zipRoh(eintraege: RohEintrag[]): Uint8Array {
     v.setUint16(4, 20, true);
     v.setUint16(6, 0x800, true);
     v.setUint16(8, d.methode, true);
+    v.setUint16(10, d.zeit?.uhrzeit ?? 0, true);
+    v.setUint16(12, d.zeit?.datum ?? 0, true);
     v.setUint32(14, d.crc, true);
     v.setUint32(18, d.daten.length, true);
     v.setUint32(22, d.groesse, true);
@@ -63,6 +67,8 @@ export function zipRoh(eintraege: RohEintrag[]): Uint8Array {
     w.setUint16(6, 20, true);
     w.setUint16(8, 0x800, true);
     w.setUint16(10, d.methode, true);
+    w.setUint16(12, d.zeit?.uhrzeit ?? 0, true);
+    w.setUint16(14, d.zeit?.datum ?? 0, true);
     w.setUint32(16, d.crc, true);
     w.setUint32(20, d.daten.length, true);
     w.setUint32(24, d.groesse, true);
@@ -82,11 +88,11 @@ export function zipRoh(eintraege: RohEintrag[]): Uint8Array {
   return verbinde([...lokal, cd, ende]);
 }
 
-export async function zip(dateien: { pfad: string; inhalt: Uint8Array | string }[], komprimieren = true): Promise<Uint8Array> {
+export async function zip(dateien: { pfad: string; inhalt: Uint8Array | string; zeit?: RohEintrag["zeit"] }[], komprimieren = true): Promise<Uint8Array> {
   const eintraege: RohEintrag[] = [];
   for (const d of dateien) {
     const roh = typeof d.inhalt === "string" ? utf8(d.inhalt) : d.inhalt;
-    eintraege.push({ pfad: d.pfad, daten: komprimieren ? await deflate(roh) : roh, groesse: roh.length, crc: crc32(roh), methode: komprimieren ? 8 : 0 });
+    eintraege.push({ pfad: d.pfad, daten: komprimieren ? await deflate(roh) : roh, groesse: roh.length, crc: crc32(roh), methode: komprimieren ? 8 : 0, ...(d.zeit ? { zeit: d.zeit } : {}) });
   }
   return zipRoh(eintraege);
 }

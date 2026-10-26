@@ -71,12 +71,23 @@ test("App mit fremdem Signaturzertifikat gegen den Fingerabdruck von WATT: P7 wi
 
 // Challenge (TE 4.7): hash des Kopfs vor dem Glied schluessel; Ausnahme uhr_verstellt mit objektId glied.
 
+/**
+ * Herkunft seit 0.1.7 (TE 4.7, watt_public af05f6e, U-27): Signaturen decken die Glieder erst ab dem ersten Glied
+ * schluessel mit status verfuegbar; die Glieder davor sind „?“, die übrigen bleiben ✓.
+ */
+function vorErstemSchluessel(b: Awaited<ReturnType<typeof befund>>, gedeckt: string, davor: string): void {
+  assert.equal(zeichen(b, "P6"), "offen", texte(b, "P6"));
+  assert.ok(b.aussagen.some((a) => a.schritt === "P6" && a.zeichen === "bestaetigt" && a.text === `Signaturen belegen die Herkunft der Glieder ${gedeckt}.`), texte(b, "P6"));
+  assert.match(texte(b, "P6"), new RegExp(`^P6 offen: Die Herkunft (der Glieder|von Glied) ${davor} lässt sich nicht bestätigen\.\n {4}Glied [^:]+: vor dem ersten Glied schluessel mit status verfuegbar`, "m"));
+}
+
 test("Schlüssel nach vorhandenen Gliedern: Challenge ist der hash des Kopfs", async () => {
   const e = await erzeugeKette({ eintraege: 4, zertifikate: z, schluesselNach: 2 });
   assert.equal(e.daten.protokoll[2]!["objektArt"], "schluessel");
   assert.equal(JSON.parse(String(e.daten.protokoll[2]!["daten"]))["challenge"], undefined);
   const b = await befund([json("a.json", e.daten)], opt());
-  for (const s of ["P2", "P3", "P4", "P6", "P7"] as const) assert.equal(zeichen(b, s), "bestaetigt", `${s}:\n${texte(b)}`);
+  vorErstemSchluessel(b, "3–5", "1–2");
+  for (const s of ["P2", "P3", "P4", "P7"] as const) assert.equal(zeichen(b, s), "bestaetigt", `${s}:\n${texte(b)}`);
   assert.match(texte(b, "P7"), /✓ Die Challenge ist die Prüfsumme von Glied 2\./);
 });
 
@@ -84,7 +95,8 @@ test("uhr_verstellt mit objektId glied zwischen Kopf und schluessel (Erzeuger): 
   const e = await erzeugeKette({ eintraege: 4, zertifikate: z, schluesselNach: 2, verstelltVorSchluessel: true });
   assert.deepEqual(e.daten.protokoll.map((x) => x["objektArt"]), ["eintrag", "eintrag", "uhr_verstellt", "schluessel", "eintrag", "eintrag"]);
   const b = await befund([json("a.json", e.daten)], opt());
-  for (const s of ["P2", "P3", "P4", "P6", "P7"] as const) assert.equal(zeichen(b, s), "bestaetigt", `${s}:\n${texte(b)}`);
+  vorErstemSchluessel(b, "4–6", "1–3");
+  for (const s of ["P2", "P3", "P4", "P7"] as const) assert.equal(zeichen(b, s), "bestaetigt", `${s}:\n${texte(b)}`);
   assert.match(texte(b, "P7"), /✓ Die Challenge ist die Prüfsumme von Glied 2 \(vor dem Vermerk uhr_verstellt, Glied 3\)\./);
   assert.match(texte(b, "P4"), /Der Vermerk uhr_verstellt erklärt seinen Zeitsprung nach der Rechnung in 4\.7\./);
 });
@@ -94,7 +106,8 @@ test("U-18: uhr_ruecksprung mit objektId nachweis als erstes Glied (Erzeuger): S
   assert.deepEqual(e.daten.protokoll.map((x) => x["objektArt"]), ["uhr_ruecksprung", "schluessel", "eintrag", "eintrag", "eintrag"]);
   assert.equal(JSON.parse(String(e.daten.protokoll[1]!["daten"]))["challenge"], undefined);
   const b = await befund([json("a.json", e.daten)], opt());
-  for (const s of ["P2", "P3", "P4", "P6", "P7"] as const) assert.equal(zeichen(b, s), "bestaetigt", `${s}:\n${texte(b)}`);
+  vorErstemSchluessel(b, "2–5", "1");
+  for (const s of ["P2", "P3", "P4", "P7"] as const) assert.equal(zeichen(b, s), "bestaetigt", `${s}:\n${texte(b)}`);
   assert.match(texte(b, "P7"), /✓ Die Challenge ist die Prüfsumme von Glied 1\./);
   assert.match(texte(b, "P4"), /Das Glied uhr_ruecksprung mit Uhrstand entstand ohne Bezug, wie 4\.7 es beschreibt\./);
 });
@@ -125,7 +138,7 @@ test("uhr_verstellt mit objektId glied nachträglich eingefügt: Challenge weite
   const e = await erzeugeKette({ eintraege: 3, zertifikate: z, schluesselNach: 2 });
   await verstelltEinfuegen(e, "glied");
   const b = await befund([json("a.json", e.daten)], opt());
-  assert.equal(zeichen(b, "P6"), "bestaetigt", texte(b, "P6"));
+  vorErstemSchluessel(b, "4–5", "1–3");
   assert.equal(zeichen(b, "P7"), "bestaetigt", texte(b, "P7"));
 });
 
@@ -133,7 +146,7 @@ test("uhr_verstellt mit anderer objektId zwischen Kopf und schluessel: Challenge
   const e = await erzeugeKette({ eintraege: 3, zertifikate: z, schluesselNach: 2 });
   await verstelltEinfuegen(e, "zeitsignal");
   const b = await befund([json("a.json", e.daten)], opt());
-  assert.equal(zeichen(b, "P6"), "bestaetigt", texte(b, "P6"));
+  vorErstemSchluessel(b, "4–5", "1–3");
   assert.equal(zeichen(b, "P7"), "widerlegt");
   assert.match(texte(b, "P7"), /✗ Die Challenge im Zertifikat \(.*\) passt nicht zu der Prüfsumme von Glied 3\./);
 });
@@ -209,7 +222,8 @@ test("Bootloader offen: P7 nicht bestätigbar", async () => {
 });
 
 test("gesperrtes Zwischenzertifikat: P7 nicht bestätigbar mit Seriennummer, Status und Grund (E-55)", async () => {
-  // Entscheidung Achim 26.10.2026: Die Sperrliste nennt keinen Zeitpunkt der Sperre; bis 0.1.5 war das ✗ (U-25).
+  // TE 4.7 und 4.8 (watt_public af05f6e), zuvor Entscheidung Achim 26.10.2026: Die Sperrliste nennt keinen Zeitpunkt
+  // der Sperre; bis 0.1.5 war das ✗ (U-25).
   const e = await erzeugeKette({ eintraege: 2, zertifikate: z });
   const nr = z.zwischenSeriennummer.toString(16);
   const sperrliste = { abgerufen: "2026-10-25T00:00:00Z", quelle: "Test", eintraege: { [nr]: { status: "REVOKED", reason: "KEY_COMPROMISE" } } };

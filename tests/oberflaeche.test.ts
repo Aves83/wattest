@@ -6,7 +6,9 @@
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { liesText } from "./hilfen.js";
+import { readdirSync } from "node:fs";
+import { join } from "node:path";
+import { liesText, WURZEL } from "./hilfen.js";
 
 const css = liesText("src/ui/stil.css");
 const seite = liesText("src/ui/seite.html");
@@ -66,7 +68,7 @@ for (const [modus, v] of [["hellen", hell], ["dunklen", dunkel]] as const) {
 
 test("die Seite nennt Überschrift und Zweck und hat beschriftete Eingaben", () => {
   assert.match(seite, /<h1>WATTest – Stimmt WATT\?<\/h1>/);
-  assert.match(seite, /keine Datei und keine Eingabe verlässt deinen Rechner/);
+  assert.match(seite, /keine Datei und keine Eingabe verlässt den Rechner./);
   for (const id of [...seite.matchAll(/<(?:input|textarea)[^>]*id="([^"]+)"/g)].map((m) => m[1]!)) {
     assert.match(seite, new RegExp(`<label for="${id}"`), `Beschriftung für ${id}`);
   }
@@ -89,6 +91,23 @@ test("der Datenschutzhinweis nennt den Verantwortlichen ohne Anschrift", () => {
   const ds = liesText("src/ui/datenschutz.html");
   assert.match(ds, /<h1>Datenschutzhinweis<\/h1>\n<p>Verantwortlich ist Hans-Joachim Steudel, <a href="mailto:hans-joachim\.steudel@tum\.de">hans-joachim\.steudel@tum\.de<\/a>\.<\/p>/);
   assert.doesNotMatch(ds, /Manzostr/);
+  assert.match(ds, /WATTest prüft Dateien ausschließlich im Browser\. Geöffnete Dateien und eingegebene Prüfwerte werden nicht übertragen und nicht gespeichert\./);
+});
+
+test("keine Anrede: Seite, Befund, Hilfen, Fehlermeldungen, Datenschutz und Impressum sind unpersönlich (0.1.7)", () => {
+  // Alle sichtbaren Texte stehen in diesen Quellen: Seiten, Oberfläche, Prüfung samt Befund und Fehlermeldungen, Worker, Bau.
+  const quellen = [
+    ...readdirSync(join(WURZEL, "src/ui")).filter((n) => /\.(html|ts)$/.test(n)).map((n) => `src/ui/${n}`),
+    ...readdirSync(join(WURZEL, "src/kern")).filter((n) => n.endsWith(".ts")).map((n) => `src/kern/${n}`),
+    ...readdirSync(join(WURZEL, "src/worker")).filter((n) => n.endsWith(".ts")).map((n) => `src/worker/${n}`),
+    "scripts/bau.mjs",
+  ];
+  assert.ok(quellen.includes("src/ui/datenschutz.html") && quellen.includes("src/ui/impressum.html") && quellen.includes("src/kern/befund.ts"));
+  const anrede = /(?<![\p{L}\p{N}_])(du|dein|deine|deinen|deinem|deiner|deines|dir|dich)(?![\p{L}\p{N}_])/iu;
+  for (const q of quellen) {
+    const zeilen = liesText(q).split("\n");
+    zeilen.forEach((z, i) => assert.doesNotMatch(z, anrede, `${q}:${i + 1}`));
+  }
 });
 
 test("Fokus ist sichtbar, und nichts scrollt bei 360 px waagerecht", () => {
