@@ -2,12 +2,13 @@
 // WATTest © 2026 Hans-Joachim Steudel
 
 // Nachzug auf die Technische Erläuterung aus watt_public 3a88095 (Stand 26.10.2026, Vorabfassung): Beginn der
-// Herkunft nach 4.7 (U-28 geschlossen, U-29) und gleiche Dateinamen im ZIP des Aktenauszugs (6.3, E-67).
+// Herkunft nach 4.7 (U-28 geschlossen, U-29) und gleiche Dateinamen im ZIP des Aktenauszugs (6.3, E-67). Seit 0.1.9
+// (Stand 69b7418): U-29 geschlossen, Bereinigung in sieben Schritten (tests/nachzug-0-1-9.test.ts).
 
 import assert from "node:assert/strict";
 import { before, test } from "node:test";
 import { sha256Hex } from "../src/kern/sha.js";
-import { bereinigeDateiname, istBereinigt } from "../src/kern/schritte-nachweis.js";
+import { bereinigeDateiname, endungNach63, istBereinigt } from "../src/kern/schritte-nachweis.js";
 import { utf8 } from "../src/kern/bytes.js";
 import { APP_DIGEST_HEX, erzeugeKette, neuVerketten, signiereNeu, testzertifikate, type Erzeugt, type Testzertifikate } from "./erzeuger.js";
 import { befund, json, liesText, texte } from "./hilfen.js";
@@ -42,8 +43,8 @@ async function einfuegen(e: Erzeugt, i: number, glieder: Record<string, unknown>
 
 const bestaetigt = (b: Awaited<ReturnType<typeof befund>>): string | undefined => b.aussagen.find((a) => a.schritt === "P6" && a.zeichen === "bestaetigt")?.text;
 
-test("Rechenbeispiele aus watt_public 3a88095", () => {
-  assert.match(liesText("tests/vektoren/technische-erlaeuterung.json"), /Commit 3a88095\), Codeblöcke der Rechenbeispiele, Stand 26\.10\.2026/);
+test("Rechenbeispiele B1 bis B15 sind seit watt_public 3a88095 unverändert (Quelle jetzt 69b7418)", () => {
+  assert.match(liesText("tests/vektoren/technische-erlaeuterung.json"), /Commit 69b7418\), Codeblöcke der Rechenbeispiele, Stand 27\.10\.2026/);
 });
 
 // 4.7, Stand 3a88095: Der Abschnitt beginnt beim letzten Glied wiederherstellung bzw. neubeginn vor j, wenn es nach
@@ -62,17 +63,19 @@ test("4.7: Wiederherstellung nach dem ersten Schlüssel, danach andere Glieder v
   assert.doesNotMatch(texte(b, "P6"), /^P6 (offen|widerlegt): Die Herkunft/m);
 });
 
-// U-29: Bei Eintrag 1 beginnt ein Abschnitt nur, wenn dort neubeginn bzw. der erste Schlüssel steht (4.7).
+// U-29: Bis 0.1.8 begann bei Eintrag 1 ein Abschnitt nur mit neubeginn bzw. dem ersten Schlüssel (Wertung „?“ für
+// die Glieder 1–2). Seit dem Stand 69b7418 schließt 4.7 eine wiederherstellung als Eintrag 1 ein (U-29 geklärt): Der
+// Abschnitt des ersten Schlüssels beginnt bei Eintrag 1, wie in 0.1.7.
 
-test("4.7, U-29: wiederherstellung als Eintrag 1 vor dem ersten Schlüssel beginnt keinen Abschnitt", async () => {
+test("4.7, U-29: wiederherstellung als Eintrag 1, nur Vermerke zur Uhr bis zum ersten Schlüssel: Herkunft ab Eintrag 1", async () => {
   const e = await erzeugeKette({ eintraege: 3, zertifikate: z, schluesselNach: 1 });
   const zeit = String(e.daten.protokoll[0]!["zeitpunkt"]);
   e.daten.protokoll[0] = wiederherstellung(zeit);
   await einfuegen(e, 1, [vermerkUhr(zeit, "1")]);
   assert.deepEqual(e.daten.protokoll.map((x) => x["objektArt"]), ["wiederherstellung", "uhr_verstellt", "schluessel", "eintrag", "eintrag"]);
   const b = await befund([json("u29.json", e.daten)], opt());
-  assert.equal(bestaetigt(b), "Signaturen belegen die Herkunft der Glieder 3–5.", texte(b, "P6"));
-  assert.match(texte(b, "P6"), /^P6 offen: Die Herkunft der Glieder 1–2 lässt sich nicht bestätigen\.\n {4}Glied 1 bis 2: vor dem Beginn des ersten Abschnitts beim ersten Glied schluessel mit status verfuegbar \(Glied 3\)/m);
+  assert.equal(bestaetigt(b), "Signaturen belegen die Herkunft der Glieder 1–5.", texte(b, "P6"));
+  assert.doesNotMatch(texte(b, "P6"), /^P6 (offen|widerlegt): Die Herkunft/m);
   assert.ok(!b.aussagen.some((a) => a.schritt === "P6" && a.zeichen === "widerlegt"), texte(b, "P6"));
 });
 
@@ -94,24 +97,27 @@ test("6.3, E-67: Ergebnis der Bereinigung und Zusatz „ (n)“", () => {
   assert.ok(!istBereinigt(`${"a".repeat(120)}(2)`));
   // Ohne den Zusatz muss der Rest selbst ein Ergebnis der Bereinigung sein.
   assert.ok(!istBereinigt(".Anschreiben (2).pdf"));
-  assert.ok(istBereinigt(" (2).pdf"), "aus „. (2).pdf“");
+  assert.ok(!istBereinigt(" (2).pdf"), "seit 0.1.9: aus „. (2).pdf“ wird „(2).pdf“, der Rest „.pdf“ wäre leer");
+  assert.ok(istBereinigt("(2).pdf"));
   assert.ok(!istBereinigt(`a..b${"c".repeat(120)} (2).pdf`));
-  // Leerraum am Anfang nach entfernten Punkten (Schritt 4), am Ende nur nach der Kürzung auf genau 120 Zeichen.
-  assert.ok(istBereinigt(" Anschreiben.pdf"));
-  assert.ok(istBereinigt(`${"a".repeat(119)} `));
-  assert.ok(istBereinigt(`${"a".repeat(119)}  (2)`));
+  // Seit 0.1.9 (Stand 69b7418, Schritte 3 und 6): weder Leerraum noch Punkt am Anfang oder am Ende, auch nicht nach
+  // der Kürzung auf 120 Zeichen; bis 0.1.8 waren Leerraum am Anfang und am Ende bei genau 120 Zeichen zulässig.
+  assert.ok(!istBereinigt(" Anschreiben.pdf"));
+  assert.ok(!istBereinigt(`${"a".repeat(119)} `));
+  assert.ok(!istBereinigt(`${"a".repeat(119)}  (2)`));
+  assert.ok(istBereinigt(`${"a".repeat(119)} (2)`));
   assert.ok(!istBereinigt("Anschreiben.pdf "));
   assert.ok(!istBereinigt(".Anschreiben.pdf"));
   assert.ok(!istBereinigt("a..pdf"));
   assert.ok(!istBereinigt("a:b.pdf"));
   assert.ok(!istBereinigt(""));
   assert.ok(!istBereinigt("   "));
-  // Jedes Ergebnis der Bereinigung besteht die Prüfung, auch mit Zusatz.
-  for (const roh of [". Anschreiben.pdf", "..  x", `${"a".repeat(119)} b.pdf`, `.${"a".repeat(119)} b`, "...pdf", "a....pdf", "\t.x", "😀".repeat(61), "  .Anschreiben.pdf　", "", "Anschreiben.pdf"]) {
+  // Jedes Ergebnis der Bereinigung besteht die Prüfung, auch mit Zusatz vor der Endung nach Schritt 4.
+  for (const roh of [". Anschreiben.pdf", "..  x", `${"a".repeat(119)} b.pdf`, `.${"a".repeat(119)} b`, "...pdf", "a....pdf", "\t.x", "😀".repeat(61), "  .Anschreiben.pdf　", "", "Anschreiben.pdf", "Bericht v1.2 final", "..\\x.pdf", "..."]) {
     const s = bereinigeDateiname(roh);
     assert.ok(istBereinigt(s), JSON.stringify(s));
-    const punkt = s.lastIndexOf(".");
-    const mit = punkt < 0 ? `${s} (2)` : `${s.slice(0, punkt)} (2)${s.slice(punkt)}`;
+    const endung = endungNach63(s);
+    const mit = `${s.slice(0, s.length - endung.length)} (2)${endung}`;
     assert.ok(istBereinigt(mit), JSON.stringify(mit));
   }
 });

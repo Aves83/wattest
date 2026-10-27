@@ -108,6 +108,7 @@ const ERLAUBT = [
   /^https:\/\/github\.com\/Aves83\/wattest$/,
   /^https:\/\/aves83\.github\.io\/watt_public\/$/,
   /^https:\/\/github\.com\/Aves83\/watt_public\/blob\/main\/doc\/technische-erlaeuterung\.md$/,
+  /^https:\/\/aves83\.github\.io\/watt_public\/info\/watt-nachweise-sichern\.pdf$/,
   /^https:\/\/aves83\.github\.io\/wattest\/(impressum|datenschutz)\.html$/,
   /^https:\/\/docs\.github\.com\/de\/site-policy\/privacy-policies\/github-general-privacy-statement$/,
   /^https:\/\/www\.lda\.bayern\.de\/$/,
@@ -141,7 +142,7 @@ test("dist lädt keine fremden Adressen", () => {
   }
 });
 
-test("der Absatz „Über WATT“ verlinkt WATT, die Technische Erläuterung und den Quelltext in neuem Tab", () => {
+test("der Absatz „Über WATT“ verlinkt WATT, die Technische Erläuterung, die Einführung (PDF) und den Quelltext in neuem Tab", () => {
   for (const name of ["index.html", `wattest-${VERSION}.html`]) {
     const html = readFileSync(join(a, name), "utf8");
     const absatz = /<p class="unterzeile ueber">([\s\S]*?)<\/p>/.exec(html);
@@ -150,8 +151,17 @@ test("der Absatz „Über WATT“ verlinkt WATT, die Technische Erläuterung und
     assert.deepEqual(links, [
       ["Mehr zu WATT", 'href="https://aves83.github.io/watt_public/" target="_blank" rel="noopener"'],
       ["veröffentlichten Unterlagen von WATT", 'href="https://github.com/Aves83/watt_public/blob/main/doc/technische-erlaeuterung.md" target="_blank" rel="noopener"'],
+      ["Einfach erklärt: Wie WATT Nachweise sichert (PDF, Unterlage von WATT)", 'href="https://aves83.github.io/watt_public/info/watt-nachweise-sichern.pdf" target="_blank" rel="noopener"'],
       ["Quelltext", 'href="https://github.com/Aves83/wattest" target="_blank" rel="noopener"'],
     ]);
+    // Der Link zur Einführung ist nur ein Verweis (Navigation): Die CSP bleibt, kein Abruf, keine Einbettung.
+    const c = csp(html);
+    assert.deepEqual([...c.keys()].sort(), ["base-uri", "connect-src", "default-src", "form-action", "img-src", "manifest-src", "script-src", "style-src", "worker-src"]);
+    assert.equal(c.get("default-src"), "'none'");
+    if (name === "index.html") assert.equal(c.get("connect-src"), "'self'");
+    else assert.equal(c.get("connect-src"), "'none'");
+    for (const [r, w] of c) assert.doesNotMatch(w, /aves83|watt-nachweise|https?:/i, r);
+    assert.doesNotMatch(html, /<(?:iframe|embed|object|link|img|script)[^>]*watt-nachweise-sichern/);
   }
 });
 

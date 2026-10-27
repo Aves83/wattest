@@ -204,39 +204,59 @@ export function leseSummen(text: string): { summen: Map<string, string>; fehler:
   return { summen, fehler };
 }
 
-/** Bereinigt den Dateinamen eines Dokuments wie WATT im ZIP des Aktenauszugs (6.3, Schritte 1 bis 6). */
+/**
+ * Endung eines Dateinamens nach 6.3, Schritt 4: der Teil ab dem letzten Punkt, wenn dieser Punkt nicht am Anfang
+ * steht, nach ihm mindestens ein Zeichen folgt, die Endung mit Punkt höchstens 10 Zeichen hat und keinen Leerraum
+ * enthält; sonst leer („Bericht v1.2 final“ hat keine Endung).
+ */
+export function endungNach63(name: string): string {
+  const punkt = name.lastIndexOf(".");
+  if (punkt <= 0) return "";
+  const endung = name.slice(punkt);
+  return endung.length >= 2 && endung.length <= 10 && !/\p{White_Space}/u.test(endung) ? endung : "";
+}
+
+/** Bereinigt den Dateinamen eines Dokuments wie WATT im ZIP des Aktenauszugs (6.3, Schritte 1 bis 7). */
 export function bereinigeDateiname(name: string): string {
   let s = name.replace(/[\\/:*?"<>|\u0000-\u001f\u007f]/g, "_");
   s = s.replaceAll("..", "_");
-  s = s.replace(/^\p{White_Space}+|\p{White_Space}+$/gu, "");
-  s = s.replace(/^\.+/, "");
-  s = s.slice(0, 120);
-  return /^\p{White_Space}*$/u.test(s) ? "dokument" : s;
+  s = s.replace(/^[.\p{White_Space}]+/u, "");
+  const endung = endungNach63(s);
+  let stamm = s.slice(0, s.length - endung.length);
+  const laenge = 120 - endung.length;
+  if (stamm.length > laenge) {
+    // Bleibt am Ende nur die erste Codeeinheit eines Zeichens außerhalb der Basisebene, entfällt es ganz.
+    const zerteilt = /[\uD800-\uDBFF]$/.test(stamm.slice(0, laenge)) && /^[\uDC00-\uDFFF]/.test(stamm.slice(laenge));
+    stamm = stamm.slice(0, zerteilt ? laenge - 1 : laenge);
+  }
+  stamm = stamm.replace(/[.\p{White_Space}]+$/u, "");
+  return (stamm || "dokument") + endung;
 }
 
 /**
  * Ob ein Name ein Ergebnis der Bereinigung nach 6.3 sein kann (E-67): keines der Zeichen aus Schritt 1, kein „..“,
- * kein Punkt am Anfang, höchstens 120 Zeichen, nicht leer und nicht nur Leerraum. Leerraum am Anfang bleibt, wenn
- * Schritt 4 Punkte davor entfernt hat („. x.pdf“ ergibt „ x.pdf“), am Ende nur nach der Kürzung auf genau 120 Zeichen.
+ * weder Punkt noch Leerraum am Anfang (Schritt 3) oder am Ende (Schritt 6; eine Endung endet nie auf Punkt oder
+ * Leerraum), 1 bis 120 Zeichen in UTF-16-Einheiten (Schritte 5 und 7). Jeder solche Name ist ein Ergebnis der
+ * Schritte, etwa seiner selbst mit angehängtem Leerraum über 120 Zeichen hinaus; jedes Ergebnis erfüllt die Bedingungen.
  */
 function ergebnisDerBereinigung(s: string): boolean {
-  if (!s.length || s.length > 120 || /^\p{White_Space}*$/u.test(s)) return false;
-  if (/[\\/:*?"<>|\u0000-\u001f\u007f]/.test(s) || s.includes("..") || s.startsWith(".")) return false;
-  return s.length === 120 || !/\p{White_Space}$/u.test(s);
+  if (!s.length || s.length > 120) return false;
+  if (/[\\/:*?"<>|\u0000-\u001f\u007f]/.test(s) || s.includes("..")) return false;
+  return !/^[.\p{White_Space}]|[.\p{White_Space}]$/u.test(s);
 }
 
 /**
  * Ob ein Name im Ordner Eintrag_NN so aus WATT stammen kann (6.3): Er ist selbst ein Ergebnis der Bereinigung, oder er
- * trägt vor der Endung (ab dem letzten Punkt, ohne Punkt am Ende) einen Zusatz „ (n)“ mit n ab 2 für gleiche Namen, und
- * der Name ohne diesen einen Zusatz ist eines; die Kürzung auf 120 Zeichen gilt vor dem Zusatz. Ob der Zusatz von WATT
+ * trägt vor der Endung (Schritt 4; ohne Endung am Ende) einen Zusatz „ (n)“ mit n ab 2 für gleiche Namen, und der
+ * Name ohne diesen einen Zusatz ist eines; die Kürzung auf 120 Zeichen gilt vor dem Zusatz. Ob der Zusatz von WATT
  * stammt und n die kleinste freie Zahl ist, lässt sich ohne die gespeicherten Namen nicht prüfen.
  */
 export function istBereinigt(name: string): boolean {
   if (ergebnisDerBereinigung(name)) return true;
-  const punkt = name.lastIndexOf(".");
-  const stamm = punkt < 0 ? name : name.slice(0, punkt);
+  const endung = endungNach63(name);
+  const stamm = name.slice(0, name.length - endung.length);
   const m = /^([\s\S]*) \((?:[2-9]|[1-9]\d+)\)$/.exec(stamm);
-  return m !== null && ergebnisDerBereinigung(m[1]! + (punkt < 0 ? "" : name.slice(punkt)));
+  return m !== null && ergebnisDerBereinigung(m[1]! + endung);
 }
 
 const BOM = (b: Uint8Array): boolean => b.length >= 3 && b[0] === 0xef && b[1] === 0xbb && b[2] === 0xbf;
