@@ -1,5 +1,13 @@
 # Änderungen
 
+## 0.1.10 – 27.10.2026
+
+Unterlagen unverändert (watt_public 69b7418); nur die Startseite.
+
+- Startseite: Der Absatz „Über WATT“ ist jetzt Fließtext ohne Links („Über WATT: WATT ist eine kostenlose Android-App (Beta), mit der verbeamtete Lehrkräfte ihre Arbeitszeit erfassen und nachweisen. WATTest stammt vom selben Anbieter, ist aber quelloffen und prüft allein nach den veröffentlichten Unterlagen von WATT.“). Darunter steht die Zeile „Weiterlesen: Website von WATT · Technische Erläuterung · Einfach erklärt (PDF) · Quelltext von WATTest“ mit den bisherigen vier Zielen (neuer Tab, `rel="noopener"`, Trennzeichen „·“ außerhalb der Links), in normaler Schriftgröße, umbrechend, nicht im Druck. Bis 0.1.9 war fast der ganze Absatz Link, und „veröffentlichten Unterlagen von WATT“ führte auf die Technische Erläuterung statt auf eine Beschreibung von WATT. CSS und CSP unverändert.
+- Regel: Im Fließtext steht höchstens ein Link, und sein Text nennt das Ziel; mehrere Links stehen in einer Linkzeile mit „·“. Impressum und Datenschutzhinweis entsprachen ihr schon; Hilfen und Befund enthalten keine Links.
+- Tests: Absatz ohne Link, Zeile „Weiterlesen“ mit Texten, Zielen und Trennzeichen, CSP-Richtlinien unverändert, Regel für Links auf allen drei Seiten (`tests/bau.test.ts`, `tests/oberflaeche.test.ts`).
+
 ## 0.1.9 – 27.10.2026
 
 Nachzug auf den Stand f3810d5 der Technischen Erläuterung (watt_public, Commit 69b7418 vom 27.10.2026, Vorabfassung). Bisher galt Commit 3a88095.

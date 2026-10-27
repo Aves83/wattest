@@ -76,28 +76,66 @@ test("die Seite nennt Überschrift und Zweck und hat beschriftete Eingaben", () 
   assert.match(seite, /<html lang="de">/);
 });
 
-test("die Startseite erklärt unter der Einleitung, was WATT ist", () => {
-  const absatz = /<\/p>\s*<p class="unterzeile ueber">([\s\S]*?)<\/p>\s*<\/header>/.exec(seite);
-  assert.ok(absatz, "Absatz „Über WATT“ unmittelbar nach der Einleitung");
-  assert.match(absatz[1]!, /^<strong>Über WATT\.<\/strong> /);
+test("die Startseite erklärt unter der Einleitung, was WATT ist, ohne Link im Fließtext (0.1.10)", () => {
+  const absatz = /<\/p>\s*<p class="unterzeile ueber">([\s\S]*?)<\/p>\s*<p class="unterzeile weiterlesen">/.exec(seite);
+  assert.ok(absatz, "Absatz „Über WATT“ unmittelbar nach der Einleitung, davor die Zeile „Weiterlesen“");
+  assert.match(absatz[1]!, /^<strong>Über WATT:<\/strong> /);
+  assert.doesNotMatch(absatz[1]!, /<a\b/, "kein Link im Fließtext");
   assert.equal(
     absatz[1]!.replace(/<[^>]+>/g, ""),
-    "Über WATT. WATT ist eine kostenlose Android-App (Beta), mit der verbeamtete Lehrkräfte ihre Arbeitszeit erfassen und nachweisen. Mehr zu WATT. WATTest stammt vom selben Anbieter, ist aber quelloffen und prüft allein nach den veröffentlichten Unterlagen von WATT. Einfach erklärt: Wie WATT Nachweise sichert (PDF, Unterlage von WATT). Den Quelltext kann jede:r nachprüfen.",
+    "Über WATT: WATT ist eine kostenlose Android-App (Beta), mit der verbeamtete Lehrkräfte ihre Arbeitszeit erfassen und nachweisen. WATTest stammt vom selben Anbieter, ist aber quelloffen und prüft allein nach den veröffentlichten Unterlagen von WATT.",
   );
-  for (const m of absatz[1]!.matchAll(/<a [^>]*>/g)) assert.match(m[0], /target="_blank" rel="noopener"/);
+});
+
+test("die Zeile „Weiterlesen“ nennt jedes Ziel im Linktext und trennt die Links mit „·“ außerhalb der Links (0.1.10)", () => {
+  const zeile = /<p class="unterzeile weiterlesen">([\s\S]*?)<\/p>\s*<\/header>/.exec(seite);
+  assert.ok(zeile, "Zeile „Weiterlesen“ als letzter Absatz des Kopfes");
+  const links = [...zeile[1]!.matchAll(/<a href="([^"]+)"([^>]*)>([^<]*)<\/a>/g)];
+  assert.deepEqual(
+    links.map((m) => [m[3], m[1]]),
+    [
+      ["Website von WATT", "https://aves83.github.io/watt_public/"],
+      ["Technische Erläuterung", "https://github.com/Aves83/watt_public/blob/main/doc/technische-erlaeuterung.md"],
+      ["Einfach erklärt (PDF)", "https://aves83.github.io/watt_public/info/watt-nachweise-sichern.pdf"],
+      ["Quelltext von WATTest", "https://github.com/Aves83/wattest"],
+    ],
+  );
+  for (const m of links) assert.equal(m[2], ' target="_blank" rel="noopener"', m[3]);
+  assert.equal(zeile[1]!.replace(/<a [^>]*>[^<]*<\/a>/g, "LINK"), "<strong>Weiterlesen:</strong> LINK · LINK · LINK · LINK");
+  assert.equal(zeile[1]!.replace(/<[^>]+>/g, ""), "Weiterlesen: Website von WATT · Technische Erläuterung · Einfach erklärt (PDF) · Quelltext von WATTest");
+  // Normale Schriftgröße, umbrechend: .unterzeile setzt weder font-size noch white-space; nichts verbietet den Umbruch.
+  const css = liesText("src/ui/stil.css");
+  assert.match(css, /\.unterzeile \{\s*margin: 0 0 1rem;\s*color: var\(--leise\);\s*\}/);
+  assert.doesNotMatch(css, /\.weiterlesen/);
+  assert.doesNotMatch(css, /\.unterzeile[^{]*\{[^}]*(?:white-space|font-size)/);
 });
 
 test("die Startseite verlinkt die Einführung von WATT als PDF, nur als Verweis in neuem Tab", () => {
-  const link = /<a href="([^"]+)" target="_blank" rel="noopener">Einfach erklärt: Wie WATT Nachweise sichert \(PDF, Unterlage von WATT\)<\/a>\./.exec(seite);
+  const link = /<a href="([^"]+)" target="_blank" rel="noopener">Einfach erklärt \(PDF\)<\/a>/.exec(seite);
   assert.ok(link, "Link zur Einführung");
   assert.equal(link[1], "https://aves83.github.io/watt_public/info/watt-nachweise-sichern.pdf");
   // Nur ein Link, keine Kopie: Die PDF steht nicht unter EUPL. Die Seite bettet sie nicht ein und ruft sie nicht ab.
   assert.equal(seite.split("watt-nachweise-sichern.pdf").length, 2);
   assert.doesNotMatch(seite, /<(?:iframe|embed|object|link)[^>]*watt-nachweise-sichern/);
   assert.doesNotMatch(liesText("src/ui/main.ts"), /watt-nachweise-sichern|watt_public\/info/);
-  // Der Link steht im Absatz „Über WATT“, der im Druck ausgeblendet ist (.kopf .unterzeile).
-  assert.match(seite, /<p class="unterzeile ueber">[^]*?watt-nachweise-sichern\.pdf[^]*?<\/p>/);
+  // Der Link steht in der Zeile „Weiterlesen“ im Kopf, die im Druck ausgeblendet ist (.kopf .unterzeile).
+  assert.match(seite, /<p class="unterzeile weiterlesen">[^]*?watt-nachweise-sichern\.pdf[^]*?<\/p>/);
   assert.match(liesText("src/ui/stil.css"), /@media print \{[^]*?\.kopf \.unterzeile,[^]*?display: none !important;/);
+});
+
+test("Fließtext enthält höchstens einen Link; mehrere Links stehen nur in Linkzeilen, mit „·“ getrennt (0.1.10)", () => {
+  // Linkzeilen sind die Fußzeile und „Weiterlesen“. Im Fließtext steht höchstens ein Link, und sein Text nennt das Ziel.
+  for (const datei of ["src/ui/seite.html", "src/ui/impressum.html", "src/ui/datenschutz.html"]) {
+    const html = liesText(datei);
+    for (const m of html.matchAll(/<p(?: class="([^"]*)")?>([\s\S]*?)<\/p>/g)) {
+      const inhalt = m[2]!;
+      const links = inhalt.match(/<a\b/g)?.length ?? 0;
+      if (links <= 1) continue;
+      const linkzeile = (m[1] ?? "").split(" ").includes("weiterlesen") || /<footer class="fuss">\s*$/.test(html.slice(0, m.index));
+      assert.ok(linkzeile, `${datei}: ${links} Links im Fließtext: ${inhalt.slice(0, 80)}`);
+      assert.doesNotMatch(inhalt, /<\/a>(?! · <a )[\s\S]*?<a /, `${datei}: Links nicht mit „·“ getrennt`);
+    }
+  }
 });
 
 test("der Datenschutzhinweis nennt den Verantwortlichen ohne Anschrift", () => {

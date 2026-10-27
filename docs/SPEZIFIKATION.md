@@ -1,4 +1,4 @@
-# WATTest – Spezifikation (Stand 27.10.2026, Grundlage watt_public 69b7418, Entscheidungen Achim eingearbeitet; umgesetzt in WATTest 0.1.9, siehe Abschnitt 13)
+# WATTest – Spezifikation (Stand 27.10.2026, Grundlage watt_public 69b7418, Entscheidungen Achim eingearbeitet; umgesetzt in WATTest 0.1.10, siehe Abschnitt 13)
 
 > **Stimmt WATT?** WATTest prüft Exporte der App WATT: ob die Arbeitszeitkette intakt ist, ob sie zu vorhandenen Ankern passt, ob die Daten zur Kette passen und, ab WATT „D“, ob die Kette vom echten WATT auf einem bestätigten Gerät stammt.
 
@@ -147,10 +147,10 @@ Entscheidung Achim 25.10.2026: WATTest setzt gleich auf WATT D auf (wenige Nutze
 ## 11. Entscheidungen und offene Punkte
 
 Entschieden (Achim 25.10.2026):
-1. Technische Erläuterung und Datenformat sind seit 25.10.2026 in watt_public veröffentlicht: [Technische Erläuterung](https://github.com/Aves83/watt_public/blob/main/doc/technische-erlaeuterung.md), [Datenformat](https://github.com/Aves83/watt_public/blob/main/doc/datenformat.md). Die Startseite verlinkt sie im Absatz „Über WATT“, die Fußzeile verlinkt WATT (`https://aves83.github.io/watt_public/`).
+1. Technische Erläuterung und Datenformat sind seit 25.10.2026 in watt_public veröffentlicht: [Technische Erläuterung](https://github.com/Aves83/watt_public/blob/main/doc/technische-erlaeuterung.md), [Datenformat](https://github.com/Aves83/watt_public/blob/main/doc/datenformat.md). Die Startseite verlinkt die Technische Erläuterung in der Zeile „Weiterlesen“ unter dem Absatz „Über WATT“, die Fußzeile verlinkt WATT (`https://aves83.github.io/watt_public/`).
 2. Beispieldateien von WATT (fiktive Daten) liegen im WATTest-Repository unter EUPL-1.2 mit dem Vermerk „fiktive Beispieldaten“.
 3. Adresse `https://aves83.github.io/wattest/`, Repository `Aves83/wattest`.
-4. Texte der Seite: Datenschutzhinweis ohne Anschrift („Verantwortlich ist Hans-Joachim Steudel, hans-joachim.steudel@tum.de.“), Impressum unverändert; Absatz „Über WATT“ unter der Einleitung der Startseite; Links darin öffnen in neuem Tab.
+4. Texte der Seite: Datenschutzhinweis ohne Anschrift („Verantwortlich ist Hans-Joachim Steudel, hans-joachim.steudel@tum.de.“), Impressum unverändert; Absatz „Über WATT“ unter der Einleitung der Startseite, darunter seit 0.1.10 die Linkzeile „Weiterlesen“; ihre Links öffnen in neuem Tab.
 
 Zurückgestellt (Achim 25.10.2026):
 - Prüfbarer Auszug für einen Zeitraum (Abschnitt 12). Alternative Achims: ein vollständiger Ketten-Export, der nur die Buchungen mit allem Zugehörigen enthält (Kette, Einträge, Abwesenheiten, Signaturen, Zertifikate), aber keine Einstellungen.
@@ -169,13 +169,14 @@ Ziel: Statt des vollständigen Klartexts nur einen Zeitraum weitergeben und trot
 - Sichtbar bleibt nur die Gesamtzahl der Glieder. Ein Anker auf ein verdecktes Glied prüft nur die Prüfsumme, nicht den Zeitpunkt.
 - Voraussetzung in WATT: Erweiterung der Buchungsdaten (JSON/XML im Export-Dialog) um diesen Auszug der Kette samt Signaturen und Zertifikaten; neue Formatversion bzw. Erweiterung von 19.
 
-## 13. Stand der Umsetzung (WATTest 0.1.9, 27.10.2026)
+## 13. Stand der Umsetzung (WATTest 0.1.10, 27.10.2026)
 
 - P1 bis P9 umgesetzt wie in Abschnitt 5; Einzelheiten der Deutung in `docs/ENTSCHEIDUNGEN.md` und `docs/UNKLARHEITEN.md`.
 - Abweichend von Abschnitt 9 sind PWA (Service Worker, installierbar) und QR mit der Kamera (über `BarcodeDetector`, nur wo vorhanden) schon in 0.1.0 enthalten.
 - Content Security Policy: `default-src none`, Skripte und Stile über Hashes, `worker-src self blob:`, `connect-src self` (Einzeldatei `none`), `img-src self data: blob:`, `manifest-src self`, `base-uri none`, `form-action none`.
-- Fußzeile (alle drei Seiten): „WATTest 0.1.9 · © 2026 Hans-Joachim Steudel · EUPL-1.2 · Quelltext · WATT · Impressum · Datenschutz“.
-- Startseite mit dem Absatz „Über WATT“ unter der Einleitung (Links auf WATT, die Technische Erläuterung, seit 0.1.9 die Einführung „Einfach erklärt: Wie WATT Nachweise sichert (PDF, Unterlage von WATT)“ unter `https://aves83.github.io/watt_public/info/watt-nachweise-sichern.pdf` und den Quelltext, alle in neuem Tab mit `rel="noopener"`); im Druck ausgeblendet wie die Einleitung. Die Einführung ist nur verlinkt, nicht kopiert (die PDF steht nicht unter EUPL); die CSP bleibt unverändert, weil ein Link eine Navigation ist und kein Abruf (`tests/bau.test.ts`, `tests/oberflaeche.test.ts`).
+- Fußzeile (alle drei Seiten): „WATTest 0.1.10 · © 2026 Hans-Joachim Steudel · EUPL-1.2 · Quelltext · WATT · Impressum · Datenschutz“.
+- Startseite mit dem Absatz „Über WATT“ unter der Einleitung, seit 0.1.10 ohne Link im Fließtext („Über WATT: WATT ist eine kostenlose Android-App (Beta) … prüft allein nach den veröffentlichten Unterlagen von WATT.“). Darunter die Zeile „Weiterlesen: Website von WATT · Technische Erläuterung · Einfach erklärt (PDF) · Quelltext von WATTest“ mit je einem Link (`https://aves83.github.io/watt_public/`, `https://github.com/Aves83/watt_public/blob/main/doc/technische-erlaeuterung.md`, `https://aves83.github.io/watt_public/info/watt-nachweise-sichern.pdf`, `https://github.com/Aves83/wattest`), alle in neuem Tab mit `rel="noopener"`, Trennzeichen „·“ außerhalb der Links; normale Schriftgröße, umbrechend, im Druck ausgeblendet wie die Einleitung (`.kopf .unterzeile`). Bis 0.1.9 standen die vier Links im Fließtext („Mehr zu WATT“, „veröffentlichten Unterlagen von WATT“, „Einfach erklärt: Wie WATT Nachweise sichert (PDF, Unterlage von WATT)“, „Quelltext“). Die Einführung ist nur verlinkt, nicht kopiert (die PDF steht nicht unter EUPL); die CSP bleibt unverändert, weil ein Link eine Navigation ist und kein Abruf (`tests/bau.test.ts`, `tests/oberflaeche.test.ts`).
+- Regel für Links (seit 0.1.10): Im Fließtext steht höchstens ein Link, und sein Text nennt das Ziel; mehrere Links stehen in einer eigenen Linkzeile (Fußzeile, „Weiterlesen“) mit „·“ als Trennzeichen außerhalb der Links. Ein Test prüft das für alle drei Seiten (`tests/oberflaeche.test.ts`). Impressum und Datenschutzhinweis entsprachen der Regel schon (je Absatz höchstens ein Link, der das Ziel nennt); Hilfen und Befund enthalten keine Links.
 - P4 prüft bei `uhr_ruecksprung` mit Uhrstand die Regel zum Bezug aus 4.7 („uhr_ruecksprung bei Einträgen mit Uhrstand“); ein Verstoß ist „?“ mit Glied-Nummer, nie ✗ (U-18, E-36). `uhr_ruecksprung` mit `objektId` `start` und `zeitsignal` erklärt einen Rücksprung wie `timer` und `nachweis` (8., Schritt 5).
 - Der Fingerabdruck des App-Signaturzertifikats steht in `daten/app-signatur.json` (TE 4.7, Schritt 3); die Teilaussage zur App-Signatur in P7 ist damit ✓ oder ✗.
 - Die Klarstellungen der Technischen Erläuterung vom 25.10.2026 bis 27.10.2026 sind übernommen (`docs/UNKLARHEITEN.md`, U-1 bis U-29 geklärt, keine offen; watt_public, Commit 69b7418, TE auf Stand f3810d5 von WATT, Vorabfassung; Datenformat und Schemas seit af05f6e unverändert); die Rechenbeispiele B1 bis B15 liest `scripts/vektoren-holen.mjs` aus den Codeblöcken der TE (B14 Bestandsprüfsumme in Form 2, B15 Änderungs-Glied mit `importiertAm`).

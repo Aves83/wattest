@@ -142,18 +142,23 @@ test("dist lädt keine fremden Adressen", () => {
   }
 });
 
-test("der Absatz „Über WATT“ verlinkt WATT, die Technische Erläuterung, die Einführung (PDF) und den Quelltext in neuem Tab", () => {
+test("die Zeile „Weiterlesen“ verlinkt WATT, die Technische Erläuterung, die Einführung (PDF) und den Quelltext in neuem Tab; der Absatz „Über WATT“ enthält keinen Link (0.1.10)", () => {
   for (const name of ["index.html", `wattest-${VERSION}.html`]) {
     const html = readFileSync(join(a, name), "utf8");
     const absatz = /<p class="unterzeile ueber">([\s\S]*?)<\/p>/.exec(html);
     assert.ok(absatz, name);
-    const links = [...absatz[1]!.matchAll(/<a ([^>]*)>([^<]*)<\/a>/g)].map((m) => [m[2], m[1]]);
+    assert.doesNotMatch(absatz[1]!, /<a\b/, `${name}: Link im Fließtext „Über WATT“`);
+    const zeile = /<p class="unterzeile weiterlesen">([\s\S]*?)<\/p>/.exec(html);
+    assert.ok(zeile, `${name}: Zeile „Weiterlesen“`);
+    const links = [...zeile[1]!.matchAll(/<a ([^>]*)>([^<]*)<\/a>/g)].map((m) => [m[2], m[1]]);
     assert.deepEqual(links, [
-      ["Mehr zu WATT", 'href="https://aves83.github.io/watt_public/" target="_blank" rel="noopener"'],
-      ["veröffentlichten Unterlagen von WATT", 'href="https://github.com/Aves83/watt_public/blob/main/doc/technische-erlaeuterung.md" target="_blank" rel="noopener"'],
-      ["Einfach erklärt: Wie WATT Nachweise sichert (PDF, Unterlage von WATT)", 'href="https://aves83.github.io/watt_public/info/watt-nachweise-sichern.pdf" target="_blank" rel="noopener"'],
-      ["Quelltext", 'href="https://github.com/Aves83/wattest" target="_blank" rel="noopener"'],
+      ["Website von WATT", 'href="https://aves83.github.io/watt_public/" target="_blank" rel="noopener"'],
+      ["Technische Erläuterung", 'href="https://github.com/Aves83/watt_public/blob/main/doc/technische-erlaeuterung.md" target="_blank" rel="noopener"'],
+      ["Einfach erklärt (PDF)", 'href="https://aves83.github.io/watt_public/info/watt-nachweise-sichern.pdf" target="_blank" rel="noopener"'],
+      ["Quelltext von WATTest", 'href="https://github.com/Aves83/wattest" target="_blank" rel="noopener"'],
     ]);
+    // Die Trennzeichen stehen zwischen den Links, nicht darin.
+    assert.equal(zeile[1]!.replace(/<a [^>]*>[^<]*<\/a>/g, "LINK"), "<strong>Weiterlesen:</strong> LINK · LINK · LINK · LINK");
     // Der Link zur Einführung ist nur ein Verweis (Navigation): Die CSP bleibt, kein Abruf, keine Einbettung.
     const c = csp(html);
     assert.deepEqual([...c.keys()].sort(), ["base-uri", "connect-src", "default-src", "form-action", "img-src", "manifest-src", "script-src", "style-src", "worker-src"]);
