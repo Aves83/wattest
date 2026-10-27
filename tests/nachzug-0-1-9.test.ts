@@ -2,7 +2,8 @@
 // WATTest © 2026 Hans-Joachim Steudel
 
 // Nachzug auf die Technische Erläuterung aus watt_public 69b7418 (Stand 27.10.2026, Vorabfassung): Wiederherstellung
-// als Eintrag 1 (4.7, U-29 geschlossen) und die Bereinigung der Dateinamen in sieben Schritten (6.3, E-67).
+// als Eintrag 1 (4.7, U-29 geschlossen) und die Bereinigung der Dateinamen in sieben Schritten (6.3, E-67). Seit 0.1.11
+// (Stand 3a11ea8): Schritt 7 ohne Endung (tests/nachzug-0-1-11.test.ts).
 
 import assert from "node:assert/strict";
 import { before, test } from "node:test";
@@ -21,8 +22,8 @@ before(async () => {
 
 const opt = () => ({ wurzeln: [z.wurzelDer], wurzelnStand: { abgerufen: "2026-10-25T00:00:00Z", quelle: "Test" }, appSignatur: APP_DIGEST_HEX });
 
-test("Unterlagen: Rechenbeispiele aus watt_public 69b7418, Stand 27.10.2026", () => {
-  assert.match(liesText("tests/vektoren/technische-erlaeuterung.json"), /Commit 69b7418\), Codeblöcke der Rechenbeispiele, Stand 27\.10\.2026/);
+test("Unterlagen: Rechenbeispiele seit watt_public 69b7418 unverändert (Quelle jetzt 3a11ea8), Stand 27.10.2026", () => {
+  assert.match(liesText("tests/vektoren/technische-erlaeuterung.json"), /Commit 3a11ea8\), Codeblöcke der Rechenbeispiele, Stand 27\.10\.2026/);
 });
 
 // 4.7, Stand 69b7418: „Dasselbe gilt für eine wiederherstellung als Eintrag 1 (Einspielen einer Sicherung in eine

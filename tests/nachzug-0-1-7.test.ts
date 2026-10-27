@@ -128,7 +128,7 @@ test("U-28: Vermerk zur Uhr und ein anderes Glied zwischen Wiederherstellung und
 
 test("4.7, 4.8: Zertifikat auf der Sperrliste ist „?“ nach der TE; die Gesamtzeile ist nie ✗", async () => {
   const te = liesText("tests/vektoren/technische-erlaeuterung.json");
-  assert.match(te, /69b7418/);
+  assert.match(te, /3a11ea8/);
   const e = await erzeugeKette({ eintraege: 2, zertifikate: z });
   const sperrliste = { abgerufen: "2026-10-26T00:00:00Z", quelle: "Test", eintraege: { [z.zwischenSeriennummer.toString(16)]: { status: "REVOKED", reason: "KEY_COMPROMISE" } } };
   const b = await befund([json("s.json", e.daten)], opt({ sperrliste }));

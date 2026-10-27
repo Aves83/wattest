@@ -1,5 +1,14 @@
 # Änderungen
 
+## 0.1.11 – 27.10.2026
+
+Nachzug auf den Stand 59b1fdb der Technischen Erläuterung (watt_public, Commit 3a11ea8 vom 27.10.2026, Vorabfassung). Bisher galt Commit 69b7418.
+
+- Unterlagen: Diff 69b7418..3a11ea8 von `doc/technische-erlaeuterung.md`, `doc/datenformat.md` und `schema/` gelesen. Geändert hat sich nur TE 6.3, Schritt 7: Ein leerer Name heißt `dokument`, ohne Endung („eine Endung gibt es dann nicht, weil sie nach Schritt 4 mindestens ein Zeichen vor dem Punkt voraussetzt und die Schritte 5 und 6 den Namen davor nicht leeren“). Datenformat, Schemas und Rechenbeispiele B1 bis B15 sind unverändert (`tests/vektoren/` nennt jetzt 3a11ea8); die übrigen Commits betreffen nur die Website von WATT.
+- P8: Die Nachbildung der Bereinigung folgt Schritt 7 im Wortlaut; der nicht erreichbare Zweig „`dokument` mit Endung“ ist entfernt. Die Wertung ändert sich nicht: `dokument`, `dokument (2)`, `dokument.pdf` und `dokument (2).pdf` sind weiter bereinigte Namen (E-67).
+- Tests: leerer Name, nur Leerraum und Punkte → `dokument`; `dokument.pdf` ist sein eigenes Ergebnis und bereinigt; alle Namen bis sechs Zeichen aus Punkt, Leerraum, Buchstabe und einem Zeichen außerhalb der Basisebene ergeben `dokument` genau dann, wenn nach Schritt 2 nur Punkte und Leerraum bleiben, und jedes Ergebnis ist bereinigt; lange Namen mit Endung werden nie `dokument`; Aufbau mit `dokument`, `dokument (2)`, `dokument.pdf`, `dokument (2).pdf` bestätigt (`tests/nachzug-0-1-11.test.ts`).
+- Dokumentation: SPEZIFIKATION, ENTSCHEIDUNGEN (E-67), UNKLARHEITEN (keine neue, keine offen), README.
+
 ## 0.1.10 – 27.10.2026
 
 Unterlagen unverändert (watt_public 69b7418); nur die Startseite.

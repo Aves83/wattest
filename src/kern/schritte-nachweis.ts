@@ -216,7 +216,11 @@ export function endungNach63(name: string): string {
   return endung.length >= 2 && endung.length <= 10 && !/\p{White_Space}/u.test(endung) ? endung : "";
 }
 
-/** Bereinigt den Dateinamen eines Dokuments wie WATT im ZIP des Aktenauszugs (6.3, Schritte 1 bis 7). */
+/**
+ * Bereinigt den Dateinamen eines Dokuments wie WATT im ZIP des Aktenauszugs (6.3, Schritte 1 bis 7). Schritt 7 (Stand
+ * 3a11ea8): Ein leerer Name ohne Endung heißt dokument. Eine Endung gibt es dann nicht: Schritt 4 setzt vor ihrem Punkt
+ * mindestens ein Zeichen voraus, das nach Schritt 3 weder Punkt noch Leerraum ist und Schritte 5 und 6 nicht entfernen.
+ */
 export function bereinigeDateiname(name: string): string {
   let s = name.replace(/[\\/:*?"<>|\u0000-\u001f\u007f]/g, "_");
   s = s.replaceAll("..", "_");
@@ -230,7 +234,7 @@ export function bereinigeDateiname(name: string): string {
     stamm = stamm.slice(0, zerteilt ? laenge - 1 : laenge);
   }
   stamm = stamm.replace(/[.\p{White_Space}]+$/u, "");
-  return (stamm || "dokument") + endung;
+  return stamm + endung || "dokument";
 }
 
 /**
