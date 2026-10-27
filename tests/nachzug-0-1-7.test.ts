@@ -128,7 +128,7 @@ test("U-28: Vermerk zur Uhr und ein anderes Glied zwischen Wiederherstellung und
 
 test("4.7, 4.8: Zertifikat auf der Sperrliste ist „?“ nach der TE; die Gesamtzeile ist nie ✗", async () => {
   const te = liesText("tests/vektoren/technische-erlaeuterung.json");
-  assert.match(te, /3a88095/);
+  assert.match(te, /69b7418/);
   const e = await erzeugeKette({ eintraege: 2, zertifikate: z });
   const sperrliste = { abgerufen: "2026-10-26T00:00:00Z", quelle: "Test", eintraege: { [z.zwischenSeriennummer.toString(16)]: { status: "REVOKED", reason: "KEY_COMPROMISE" } } };
   const b = await befund([json("s.json", e.daten)], opt({ sperrliste }));
@@ -139,10 +139,11 @@ test("4.7, 4.8: Zertifikat auf der Sperrliste ist „?“ nach der TE; die Gesam
 
 // 6.3: Aufbau des ZIP-Archivs zum Aktenauszug.
 
-test("6.3: Dateinamen werden in sechs Schritten bereinigt", () => {
+test("6.3: Dateinamen werden in sieben Schritten bereinigt (seit 0.1.9 nach dem Stand 69b7418)", () => {
   assert.equal(bereinigeDateiname('a\\b/c:d*e?f"g<h>i|j'), "a_b_c_d_e_f_g_h_i_j");
   assert.equal(bereinigeDateiname("x\u0000y\u001fz\u007f.pdf"), "x_y_z_.pdf");
-  assert.equal(bereinigeDateiname("..."), "_.");
+  // Aus „...“ wird zunächst „_.“ und nach Schritt 6 „_“ (bis 0.1.8: „_.“).
+  assert.equal(bereinigeDateiname("..."), "_");
   assert.equal(bereinigeDateiname("a....pdf"), "a__pdf");
   assert.equal(bereinigeDateiname("  .Anschreiben.pdf　"), "Anschreiben.pdf");
   // Ein Tabulator ist ein Steuerzeichen und wird in Schritt 1 zu _, bevor Schritt 3 Leerraum entfernt.

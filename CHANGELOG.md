@@ -1,5 +1,15 @@
 # Änderungen
 
+## 0.1.9 – 27.10.2026
+
+Nachzug auf den Stand f3810d5 der Technischen Erläuterung (watt_public, Commit 69b7418 vom 27.10.2026, Vorabfassung). Bisher galt Commit 3a88095.
+
+- P6: TE 4.7 schließt eine `wiederherstellung` als Eintrag 1 (Einspielen einer Sicherung in eine leere Kette) in den Abschnitt des ersten Schlüssels ein, wenn bis dahin nur Vermerke zur Uhr stehen. Die Wertung ist wieder ✓ wie in 0.1.7 (in 0.1.8 „?“); U-29 geschlossen, E-63 angepasst.
+- P8: Dateinamen im ZIP des Aktenauszugs nach den sieben Schritten der neuen TE 6.3: Punkte und Leerraum am Anfang entfallen gemeinsam; die Endung (ab dem letzten Punkt, wenn er nicht am Anfang steht, mindestens ein Zeichen folgt, die Endung mit Punkt höchstens 10 Zeichen hat und keinen Leerraum enthält) bleibt bei der Kürzung auf 120 Zeichen erhalten, ein zerteiltes Surrogatpaar entfällt; am Ende des Namens ohne Endung entfallen Leerraum und Punkte; ein leerer Name heißt `dokument` mit Endung. Ein Name ist bereinigt, wenn er (bzw. ohne einen Zusatz „ (n)“ vor dieser Endung) ein Ergebnis der Schritte sein kann: keines der Zeichen aus Schritt 1, kein „..“, weder Punkt noch Leerraum am Anfang oder am Ende, 1 bis 120 Zeichen. Leerraum am Anfang oder am Ende ist damit wieder eine Abweichung „?“ (0.1.8 ließ ihn nach dem damaligen Wortlaut zu; E-67). Der Zusatz „ (n)“ steht vor der Endung nach Schritt 4, ohne Endung am Ende („Bericht v1.2 final (2)“).
+- Startseite: Link „Einfach erklärt: Wie WATT Nachweise sichert (PDF, Unterlage von WATT)“ neben dem Link zur Technischen Erläuterung (neuer Tab, `rel="noopener"`); nur ein Verweis, keine Kopie (die PDF steht nicht unter EUPL), CSP unverändert, nicht im Druck.
+- Unterlagen: Diff 3a88095..69b7418 von `doc/technische-erlaeuterung.md`, `doc/datenformat.md` und `schema/` gelesen. Geändert hat sich nur die TE (1., 4.7, 6.3); Datenformat, Schemas und Rechenbeispiele B1 bis B15 sind unverändert (`tests/vektoren/` nennt jetzt 69b7418).
+- Tests: Beispiele aus 6.3 („. x.pdf“, „..\x.pdf“, „...“, 150 Zeichen mit .pdf, „Bericht v1.2 final“, leerer Name, Zusatz „ (2)“ vor derselben Endung), Endung nach Schritt 4, Kürzung mit Endung und zerteiltem Surrogatpaar, Aufbau mit Leerraum oder Punkt am Anfang oder Ende („?“), Wiederherstellung als Eintrag 1 mit und ohne andere Glieder vor dem ersten Schlüssel, Link zur Einführung mit unveränderter CSP (`tests/nachzug-0-1-9.test.ts`, `tests/bau.test.ts`, `tests/oberflaeche.test.ts`); die Fälle aus 0.1.7 und 0.1.8 sind an die neue Regel angepasst.
+
 ## 0.1.8 – 27.10.2026
 
 Nachzug auf den Stand a612454 der Technischen Erläuterung (watt_public, Commit 3a88095 vom 26.10.2026, Vorabfassung). Bisher galt Commit af05f6e.

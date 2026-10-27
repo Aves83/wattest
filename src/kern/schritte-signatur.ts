@@ -282,15 +282,16 @@ export async function pruefeSignaturen(k: Kontext): Promise<void> {
   // Herkunft (4.7, „Was eine gültige Signatur belegt“): Eine gültige Signatur bei Glied j deckt die Glieder ihres
   // Abschnitts vom Beginn (einschließlich) bis j. Der Abschnitt beginnt beim letzten Glied wiederherstellung bzw.
   // neubeginn vor j, wenn es nach dem ersten Glied schluessel mit status verfuegbar liegt oder wenn zwischen ihm und
-  // dem nächsten solchen Schlüssel nur Vermerke zur Uhr stehen (E-63, E-64); sonst beim ersten Schlüssel. Bei Eintrag 1
-  // beginnt ein Abschnitt nur mit neubeginn oder dem ersten Schlüssel (U-29). Glieder vor dem Beginn des ersten
-  // Abschnitts deckt keine Signatur. Die Teile der Kette zwischen diesen Grenzen heißen hier Herkunftsabschnitte.
+  // dem nächsten solchen Schlüssel nur Vermerke zur Uhr stehen (E-63, E-64); sonst beim ersten Schlüssel. Das gilt auch
+  // für eine wiederherstellung als Eintrag 1 (Einspielen einer Sicherung in eine leere Kette; U-29 geklärt mit dem
+  // Stand 69b7418). Glieder vor dem Beginn des ersten Abschnitts deckt keine Signatur. Die Teile der Kette zwischen
+  // diesen Grenzen heißen hier Herkunftsabschnitte.
   const ersterSchluessel = g.findIndex((x) => x.objektArt === "schluessel" && !x.datenUeberGrenze && x.json?.["status"] === "verfuegbar");
   let beginn = ersterSchluessel < 0 ? g.length : ersterSchluessel;
   if (ersterSchluessel > 0) {
     let w = ersterSchluessel - 1;
     while (w >= 0 && UHR_VERMERKE.has(g[w]!.objektArt)) w--;
-    if (w >= 0 && (g[w]!.objektArt === "neubeginn" || (g[w]!.objektArt === "wiederherstellung" && w > 0))) beginn = w;
+    if (w >= 0 && (g[w]!.objektArt === "neubeginn" || g[w]!.objektArt === "wiederherstellung")) beginn = w;
   }
   const herkunft: { von: number; bis: number; hoechste: number | null }[] = [];
   for (let i = beginn; i < g.length; i++) {

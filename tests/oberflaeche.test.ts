@@ -82,9 +82,22 @@ test("die Startseite erklärt unter der Einleitung, was WATT ist", () => {
   assert.match(absatz[1]!, /^<strong>Über WATT\.<\/strong> /);
   assert.equal(
     absatz[1]!.replace(/<[^>]+>/g, ""),
-    "Über WATT. WATT ist eine kostenlose Android-App (Beta), mit der verbeamtete Lehrkräfte ihre Arbeitszeit erfassen und nachweisen. Mehr zu WATT. WATTest stammt vom selben Anbieter, ist aber quelloffen und prüft allein nach den veröffentlichten Unterlagen von WATT. Den Quelltext kann jede:r nachprüfen.",
+    "Über WATT. WATT ist eine kostenlose Android-App (Beta), mit der verbeamtete Lehrkräfte ihre Arbeitszeit erfassen und nachweisen. Mehr zu WATT. WATTest stammt vom selben Anbieter, ist aber quelloffen und prüft allein nach den veröffentlichten Unterlagen von WATT. Einfach erklärt: Wie WATT Nachweise sichert (PDF, Unterlage von WATT). Den Quelltext kann jede:r nachprüfen.",
   );
   for (const m of absatz[1]!.matchAll(/<a [^>]*>/g)) assert.match(m[0], /target="_blank" rel="noopener"/);
+});
+
+test("die Startseite verlinkt die Einführung von WATT als PDF, nur als Verweis in neuem Tab", () => {
+  const link = /<a href="([^"]+)" target="_blank" rel="noopener">Einfach erklärt: Wie WATT Nachweise sichert \(PDF, Unterlage von WATT\)<\/a>\./.exec(seite);
+  assert.ok(link, "Link zur Einführung");
+  assert.equal(link[1], "https://aves83.github.io/watt_public/info/watt-nachweise-sichern.pdf");
+  // Nur ein Link, keine Kopie: Die PDF steht nicht unter EUPL. Die Seite bettet sie nicht ein und ruft sie nicht ab.
+  assert.equal(seite.split("watt-nachweise-sichern.pdf").length, 2);
+  assert.doesNotMatch(seite, /<(?:iframe|embed|object|link)[^>]*watt-nachweise-sichern/);
+  assert.doesNotMatch(liesText("src/ui/main.ts"), /watt-nachweise-sichern|watt_public\/info/);
+  // Der Link steht im Absatz „Über WATT“, der im Druck ausgeblendet ist (.kopf .unterzeile).
+  assert.match(seite, /<p class="unterzeile ueber">[^]*?watt-nachweise-sichern\.pdf[^]*?<\/p>/);
+  assert.match(liesText("src/ui/stil.css"), /@media print \{[^]*?\.kopf \.unterzeile,[^]*?display: none !important;/);
 });
 
 test("der Datenschutzhinweis nennt den Verantwortlichen ohne Anschrift", () => {
