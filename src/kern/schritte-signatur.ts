@@ -284,7 +284,7 @@ export async function pruefeSignaturen(k: Kontext): Promise<void> {
   // neubeginn vor j, wenn es nach dem ersten Glied schluessel mit status verfuegbar liegt oder wenn zwischen ihm und
   // dem nächsten solchen Schlüssel nur Vermerke zur Uhr stehen (E-63, E-64); sonst beim ersten Schlüssel. Das gilt auch
   // für eine wiederherstellung als Eintrag 1 (Einspielen einer Sicherung in eine leere Kette; U-29 geklärt mit dem
-  // Stand 69b7418). Glieder vor dem Beginn des ersten Abschnitts deckt keine Signatur. Die Teile der Kette zwischen
+  // Stand 5ac2327). Glieder vor dem Beginn des ersten Abschnitts deckt keine Signatur. Die Teile der Kette zwischen
   // diesen Grenzen heißen hier Herkunftsabschnitte.
   const ersterSchluessel = g.findIndex((x) => x.objektArt === "schluessel" && !x.datenUeberGrenze && x.json?.["status"] === "verfuegbar");
   let beginn = ersterSchluessel < 0 ? g.length : ersterSchluessel;

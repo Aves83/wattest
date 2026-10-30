@@ -140,7 +140,7 @@ test("U-6: Rücksprung bis zu uhr_verstellt mit richtung zurueck ist erklärt, d
   assert.match(texte(b, "P4"), /Der Vermerk uhr_verstellt erklärt seinen Zeitsprung nach der Rechnung in 4\.7\./);
 });
 
-// U-14: abweichungSekunden mit Vorzeichen (TE 4.7, Stand 29e8679). Die frühere Ersatz-Lesart (Betrag) entfällt.
+// U-14: abweichungSekunden mit Vorzeichen (TE 4.7, Stand 8b7bb58). Die frühere Ersatz-Lesart (Betrag) entfällt.
 
 async function mitVerstellung(vorherAbstand: number, sprungMs: number, daten: Record<string, unknown>, autoZeit = true): Promise<Daten> {
   const d = await kette();
@@ -339,7 +339,7 @@ test("U-6: zeitpunkt von uhr_verstellt vor nachher (Dauer des Vorgangs) und folg
 });
 
 // U-18: uhr_ruecksprung bei Gliedern mit Uhrstand nur ohne Bezug (TE 4.7, „Bezug“ und „uhr_ruecksprung bei Einträgen
-// mit Uhrstand“; 8., Schritt 5; watt_public 2256305). Ein Verstoß ist „?“, nie ✗.
+// mit Uhrstand“; 8., Schritt 5; watt_public 4b6401b). Ein Verstoß ist „?“, nie ✗.
 
 const REGEL_OK = /uhr_ruecksprung mit Uhrstand (entstand|entstanden) ohne Bezug, wie 4\.7 es beschreibt\./;
 const REGEL_VERSTOSS = /uhr_ruecksprung (passt|passen) nicht zur Regel für den Bezug in 4\.7\./;

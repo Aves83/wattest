@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: EUPL-1.2
 // WATTest © 2026 Hans-Joachim Steudel
 
-// Nachzug auf die Technische Erläuterung aus watt_public 3a88095 (Stand 26.10.2026, Vorabfassung): Beginn der
+// Nachzug auf die Technische Erläuterung aus watt_public 48fe38a (Stand 26.10.2026, Vorabfassung): Beginn der
 // Herkunft nach 4.7 (U-28 geschlossen, U-29) und gleiche Dateinamen im ZIP des Aktenauszugs (6.3, E-67). Seit 0.1.9
-// (Stand 69b7418): U-29 geschlossen, Bereinigung in sieben Schritten (tests/nachzug-0-1-9.test.ts).
+// (Stand 5ac2327): U-29 geschlossen, Bereinigung in sieben Schritten (tests/nachzug-0-1-9.test.ts).
 
 import assert from "node:assert/strict";
 import { before, test } from "node:test";
@@ -43,11 +43,11 @@ async function einfuegen(e: Erzeugt, i: number, glieder: Record<string, unknown>
 
 const bestaetigt = (b: Awaited<ReturnType<typeof befund>>): string | undefined => b.aussagen.find((a) => a.schritt === "P6" && a.zeichen === "bestaetigt")?.text;
 
-test("Rechenbeispiele B1 bis B15 sind seit watt_public 3a88095 unverändert (Quelle jetzt 3a11ea8)", () => {
-  assert.match(liesText("tests/vektoren/technische-erlaeuterung.json"), /Commit 3a11ea8\), Codeblöcke der Rechenbeispiele, Stand 27\.10\.2026/);
+test("Rechenbeispiele B1 bis B15 sind seit watt_public 48fe38a unverändert (Quelle jetzt b9ca278)", () => {
+  assert.match(liesText("tests/vektoren/technische-erlaeuterung.json"), /Commit b9ca278\), Codeblöcke der Rechenbeispiele, Stand 27\.10\.2026/);
 });
 
-// 4.7, Stand 3a88095: Der Abschnitt beginnt beim letzten Glied wiederherstellung bzw. neubeginn vor j, wenn es nach
+// 4.7, Stand 48fe38a: Der Abschnitt beginnt beim letzten Glied wiederherstellung bzw. neubeginn vor j, wenn es nach
 // dem ersten Glied schluessel mit status verfuegbar liegt, auch wenn bis zum nächsten Schlüssel andere Glieder folgen.
 
 test("4.7: Wiederherstellung nach dem ersten Schlüssel, danach andere Glieder vor dem neuen Schlüssel: Herkunft ab der Wiederherstellung", async () => {
@@ -64,7 +64,7 @@ test("4.7: Wiederherstellung nach dem ersten Schlüssel, danach andere Glieder v
 });
 
 // U-29: Bis 0.1.8 begann bei Eintrag 1 ein Abschnitt nur mit neubeginn bzw. dem ersten Schlüssel (Wertung „?“ für
-// die Glieder 1–2). Seit dem Stand 69b7418 schließt 4.7 eine wiederherstellung als Eintrag 1 ein (U-29 geklärt): Der
+// die Glieder 1–2). Seit dem Stand 5ac2327 schließt 4.7 eine wiederherstellung als Eintrag 1 ein (U-29 geklärt): Der
 // Abschnitt des ersten Schlüssels beginnt bei Eintrag 1, wie in 0.1.7.
 
 test("4.7, U-29: wiederherstellung als Eintrag 1, nur Vermerke zur Uhr bis zum ersten Schlüssel: Herkunft ab Eintrag 1", async () => {
@@ -79,7 +79,7 @@ test("4.7, U-29: wiederherstellung als Eintrag 1, nur Vermerke zur Uhr bis zum e
   assert.ok(!b.aussagen.some((a) => a.schritt === "P6" && a.zeichen === "widerlegt"), texte(b, "P6"));
 });
 
-// 6.3, Stand 3a88095: gleiche Namen in einem Ordner erhalten vor der Endung „ (n)“, n ab 2.
+// 6.3, Stand 48fe38a: gleiche Namen in einem Ordner erhalten vor der Endung „ (n)“, n ab 2.
 
 test("6.3, E-67: Ergebnis der Bereinigung und Zusatz „ (n)“", () => {
   for (const name of ["Anschreiben.pdf", "Anschreiben (2).pdf", "Anschreiben (3).pdf", "Anschreiben (2) (2).pdf", "Anschreiben (12).pdf", "Anschreiben", "Anschreiben (2)", "dokument", "dokument (2)", "anschreiben.pdf"]) {
@@ -100,7 +100,7 @@ test("6.3, E-67: Ergebnis der Bereinigung und Zusatz „ (n)“", () => {
   assert.ok(!istBereinigt(" (2).pdf"), "seit 0.1.9: aus „. (2).pdf“ wird „(2).pdf“, der Rest „.pdf“ wäre leer");
   assert.ok(istBereinigt("(2).pdf"));
   assert.ok(!istBereinigt(`a..b${"c".repeat(120)} (2).pdf`));
-  // Seit 0.1.9 (Stand 69b7418, Schritte 3 und 6): weder Leerraum noch Punkt am Anfang oder am Ende, auch nicht nach
+  // Seit 0.1.9 (Stand 5ac2327, Schritte 3 und 6): weder Leerraum noch Punkt am Anfang oder am Ende, auch nicht nach
   // der Kürzung auf 120 Zeichen; bis 0.1.8 waren Leerraum am Anfang und am Ende bei genau 120 Zeichen zulässig.
   assert.ok(!istBereinigt(" Anschreiben.pdf"));
   assert.ok(!istBereinigt(`${"a".repeat(119)} `));

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // WATTest © 2026 Hans-Joachim Steudel
 
-// Nachzug auf die Technische Erläuterung vom 26.10.2026 (watt_public f314de3): Wertung nach 4.8, Glieder ohne
+// Nachzug auf die Technische Erläuterung vom 26.10.2026 (watt_public 206c481): Wertung nach 4.8, Glieder ohne
 // Uhrstand, Herkunft der Signaturen (4.7), „Importiert am“ und Bestandsform 2 (4.6, 7.1), Aktenauszug mit
 // PRUEFEN.txt (6.).
 

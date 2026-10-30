@@ -72,7 +72,7 @@ test("App mit fremdem Signaturzertifikat gegen den Fingerabdruck von WATT: P7 wi
 // Challenge (TE 4.7): hash des Kopfs vor dem Glied schluessel; Ausnahme uhr_verstellt mit objektId glied.
 
 /**
- * Herkunft seit 0.1.7 (TE 4.7, watt_public af05f6e, U-27; seit 3a88095 „Beginn des ersten Abschnitts“): Signaturen decken die Glieder erst ab dem ersten Glied
+ * Herkunft seit 0.1.7 (TE 4.7, watt_public d11ee68, U-27; seit 48fe38a „Beginn des ersten Abschnitts“): Signaturen decken die Glieder erst ab dem ersten Glied
  * schluessel mit status verfuegbar; die Glieder davor sind „?“, die übrigen bleiben ✓.
  */
 function vorErstemSchluessel(b: Awaited<ReturnType<typeof befund>>, gedeckt: string, davor: string): void {
@@ -222,7 +222,7 @@ test("Bootloader offen: P7 nicht bestätigbar", async () => {
 });
 
 test("gesperrtes Zwischenzertifikat: P7 nicht bestätigbar mit Seriennummer, Status und Grund (E-55)", async () => {
-  // TE 4.7 und 4.8 (watt_public af05f6e), zuvor Entscheidung Achim 26.10.2026: Die Sperrliste nennt keinen Zeitpunkt
+  // TE 4.7 und 4.8 (watt_public d11ee68), zuvor Entscheidung Achim 26.10.2026: Die Sperrliste nennt keinen Zeitpunkt
   // der Sperre; bis 0.1.5 war das ✗ (U-25).
   const e = await erzeugeKette({ eintraege: 2, zertifikate: z });
   const nr = z.zwischenSeriennummer.toString(16);

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: EUPL-1.2
 // WATTest © 2026 Hans-Joachim Steudel
 
-// Nachzug auf die Technische Erläuterung aus watt_public 69b7418 (Stand 27.10.2026, Vorabfassung): Wiederherstellung
+// Nachzug auf die Technische Erläuterung aus watt_public 5ac2327 (Stand 27.10.2026, Vorabfassung): Wiederherstellung
 // als Eintrag 1 (4.7, U-29 geschlossen) und die Bereinigung der Dateinamen in sieben Schritten (6.3, E-67). Seit 0.1.11
-// (Stand 3a11ea8): Schritt 7 ohne Endung (tests/nachzug-0-1-11.test.ts).
+// (Stand b9ca278): Schritt 7 ohne Endung (tests/nachzug-0-1-11.test.ts).
 
 import assert from "node:assert/strict";
 import { before, test } from "node:test";
@@ -22,11 +22,11 @@ before(async () => {
 
 const opt = () => ({ wurzeln: [z.wurzelDer], wurzelnStand: { abgerufen: "2026-10-25T00:00:00Z", quelle: "Test" }, appSignatur: APP_DIGEST_HEX });
 
-test("Unterlagen: Rechenbeispiele seit watt_public 69b7418 unverändert (Quelle jetzt 3a11ea8), Stand 27.10.2026", () => {
-  assert.match(liesText("tests/vektoren/technische-erlaeuterung.json"), /Commit 3a11ea8\), Codeblöcke der Rechenbeispiele, Stand 27\.10\.2026/);
+test("Unterlagen: Rechenbeispiele seit watt_public 5ac2327 unverändert (Quelle jetzt b9ca278), Stand 27.10.2026", () => {
+  assert.match(liesText("tests/vektoren/technische-erlaeuterung.json"), /Commit b9ca278\), Codeblöcke der Rechenbeispiele, Stand 27\.10\.2026/);
 });
 
-// 4.7, Stand 69b7418: „Dasselbe gilt für eine wiederherstellung als Eintrag 1 (Einspielen einer Sicherung in eine
+// 4.7, Stand 5ac2327: „Dasselbe gilt für eine wiederherstellung als Eintrag 1 (Einspielen einer Sicherung in eine
 // leere Kette): Folgt ihr bis zum ersten Eintrag schluessel mit status verfuegbar nichts als Vermerke zur Uhr, beginnt
 // der Abschnitt dieses Schlüssels bei Eintrag 1.“ Der Fall mit Vermerken zur Uhr steht in tests/nachzug-0-1-8.test.ts.
 
@@ -63,7 +63,7 @@ test("4.7, U-29: wiederherstellung als Eintrag 1 mit einem anderen Glied vor dem
   assert.ok(!b.aussagen.some((a) => a.schritt === "P6" && a.zeichen === "widerlegt"), texte(b, "P6"));
 });
 
-// 6.3, Stand 69b7418: sieben Schritte, Beispiele aus der TE.
+// 6.3, Stand 5ac2327: sieben Schritte, Beispiele aus der TE.
 
 test("6.3: die Beispiele der TE zur Bereinigung", () => {
   assert.equal(bereinigeDateiname(". x.pdf"), "x.pdf");

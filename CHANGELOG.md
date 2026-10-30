@@ -2,16 +2,16 @@
 
 ## 0.1.11 – 27.10.2026
 
-Nachzug auf den Stand 59b1fdb der Technischen Erläuterung (watt_public, Commit 3a11ea8 vom 27.10.2026, Vorabfassung). Bisher galt Commit 69b7418.
+Nachzug auf den Stand 59b1fdb der Technischen Erläuterung (watt_public, Commit b9ca278 vom 27.10.2026, Vorabfassung). Bisher galt Commit 5ac2327.
 
-- Unterlagen: Diff 69b7418..3a11ea8 von `doc/technische-erlaeuterung.md`, `doc/datenformat.md` und `schema/` gelesen. Geändert hat sich nur TE 6.3, Schritt 7: Ein leerer Name heißt `dokument`, ohne Endung („eine Endung gibt es dann nicht, weil sie nach Schritt 4 mindestens ein Zeichen vor dem Punkt voraussetzt und die Schritte 5 und 6 den Namen davor nicht leeren“). Datenformat, Schemas und Rechenbeispiele B1 bis B15 sind unverändert (`tests/vektoren/` nennt jetzt 3a11ea8); die übrigen Commits betreffen nur die Website von WATT.
+- Unterlagen: Diff 5ac2327..b9ca278 von `doc/technische-erlaeuterung.md`, `doc/datenformat.md` und `schema/` gelesen. Geändert hat sich nur TE 6.3, Schritt 7: Ein leerer Name heißt `dokument`, ohne Endung („eine Endung gibt es dann nicht, weil sie nach Schritt 4 mindestens ein Zeichen vor dem Punkt voraussetzt und die Schritte 5 und 6 den Namen davor nicht leeren“). Datenformat, Schemas und Rechenbeispiele B1 bis B15 sind unverändert (`tests/vektoren/` nennt jetzt b9ca278); die übrigen Commits betreffen nur die Website von WATT.
 - P8: Die Nachbildung der Bereinigung folgt Schritt 7 im Wortlaut; der nicht erreichbare Zweig „`dokument` mit Endung“ ist entfernt. Die Wertung ändert sich nicht: `dokument`, `dokument (2)`, `dokument.pdf` und `dokument (2).pdf` sind weiter bereinigte Namen (E-67).
 - Tests: leerer Name, nur Leerraum und Punkte → `dokument`; `dokument.pdf` ist sein eigenes Ergebnis und bereinigt; alle Namen bis sechs Zeichen aus Punkt, Leerraum, Buchstabe und einem Zeichen außerhalb der Basisebene ergeben `dokument` genau dann, wenn nach Schritt 2 nur Punkte und Leerraum bleiben, und jedes Ergebnis ist bereinigt; lange Namen mit Endung werden nie `dokument`; Aufbau mit `dokument`, `dokument (2)`, `dokument.pdf`, `dokument (2).pdf` bestätigt (`tests/nachzug-0-1-11.test.ts`).
 - Dokumentation: SPEZIFIKATION, ENTSCHEIDUNGEN (E-67), UNKLARHEITEN (keine neue, keine offen), README.
 
 ## 0.1.10 – 27.10.2026
 
-Unterlagen unverändert (watt_public 69b7418); nur die Startseite.
+Unterlagen unverändert (watt_public 5ac2327); nur die Startseite.
 
 - Startseite: Der Absatz „Über WATT“ ist jetzt Fließtext ohne Links („Über WATT: WATT ist eine kostenlose Android-App (Beta), mit der verbeamtete Lehrkräfte ihre Arbeitszeit erfassen und nachweisen. WATTest stammt vom selben Anbieter, ist aber quelloffen und prüft allein nach den veröffentlichten Unterlagen von WATT.“). Darunter steht die Zeile „Weiterlesen: Website von WATT · Technische Erläuterung · Einfach erklärt (PDF) · Quelltext von WATTest“ mit den bisherigen vier Zielen (neuer Tab, `rel="noopener"`, Trennzeichen „·“ außerhalb der Links), in normaler Schriftgröße, umbrechend, nicht im Druck. Bis 0.1.9 war fast der ganze Absatz Link, und „veröffentlichten Unterlagen von WATT“ führte auf die Technische Erläuterung statt auf eine Beschreibung von WATT. CSS und CSP unverändert.
 - Regel: Im Fließtext steht höchstens ein Link, und sein Text nennt das Ziel; mehrere Links stehen in einer Linkzeile mit „·“. Impressum und Datenschutzhinweis entsprachen ihr schon; Hilfen und Befund enthalten keine Links.
@@ -19,37 +19,37 @@ Unterlagen unverändert (watt_public 69b7418); nur die Startseite.
 
 ## 0.1.9 – 27.10.2026
 
-Nachzug auf den Stand f3810d5 der Technischen Erläuterung (watt_public, Commit 69b7418 vom 27.10.2026, Vorabfassung). Bisher galt Commit 3a88095.
+Nachzug auf den Stand f3810d5 der Technischen Erläuterung (watt_public, Commit 5ac2327 vom 27.10.2026, Vorabfassung). Bisher galt Commit 48fe38a.
 
 - P6: TE 4.7 schließt eine `wiederherstellung` als Eintrag 1 (Einspielen einer Sicherung in eine leere Kette) in den Abschnitt des ersten Schlüssels ein, wenn bis dahin nur Vermerke zur Uhr stehen. Die Wertung ist wieder ✓ wie in 0.1.7 (in 0.1.8 „?“); U-29 geschlossen, E-63 angepasst.
 - P8: Dateinamen im ZIP des Aktenauszugs nach den sieben Schritten der neuen TE 6.3: Punkte und Leerraum am Anfang entfallen gemeinsam; die Endung (ab dem letzten Punkt, wenn er nicht am Anfang steht, mindestens ein Zeichen folgt, die Endung mit Punkt höchstens 10 Zeichen hat und keinen Leerraum enthält) bleibt bei der Kürzung auf 120 Zeichen erhalten, ein zerteiltes Surrogatpaar entfällt; am Ende des Namens ohne Endung entfallen Leerraum und Punkte; ein leerer Name heißt `dokument` mit Endung. Ein Name ist bereinigt, wenn er (bzw. ohne einen Zusatz „ (n)“ vor dieser Endung) ein Ergebnis der Schritte sein kann: keines der Zeichen aus Schritt 1, kein „..“, weder Punkt noch Leerraum am Anfang oder am Ende, 1 bis 120 Zeichen. Leerraum am Anfang oder am Ende ist damit wieder eine Abweichung „?“ (0.1.8 ließ ihn nach dem damaligen Wortlaut zu; E-67). Der Zusatz „ (n)“ steht vor der Endung nach Schritt 4, ohne Endung am Ende („Bericht v1.2 final (2)“).
 - Startseite: Link „Einfach erklärt: Wie WATT Nachweise sichert (PDF, Unterlage von WATT)“ neben dem Link zur Technischen Erläuterung (neuer Tab, `rel="noopener"`); nur ein Verweis, keine Kopie (die PDF steht nicht unter EUPL), CSP unverändert, nicht im Druck.
-- Unterlagen: Diff 3a88095..69b7418 von `doc/technische-erlaeuterung.md`, `doc/datenformat.md` und `schema/` gelesen. Geändert hat sich nur die TE (1., 4.7, 6.3); Datenformat, Schemas und Rechenbeispiele B1 bis B15 sind unverändert (`tests/vektoren/` nennt jetzt 69b7418).
+- Unterlagen: Diff 48fe38a..5ac2327 von `doc/technische-erlaeuterung.md`, `doc/datenformat.md` und `schema/` gelesen. Geändert hat sich nur die TE (1., 4.7, 6.3); Datenformat, Schemas und Rechenbeispiele B1 bis B15 sind unverändert (`tests/vektoren/` nennt jetzt 5ac2327).
 - Tests: Beispiele aus 6.3 („. x.pdf“, „..\x.pdf“, „...“, 150 Zeichen mit .pdf, „Bericht v1.2 final“, leerer Name, Zusatz „ (2)“ vor derselben Endung), Endung nach Schritt 4, Kürzung mit Endung und zerteiltem Surrogatpaar, Aufbau mit Leerraum oder Punkt am Anfang oder Ende („?“), Wiederherstellung als Eintrag 1 mit und ohne andere Glieder vor dem ersten Schlüssel, Link zur Einführung mit unveränderter CSP (`tests/nachzug-0-1-9.test.ts`, `tests/bau.test.ts`, `tests/oberflaeche.test.ts`); die Fälle aus 0.1.7 und 0.1.8 sind an die neue Regel angepasst.
 
 ## 0.1.8 – 27.10.2026
 
-Nachzug auf den Stand a612454 der Technischen Erläuterung (watt_public, Commit 3a88095 vom 26.10.2026, Vorabfassung). Bisher galt Commit af05f6e.
+Nachzug auf den Stand a612454 der Technischen Erläuterung (watt_public, Commit 48fe38a vom 26.10.2026, Vorabfassung). Bisher galt Commit d11ee68.
 
 - P6: TE 4.7 regelt den Beginn der Herkunft jetzt so, wie WATTest es seit 0.1.7 tut: Der Abschnitt beginnt beim letzten Glied `wiederherstellung` bzw. `neubeginn` vor j, wenn es nach dem ersten Glied `schluessel` mit status `verfuegbar` liegt oder zwischen ihm und dem nächsten solchen Schlüssel nur Vermerke zur Uhr stehen, sonst beim ersten Schlüssel (U-28 geklärt, E-63, E-64). Die Wertungen bleiben; Begründung und Einzelheiten verweisen auf 4.7 statt auf U-28 und sagen wie die TE „vor dem Beginn des ersten Abschnitts“. Eine `wiederherstellung` als Eintrag 1 beginnt nach dem ausdrücklichen Satz der TE zu Eintrag 1 keinen Abschnitt (U-29, offen; bis 0.1.7 ✓, jetzt „?“).
 - P8: Gleiche Dateinamen in einem Ordner `Eintrag_NN` erhalten nach TE 6.3 vor der Endung „ (n)“ mit n ab 2. Ein solcher Name ist keine Abweichung im Aufbau mehr; die 120 Zeichen gelten für den Namen ohne Zusatz. Ob ein Name bereinigt ist, prüft P8 jetzt danach, ob er ein Ergebnis der sechs Schritte sein kann: Leerraum am Anfang (nach entfernten Punkten) und am Ende nach der Kürzung auf genau 120 Zeichen sind keine Abweichung mehr (E-67). Zwei exakt gleiche Pfade bleiben „?“. Die Grenze der Prüfung (gespeicherte Namen unbekannt) steht in `GRENZE.aufbau`.
-- Unterlagen: Diff af05f6e..3a88095 von `doc/technische-erlaeuterung.md`, `doc/datenformat.md` und `schema/` gelesen. Geändert hat sich nur die TE (1., 4.7, 6.3, 8. Schritt 9, Tabelle 12); Datenformat, Schemas und Rechenbeispiele B1 bis B15 sind unverändert (`tests/vektoren/` nennt jetzt 3a88095).
+- Unterlagen: Diff d11ee68..48fe38a von `doc/technische-erlaeuterung.md`, `doc/datenformat.md` und `schema/` gelesen. Geändert hat sich nur die TE (1., 4.7, 6.3, 8. Schritt 9, Tabelle 12); Datenformat, Schemas und Rechenbeispiele B1 bis B15 sind unverändert (`tests/vektoren/` nennt jetzt 48fe38a).
 - Tests: Wiederherstellung nach dem ersten Schlüssel mit anderen Gliedern bis zum neuen Schlüssel, Wiederherstellung als Eintrag 1, gleiche Namen mit „ (2)“ und „ (3)“, Name ohne Punkt, 120 Zeichen plus Zusatz (zulässig und zu lang), Groß- und Kleinschreibung, exakt doppelter Pfad, Ergebnisse der Bereinigung mit und ohne Zusatz; Verweise der Tests aus 0.1.7 angepasst, der Test „Dateiname nicht bereinigt“ mit Leerraum am Ende statt am Anfang (E-67).
 
 ## 0.1.7 – 26.10.2026
 
-Nachzug auf den Stand faea58b der Technischen Erläuterung (watt_public, Commit af05f6e vom 26.10.2026, Vorabfassung aus „Spezifikation Teil 2“). Bisher galt Commit f314de3. Hashes von watt_public seit 0.1.7 nach der Bereinigung vom 26.10.2026: Die Historie von watt_public wurde umgeschrieben (nur Autor und Commit-Nachrichten, Inhalte unverändert); alle Verweise in WATTest, auch in den Einträgen unten, nennen die neuen Hashes.
+Nachzug auf den Stand faea58b der Technischen Erläuterung (watt_public, Commit d11ee68 vom 26.10.2026, Vorabfassung aus „Spezifikation Teil 2“). Bisher galt Commit 206c481. Hashes von watt_public seit 0.1.7 nach der Bereinigung vom 26.10.2026: Die Historie von watt_public wurde umgeschrieben (nur Autor und Commit-Nachrichten, Inhalte unverändert); alle Verweise in WATTest, auch in den Einträgen unten, nennen die neuen Hashes.
 
 - P6: Die Herkunft der Signaturen beginnt nach TE 4.7 frühestens beim ersten Glied `schluessel` mit status `verfuegbar`. Glieder davor sind „?“ mit dem Satz „Belegt ist nur, dass sie beim ersten Schlüssel in WATT lagen.“ (bis 0.1.6 deckte eine spätere Signatur sie mit; U-27). Abweichend von der TE gehört ein Glied `neubeginn` bzw. `wiederherstellung` vor dem ersten Schlüssel samt den Vermerken zur Uhr dazwischen zum Abschnitt dieses Schlüssels (Entscheidung Achim 26.10.2026, U-28, E-63, E-64).
 - P7: Ein Zertifikat auf der Sperrliste ist jetzt auch nach der TE (4.7, 4.8) „nicht bestätigbar“; die Wertung („?“) bleibt (U-25).
 - P8: Aufbau des ZIP-Archivs zum Aktenauszug nach TE 6.3, wenn es eine `PRUEFEN.txt` enthält: Ordner `Eintrag_NN` (mindestens zwei Ziffern, ab 01, steigend, Lücken zulässig), Dateinamen nach den sechs Schritten der Bereinigung, in der Wurzel nur `Technische-Erlaeuterung.pdf`, `PRUEFEN.txt` (UTF-8 ohne BOM, CRLF) und als letzte Datei `SHA256SUMS.txt` (ohne BOM, LF, eine Zeile je anderer Datei in Archivreihenfolge, keine für sich selbst), gleiche Änderungszeit aller Einträge. Eine Abweichung ist „?“, eine veränderte Datei bleibt ✗ (U-26, E-62). Bei mehreren `SHA256SUMS.txt` gilt die flachste (E-66). Der ZIP-Leser liefert dazu die Änderungszeit der Einträge.
 - Texte: Datenschutzhinweis und Einleitung der Startseite ohne Anrede („… verlässt den Rechner.“); ein Test durchsucht alle sichtbaren Texte nach „du“, „dein…“, „dir“, „dich“ (E-65). Der unerklärte Rücksprung bleibt „?“.
-- Unterlagen: Diff f314de3..af05f6e von `doc/technische-erlaeuterung.md`, `doc/datenformat.md` und `schema/` gelesen. Neu für die Prüfung: 4.7 (Herkunft ab dem ersten Schlüssel, Sperrliste), 4.8 (Sperrliste), 6.3 (ZIP des Aktenauszugs), 8. Schritt 8 und 9. Datenformat nur mit umbenannten Kennungen aus Prüfberichten, Schemas unverändert, Rechenbeispiele B1 bis B15 unverändert. U-25 bis U-27 geklärt, U-28 neu offen.
+- Unterlagen: Diff 206c481..d11ee68 von `doc/technische-erlaeuterung.md`, `doc/datenformat.md` und `schema/` gelesen. Neu für die Prüfung: 4.7 (Herkunft ab dem ersten Schlüssel, Sperrliste), 4.8 (Sperrliste), 6.3 (ZIP des Aktenauszugs), 8. Schritt 8 und 9. Datenformat nur mit umbenannten Kennungen aus Prüfberichten, Schemas unverändert, Rechenbeispiele B1 bis B15 unverändert. U-25 bis U-27 geklärt, U-28 neu offen.
 - Tests: Herkunft vor dem ersten Schlüssel (mehrere Glieder, ein Glied, kein verfügbarer Schlüssel), U-28 mit `neubeginn` und `wiederherstellung` (mit und ohne anderes Glied vor dem Schlüssel), Sperrliste nach der TE, Bereinigung der Dateinamen, Aktenauszug nach 6.3 und jede einzelne Abweichung („?“, nie ✗), Anrede; bestehende Tests mit Gliedern vor dem ersten Schlüssel erwarten dort jetzt „?“ (Verweis auf U-27).
 
 ## 0.1.6 – 26.10.2026
 
-Nachzug auf den Stand der Technischen Erläuterung vom 26.10.2026 (watt_public, Commit f314de3; TE und Datenformat auf Stand 9dfd642 von WATT, Vorabfassung). Bisher galt Commit 2256305.
+Nachzug auf den Stand der Technischen Erläuterung vom 26.10.2026 (watt_public, Commit 206c481; TE und Datenformat auf Stand 9dfd642 von WATT, Vorabfassung). Bisher galt Commit 4b6401b.
 
 - Wertung nach TE 4.8: „Hinweis“ → i, „nicht bestätigbar“ → ?; ✗ bleibt für Bruch der Kette, Datenabweichung und widerlegte Signatur. Die Zuordnung jeder Stelle aus 4.8 steht als Tabelle in der Spezifikation, Abschnitt 6.1 (E-51).
 - P2: Ein Glied ohne Uhrstand nach einem Glied mit Uhrstand ist kein Bruch, sondern „?“ mit Anzahl und erstem Glied; P2 bleibt ✓, wenn die Prüfsummen stimmen. Ein Glied mit nur einem der beiden Felder bleibt ein Bruch (4.2, E-52).
@@ -65,7 +65,7 @@ Nachzug auf den Stand der Technischen Erläuterung vom 26.10.2026 (watt_public, 
 
 ## 0.1.5 – 25.10.2026
 
-Härtung gegen manipulierte Dateien und klarere Befunde. Die Unterlagen von WATT sind unverändert (watt_public, Commit 2256305).
+Härtung gegen manipulierte Dateien und klarere Befunde. Die Unterlagen von WATT sind unverändert (watt_public, Commit 4b6401b).
 
 - Feste Grenzen für Eingaben von Dritten, zentral in `src/kern/grenzen.ts` und in der Spezifikation (Abschnitt 14): Datei 200 MB, 1 Mio. Glieder, 1 Mio. Signaturen, 256 Schlüssel, 8 Zertifikate je Schlüssel, Zertifikat 8 KB, Signatur 128 Bytes, Verschachtelung DER 32, JSON und XML 64 Ebenen, XML 32 Attribute, ZIP 10.000 Einträge, 200 MB je Eintrag, 512 MB zusammen, Verhältnis 250 : 1. Darüber „?“ mit Hinweis auf die Grenze, nie ✗ und kein Absturz (E-41).
 - DER/X.509: keine unbestimmten Längen, Tag-Nummern bis 16.383 in minimaler Form, Längen gegen das Ende der Daten, Verschachtelung geprüft ohne Rekursion, jedes Zertifikat genau ein Element aus drei Teilen ohne Rest; fehlende Teile ergeben einen DER-Fehler statt einer Ausnahme. Ein unlesbares Zertifikat ist „?“, nie ✗; ist nur ein Zwischenzertifikat unlesbar, prüft P6 die Signaturen mit dem Blatt (E-43). Ein fehlender Eintrag in `kettenschluessel` ist jetzt „?“ statt ✗ (U-24).
@@ -80,7 +80,7 @@ Härtung gegen manipulierte Dateien und klarere Befunde. Die Unterlagen von WATT
 
 ## 0.1.4 – 25.10.2026
 
-- Unterlagen: Technische Erläuterung und Datenformat aus Aves83/watt_public, Commit 2256305 (Stand 1af17a5 von WATT, Vorabfassung). Rechenbeispiele B1 bis B13 und Schemas inhaltlich unverändert.
+- Unterlagen: Technische Erläuterung und Datenformat aus Aves83/watt_public, Commit 4b6401b (Stand 1af17a5 von WATT, Vorabfassung). Rechenbeispiele B1 bis B13 und Schemas inhaltlich unverändert.
 - P4 (U-18, geklärt durch TE 4.7 und 8.): Bei `uhr_ruecksprung` mit Uhrstand gilt die Regel der TE zum Bezug. Bei `objektId` mit laufender Nummer hat das auslösende Glied davor `neustarts` größer als 0 oder -1 und der Vermerk selbst 0; bei `timer`, `nachweis`, `start` und `zeitsignal` hat der Vermerk selbst `neustarts` größer als 0 oder -1. Ausnahme: `nachweis` als erstes Glied einer leeren Kette mit 0. Eingespielte Glieder vor einer `wiederherstellung` folgen derselben Regel; ohne Uhrstand entfällt sie. Ein Verstoß ist „?“ mit Glied-Nummer und Begründung, nie ✗; der bisherige Hinweis „uhr_ruecksprung trotz Bezug“ entfällt.
 - P4: `uhr_ruecksprung` mit `objektId` `start` oder `zeitsignal` erklärt einen Rücksprung über 2 Minuten (8., Schritt 5); die Liste der Vermerke nennt beide Anlässe.
 - U-20: WATT bestätigt die Lesart von E-39, die TE übernimmt sie mit dem nächsten Stand; bis dahin offen. U-21 bleibt offen (Bedeutung von `schritte` ändert sich mit dem nächsten Stand der TE), die Prüfung bleibt wie bisher. Neu offen: U-22 (gleicher Wortlaut „Hinweis zur Klärung“ bei U-15 und U-18, unterschiedlich gewertet).
@@ -88,18 +88,18 @@ Härtung gegen manipulierte Dateien und klarere Befunde. Die Unterlagen von WATT
 
 ## 0.1.3 – 25.10.2026
 
-- Unterlagen: Technische Erläuterung und Datenformat aus Aves83/watt_public, Commit 29e8679 (Stand 85a7f6e von WATT). Die Klarstellungen zu U-14 bis U-17 sind übernommen, die Ersatz-Lesarten gestrichen; `docs/UNKLARHEITEN.md` vermerkt je Punkt „geklärt durch TE Abschnitt …“.
+- Unterlagen: Technische Erläuterung und Datenformat aus Aves83/watt_public, Commit 8b7bb58 (Stand 85a7f6e von WATT). Die Klarstellungen zu U-14 bis U-17 sind übernommen, die Ersatz-Lesarten gestrichen; `docs/UNKLARHEITEN.md` vermerkt je Punkt „geklärt durch TE Abschnitt …“.
 - P4 (U-14): `abweichungSekunden` hat ein Vorzeichen (nachher − vorher, ganze Sekunden, zur Null hin gekürzt, negativ bei `zurueck`, Betrag mindestens 120); bei `schritte` die Summe der Beträge mit dem Vorzeichen der Gesamtrichtung, bei genauem Ausgleich `vor`. Ein Betrag bei `richtung` `zurueck` ergibt jetzt „?“.
 - P4 (U-15): Liegt der erste Teil der Zerlegung unter −120 Sekunden (Grenze eingeschlossen), bei `schritte` unter 0, gibt WATTest nur einen Hinweis mit `autoZeit` des Glieds, kein „?“ mehr.
 - P7 (U-16): Gültigkeit aller Zertifikate zu einem Bezugszeitpunkt, Grenzen eingeschlossen: Zeitpunkt des Glieds `schluessel`, beim Vorratsschlüssel der leeren Kette (Glied mit `challenge`) `creationDateTime` aus der Attestierung, ohne es der Zeitpunkt des Glieds.
 - Kanonisches JSON (U-17): Bestandsprüfsummen und Prüfsumme des Datenbestands mit eigener Maskierung nach 4.6 statt `JSON.stringify`; ein einzelnes Ersatzzeichen wird in UTF-8 zu „?“. Neues Rechenbeispiel B13.
 - Schemas (U-19): Schema-Auszug und XML-Typtabelle aus `schema/` von watt_public neu erzeugt (Inhalt unverändert, die XSD 17 wird nicht mehr gebraucht). P1 meldet für Formatversion 19 als Hinweis, dass das Schema eine Vorabfassung ist, solange die README es so nennt.
-- U-18 bleibt ein Hinweis; TE 8., Schritt 5 ist in 29e8679 unverändert. Neu offen: U-20 (Ersatzzeichen in den übrigen Prüfsummen) und U-21 (Inhalt von `schritte`).
+- U-18 bleibt ein Hinweis; TE 8., Schritt 5 ist in 8b7bb58 unverändert. Neu offen: U-20 (Ersatzzeichen in den übrigen Prüfsummen) und U-21 (Inhalt von `schritte`).
 - Tests: B13, Tabelle der Maskierung, Ersatzzeichen, Vorzeichen und Grenzen von `abweichungSekunden`, erster Teil der Zerlegung, Bezugszeitpunkt der Zertifikate mit Grenzfällen, Hinweis auf die Vorabfassung. Der Testerzeuger setzt beim Blattzertifikat die Standardgrenzen von Android (01.01.1970 bis 01.01.2048) und `creationDateTime` wählbar.
 
 ## 0.1.2 – 25.10.2026
 
-- Unterlagen: Technische Erläuterung, Datenformat und Schemas liest WATTest jetzt aus dem öffentlichen Repository Aves83/watt_public (Commit 3170836, Inhalt gleich dem bisherigen Stand; die Schemas der Version 19 sind dort noch nicht veröffentlicht, U-19). `scripts/vektoren-holen.mjs` holt die TE von dort; die Rechenbeispiele B1 bis B12 sind unverändert. README und Spezifikation verlinken die beiden Dokumente.
+- Unterlagen: Technische Erläuterung, Datenformat und Schemas liest WATTest jetzt aus dem öffentlichen Repository Aves83/watt_public (Commit 9b15839, Inhalt gleich dem bisherigen Stand; die Schemas der Version 19 sind dort noch nicht veröffentlicht, U-19). `scripts/vektoren-holen.mjs` holt die TE von dort; die Rechenbeispiele B1 bis B12 sind unverändert. README und Spezifikation verlinken die beiden Dokumente.
 - Startseite: neuer Absatz „Über WATT“ unter der Einleitung, mit Links auf WATT, die Technische Erläuterung und den Quelltext (in neuem Tab).
 - Fußzeile: zusätzlich „WATT“ mit Link auf https://aves83.github.io/watt_public/.
 - Datenschutzhinweis: Verantwortlicher ohne Anschrift. Das Impressum bleibt unverändert.

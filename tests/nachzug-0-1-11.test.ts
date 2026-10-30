@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // WATTest © 2026 Hans-Joachim Steudel
 
-// Nachzug auf die Technische Erläuterung aus watt_public 3a11ea8 (Stand 27.10.2026, Vorabfassung): 6.3, Schritt 7
+// Nachzug auf die Technische Erläuterung aus watt_public b9ca278 (Stand 27.10.2026, Vorabfassung): 6.3, Schritt 7
 // ohne Endung. „Ist der Name ohne Endung danach leer, heißt er dokument (eine Endung gibt es dann nicht, weil sie nach
 // Schritt 4 mindestens ein Zeichen vor dem Punkt voraussetzt und die Schritte 5 und 6 den Namen davor nicht leeren).“
 
@@ -13,8 +13,8 @@ import { utf8 } from "../src/kern/bytes.js";
 import { befund, liesText, texte } from "./hilfen.js";
 import { zip } from "./zip-schreiber.js";
 
-test("Unterlagen: Rechenbeispiele aus watt_public 3a11ea8, Stand 27.10.2026", () => {
-  assert.match(liesText("tests/vektoren/technische-erlaeuterung.json"), /Commit 3a11ea8\), Codeblöcke der Rechenbeispiele, Stand 27\.10\.2026/);
+test("Unterlagen: Rechenbeispiele aus watt_public b9ca278, Stand 27.10.2026", () => {
+  assert.match(liesText("tests/vektoren/technische-erlaeuterung.json"), /Commit b9ca278\), Codeblöcke der Rechenbeispiele, Stand 27\.10\.2026/);
 });
 
 test("6.3, Schritt 7: ein leerer Name heißt dokument, ohne Endung", () => {

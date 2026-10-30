@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 // WATTest © 2026 Hans-Joachim Steudel
 
-// Nachzug auf die Technische Erläuterung aus watt_public af05f6e (Stand 26.10.2026, Vorabfassung): Herkunft erst ab
-// dem ersten Schlüssel (4.7, U-27) mit Neubeginn bzw. Wiederherstellung unmittelbar davor (U-28, seit 3a88095 in der
+// Nachzug auf die Technische Erläuterung aus watt_public d11ee68 (Stand 26.10.2026, Vorabfassung): Herkunft erst ab
+// dem ersten Schlüssel (4.7, U-27) mit Neubeginn bzw. Wiederherstellung unmittelbar davor (U-28, seit 48fe38a in der
 // TE), Sperrliste „nicht bestätigbar“ (4.7, 4.8, U-25) und Aufbau des ZIP-Archivs zum Aktenauszug (6.3, U-26).
 
 import assert from "node:assert/strict";
@@ -79,7 +79,7 @@ test("4.7, U-27: Ohne Schlüssel mit status verfuegbar deckt keine Signatur ein 
   assert.match(texte(b, "P6"), /Glied 1–3: ohne Schlüssel \(die Kette hat kein Glied schluessel mit status verfuegbar\)/);
 });
 
-// 4.7 (U-28, seit 3a88095 in der TE): wiederherstellung bzw. neubeginn vor dem ersten Schlüssel, getrennt nur durch
+// 4.7 (U-28, seit 48fe38a in der TE): wiederherstellung bzw. neubeginn vor dem ersten Schlüssel, getrennt nur durch
 // Vermerke zur Uhr, gehört zum Abschnitt dieses Schlüssels.
 
 test("U-28: neubeginn und Vermerk zur Uhr vor dem ersten Schlüssel deckt die Signatur mit", async () => {
@@ -128,7 +128,7 @@ test("U-28: Vermerk zur Uhr und ein anderes Glied zwischen Wiederherstellung und
 
 test("4.7, 4.8: Zertifikat auf der Sperrliste ist „?“ nach der TE; die Gesamtzeile ist nie ✗", async () => {
   const te = liesText("tests/vektoren/technische-erlaeuterung.json");
-  assert.match(te, /3a11ea8/);
+  assert.match(te, /b9ca278/);
   const e = await erzeugeKette({ eintraege: 2, zertifikate: z });
   const sperrliste = { abgerufen: "2026-10-26T00:00:00Z", quelle: "Test", eintraege: { [z.zwischenSeriennummer.toString(16)]: { status: "REVOKED", reason: "KEY_COMPROMISE" } } };
   const b = await befund([json("s.json", e.daten)], opt({ sperrliste }));
@@ -139,7 +139,7 @@ test("4.7, 4.8: Zertifikat auf der Sperrliste ist „?“ nach der TE; die Gesam
 
 // 6.3: Aufbau des ZIP-Archivs zum Aktenauszug.
 
-test("6.3: Dateinamen werden in sieben Schritten bereinigt (seit 0.1.9 nach dem Stand 69b7418)", () => {
+test("6.3: Dateinamen werden in sieben Schritten bereinigt (seit 0.1.9 nach dem Stand 5ac2327)", () => {
   assert.equal(bereinigeDateiname('a\\b/c:d*e?f"g<h>i|j'), "a_b_c_d_e_f_g_h_i_j");
   assert.equal(bereinigeDateiname("x\u0000y\u001fz\u007f.pdf"), "x_y_z_.pdf");
   // Aus „...“ wird zunächst „_.“ und nach Schritt 6 „_“ (bis 0.1.8: „_.“).
