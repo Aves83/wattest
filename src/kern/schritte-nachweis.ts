@@ -218,7 +218,7 @@ export function endungNach63(name: string): string {
 
 /**
  * Bereinigt den Dateinamen eines Dokuments wie WATT im ZIP des Aktenauszugs (6.3, Schritte 1 bis 7). Schritt 7 (Stand
- * 3a11ea8): Ein leerer Name ohne Endung heißt dokument. Eine Endung gibt es dann nicht: Schritt 4 setzt vor ihrem Punkt
+ * b9ca278): Ein leerer Name ohne Endung heißt dokument. Eine Endung gibt es dann nicht: Schritt 4 setzt vor ihrem Punkt
  * mindestens ein Zeichen voraus, das nach Schritt 3 weder Punkt noch Leerraum ist und Schritte 5 und 6 nicht entfernen.
  */
 export function bereinigeDateiname(name: string): string {
