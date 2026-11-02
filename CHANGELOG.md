@@ -1,5 +1,15 @@
 # Änderungen
 
+## 0.1.12 – 02.11.2026
+
+Nachzug auf die Unterlagen zu WATT 0.8.111 „Drachenfrucht“ (watt_public, Commit 15db84d vom 01.11.2026; seit 01.11.2026 an Testende ausgeliefert, Datenformat 19). Bisher galt Commit b9ca278.
+
+- Unterlagen: Diff b9ca278..15db84d von `doc/technische-erlaeuterung.md`, `doc/datenformat.md` und `schema/` gelesen. TE nur mit neuem Kopf („WATT-Version: 0.8.111 · Stand: 01.11.2026“ statt „Vorabfassung“), Inhalt und Rechenbeispiele B1 bis B15 unverändert (`tests/vektoren/` nennt jetzt 15db84d). Datenformat mit neuem Stand und der Beispieldatei `drachenfrucht-19`. `schema/README.md` führt Version 19 nicht mehr als Vorabfassung; Schemas und XSDs unverändert, XML-Typtabelle unverändert.
+- P1: Version 19 ist veröffentlicht; der Hinweis „Das Schema der Formatversion 19 ist eine Vorabfassung.“ entfällt (`SCHEMA_VORABFASSUNG` leer). Der Mechanismus bleibt für künftige Vorabfassungen (U-19, E-38).
+- Beispieldatei `tests/beispiele/drachenfrucht-19.json` unverändert aus WATT (Commit b663ad8). Die Zertifikatskette stammt aus der Testumgebung von WATT, nicht von einem Gerät.
+- Tests: `drachenfrucht-19` ohne Wurzeln und App-Signatur (P1 bis P6, P8, P9 ✓, kein Hinweis auf eine Vorabfassung, Verstellung der Uhr an Glied 5 mit erklärtem Zeitsprung, P7 „?“, Gesamtzeile „?“) und mit Wurzeln von Google, Sperrliste und App-Signatur aus `daten/` (✗ allein in P7: „Die Zertifikatskette führt zu keiner der Wurzeln von Google.“, E-4; alle anderen Teilaussagen ✓). Hinweis auf eine Vorabfassung mit einer künstlichen Vorabfassung 19 (JSON und XML), Version 18 ohne Hinweis.
+- Dokumentation: SPEZIFIKATION, UNKLARHEITEN (keine neue, keine offen; U-19 ergänzt), ENTSCHEIDUNGEN (E-38 ergänzt), README, `tests/beispiele/README.md`.
+
 ## 0.1.11 – 27.10.2026
 
 Nachzug auf den Stand 59b1fdb der Technischen Erläuterung (watt_public, Commit b9ca278 vom 27.10.2026, Vorabfassung). Bisher galt Commit 5ac2327.

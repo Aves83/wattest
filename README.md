@@ -32,7 +32,7 @@ Buchungsdaten (Export im Überblick) und verschlüsselte Sicherungen (`.wattbak`
 
 | Nr. | Schritt | Inhalt |
 | --- | --- | --- |
-| P1 | Format | Formatversion 16 bis 19, Pflichtfelder und Typen nach dem Schema der Version; Hinweis, solange das Schema eine Vorabfassung ist (derzeit 19) |
+| P1 | Format | Formatversion 16 bis 19, Pflichtfelder und Typen nach dem Schema der Version; Hinweis, solange das Schema eine Vorabfassung ist (derzeit keine) |
 | P2 | Arbeitszeitkette | Prüfsumme jedes Glieds nach 4.2 (sieben bzw. neun Felder), Verkettung, laufende Nummern, Neubeginn nur am Anfang; Glied ohne Uhrstand nach einem mit Uhrstand „?“ |
 | P3 | Daten und Kette | Kette nachspielen (7.) und mit `eintraege` und `abwesenheiten` vergleichen, mit Bestandsform 1 und 2 (4.6) und „Importiert am“ nach 7.1 |
 | P4 | Zeit | Zeitstempel und Vermerke zur Geräteuhr in einer Aussage (8., Schritt 5; ein unerklärter Rücksprung ist „?“), Zerlegung bei `uhr_verstellt` nach 4.7, Bezug bei `uhr_ruecksprung`, Neustarts, automatische Uhrzeit |
@@ -48,14 +48,14 @@ WATTest liest fremde Dateien nur innerhalb fester, großzügiger Grenzen: Datei 
 
 ## Die Einzeldatei prüfen
 
-Jede Version gibt es als eine einzige HTML-Datei, die ohne Netz läuft (mit Wurzeln und Sperrliste zum Stand des Baus). Ihre SHA-256 steht in `SHA256SUMS.txt` beim Release. Die Einzeldatei auf der Seite (`https://aves83.github.io/wattest/wattest-0.1.11.html`) wird täglich mit frischer Sperrliste neu gebaut; ihre Prüfsumme steht im `SHA256SUMS.txt` der Seite und weicht deshalb von der des Releases ab.
+Jede Version gibt es als eine einzige HTML-Datei, die ohne Netz läuft (mit Wurzeln und Sperrliste zum Stand des Baus). Ihre SHA-256 steht in `SHA256SUMS.txt` beim Release. Die Einzeldatei auf der Seite (`https://aves83.github.io/wattest/wattest-0.1.12.html`) wird täglich mit frischer Sperrliste neu gebaut; ihre Prüfsumme steht im `SHA256SUMS.txt` der Seite und weicht deshalb von der des Releases ab.
 
 ```
-sha256sum wattest-0.1.11.html
+sha256sum wattest-0.1.12.html
 ```
 
 ```
-Get-FileHash wattest-0.1.11.html -Algorithm SHA256
+Get-FileHash wattest-0.1.12.html -Algorithm SHA256
 ```
 
 Der Bau ist reproduzierbar: Aus demselben Commit und denselben Daten (`daten/`) entsteht dieselbe Datei.
