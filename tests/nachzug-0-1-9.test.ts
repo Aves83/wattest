@@ -22,8 +22,8 @@ before(async () => {
 
 const opt = () => ({ wurzeln: [z.wurzelDer], wurzelnStand: { abgerufen: "2026-10-25T00:00:00Z", quelle: "Test" }, appSignatur: APP_DIGEST_HEX });
 
-test("Unterlagen: Rechenbeispiele seit watt_public 5ac2327 unverändert (Quelle jetzt b9ca278), Stand 27.10.2026", () => {
-  assert.match(liesText("tests/vektoren/technische-erlaeuterung.json"), /Commit b9ca278\), Codeblöcke der Rechenbeispiele, Stand 27\.10\.2026/);
+test("Unterlagen: Rechenbeispiele seit watt_public 5ac2327 unverändert (Quelle jetzt 15db84d, Stand 01.11.2026)", () => {
+  assert.match(liesText("tests/vektoren/technische-erlaeuterung.json"), /Commit 15db84d\), Codeblöcke der Rechenbeispiele, Stand 01\.11\.2026/);
 });
 
 // 4.7, Stand 5ac2327: „Dasselbe gilt für eine wiederherstellung als Eintrag 1 (Einspielen einer Sicherung in eine

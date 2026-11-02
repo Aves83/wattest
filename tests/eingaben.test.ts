@@ -37,23 +37,36 @@ for (const name of ["bergamotte-17.json", "cherimoya-18.json"]) {
   });
 }
 
-// U-19: Die README der Schemas in watt_public führt Version 19 als Vorabfassung.
+// U-19: Versionen, die die README der Schemas in watt_public als Vorabfassung führt, nennt P1 als Hinweis.
+// Seit watt_public 15db84d ist keine Version mehr Vorabfassung; der Test setzt Version 19 künstlich darauf.
 
 const VORABFASSUNG = "Das Schema der Formatversion 19 ist eine Vorabfassung.";
 
-test("U-19: Version 19 als JSON und XML: Hinweis auf die Vorabfassung, P1 bleibt bestätigt", async () => {
-  assert.deepEqual(SCHEMA_VORABFASSUNG, [19]);
+test("U-19: Stand 15db84d: keine Version ist Vorabfassung, Version 19 ohne Hinweis", async () => {
+  assert.deepEqual(SCHEMA_VORABFASSUNG, []);
   const d = (await erzeugeKette({ eintraege: 2 })).daten;
   for (const datei of [json("x.json", d), { name: "x.xml", bytes: utf8(alsXml(d as never)) }]) {
     const b = await befund([datei]);
     assert.equal(zeichen(b, "P1"), "bestaetigt", `${datei.name}:\n${texte(b, "P1")}`);
-    assert.ok(b.aussagen.some((a) => a.schritt === "P1" && a.zeichen === "hinweis" && a.text === VORABFASSUNG), `${datei.name}:\n${texte(b, "P1")}`);
+    assert.ok(!b.aussagen.some((a) => a.schritt === "P1" && a.zeichen === "hinweis"), `${datei.name}:\n${texte(b, "P1")}`);
   }
 });
 
-test("U-19: Version 18 ohne Hinweis auf eine Vorabfassung", async () => {
-  const b = await befund([json("x.json", lade("cherimoya-18.json"))]);
-  assert.ok(!b.aussagen.some((a) => a.text === VORABFASSUNG), texte(b, "P1"));
+test("U-19: künstliche Vorabfassung 19 als JSON und XML: Hinweis, P1 bleibt bestätigt; Version 18 ohne Hinweis", async () => {
+  const liste = SCHEMA_VORABFASSUNG as number[];
+  liste.push(19);
+  try {
+    const d = (await erzeugeKette({ eintraege: 2 })).daten;
+    for (const datei of [json("x.json", d), { name: "x.xml", bytes: utf8(alsXml(d as never)) }]) {
+      const b = await befund([datei]);
+      assert.equal(zeichen(b, "P1"), "bestaetigt", `${datei.name}:\n${texte(b, "P1")}`);
+      assert.ok(b.aussagen.some((a) => a.schritt === "P1" && a.zeichen === "hinweis" && a.text === VORABFASSUNG), `${datei.name}:\n${texte(b, "P1")}`);
+    }
+    const b = await befund([json("x.json", lade("cherimoya-18.json"))]);
+    assert.ok(!b.aussagen.some((a) => a.schritt === "P1" && a.zeichen === "hinweis"), texte(b, "P1"));
+  } finally {
+    liste.length = 0;
+  }
 });
 
 test("XML: Zeilenumbruch und CR in Texten bleiben erhalten", async () => {
