@@ -7,7 +7,7 @@ import { anzahl, gesamt, gesamtText, zahl, type Aussage, type Befund, type Gepru
 import { textAus } from "./bytes.js";
 import { GRENZE_HAERTUNG, GRENZWERTE, grenzeText } from "./grenzen.js";
 import { leseJson } from "./json.js";
-import { glieder, objekt, type Klartext } from "./klartext.js";
+import { glieder, liste, objekt, type Klartext } from "./klartext.js";
 import { Abbruch, dateiFundstelle, sage, type Kontext, type Optionen } from "./kontext.js";
 import { bekannteVersion, pruefeSchema } from "./schema.js";
 import { SCHEMA_VORABFASSUNG } from "./schema-auszug.js";
@@ -166,6 +166,13 @@ async function erkenne(datei: Eingabedatei): Promise<Erkannt> {
   return alsKlartext(datei.name, inhalt, null);
 }
 
+/** Zeitpunkt mit einer von 0 verschiedenen Ziffer ab der vierten Nachkommastelle (feiner als ganze Millisekunden). */
+export function feinerAlsMillisekunden(w: unknown): boolean {
+  if (typeof w !== "string") return false;
+  const m = /\.(\d+)Z$/.exec(w);
+  return !!m && /[1-9]/.test(m[1]!.slice(3));
+}
+
 function pruefeFormat(k: Kontext): void {
   const kt = k.kt;
   const d = kt.daten;
@@ -173,7 +180,12 @@ function pruefeFormat(k: Kontext): void {
   const fund = dateiFundstelle(k);
   const grenze = "WATTest prüft nicht das ganze Schema, sondern Pflichtfelder und Typen der Teile, die es liest: Arbeitszeitkette, Einträge, Abwesenheiten, Nachweise, Schlüssel und Signaturen. Andere Teile prüft es nur auf ihre Grundform.";
   if (!bekannteVersion(v)) {
-    sage(k, "P1", "offen", `WATTest kennt das Datenformat ${String(v)} nicht.`, `WATTest 0.1 kennt die Formatversionen 16 bis 19. ${typeof v === "number" && v < 16 ? "Dateien vor Version 16 lassen sich nach 7. nicht abgleichen." : "Eine neuere Version braucht eine neuere Fassung von WATTest."} Die folgenden Schritte rechnen trotzdem nach den bekannten Regeln.`, { fundstelle: fund, grenze });
+    if (typeof v === "number" && v < 16) {
+      // Datenformat (Grundregeln) und README der Schemas seit watt_public b97d95c.
+      sage(k, "P1", "offen", `WATT liest Dateien ab Formatversion 16; diese Datei hat Formatversion ${v}.`, `Dateien der Versionen 1 bis 15 stammen aus Vorabversionen vor WATT 0.8.94 „Apfel“; WATT lehnt sie ab („Diese Datei ist zu alt.“), Schemas gibt es für sie nicht (Datenformat, Grundregeln; README der Schemas). WATTest kennt die Formatversionen 16 bis 19. Die folgenden Schritte rechnen trotzdem nach den bekannten Regeln.`, { fundstelle: fund, grenze });
+    } else {
+      sage(k, "P1", "offen", `WATTest kennt das Datenformat ${String(v)} nicht.`, "WATTest 0.1 kennt die Formatversionen 16 bis 19. Eine neuere Version braucht eine neuere Fassung von WATTest. Die folgenden Schritte rechnen trotzdem nach den bekannten Regeln.", { fundstelle: fund, grenze });
+    }
     return;
   }
   // Die README in schema/ von watt_public führt die Version als Vorabfassung (U-19).
@@ -190,13 +202,35 @@ function pruefeFormat(k: Kontext): void {
   const grenzen = fehler.filter((f) => f.art === "grenze");
   const unbekannt = fehler.filter((f) => f.art === "unbekannt");
   const schema = kt.quelle === "json" ? `watt-daten-${v}.schema.json` : `watt-daten-${v}.xsd (über die Abbildung auf das JSON und watt-daten-${v}.schema.json)`;
+  // Datenformat seit 02.11.2026: protokoll[].zeitpunkt und kette[].zeitpunkt in ganzen Millisekunden (E-68).
+  let fein = false;
+  const ketten = [
+    { glieder: liste(d["protokoll"]), kette: "der Arbeitszeitkette", feld: "protokoll[].zeitpunkt" },
+    { glieder: liste(objekt(d["nachweise"])?.["kette"]), kette: "der Nachweiskette", feld: "nachweise, kette[].zeitpunkt" },
+  ];
+  for (const kette of ketten) {
+    const betroffen = kette.glieder.map((g, i) => ({ g, i })).filter(({ g }) => feinerAlsMillisekunden(g["zeitpunkt"]));
+    if (!betroffen.length) continue;
+    fein = true;
+    const nummer = ({ g, i }: { g: Record<string, unknown>; i: number }): string => `Glied ${typeof g["seq"] === "number" && Number.isSafeInteger(g["seq"]) ? g["seq"] : `an Stelle ${i + 1}`}`;
+    const erstes = `${nummer(betroffen[0]!)} ${kette.kette}`;
+    const wer = betroffen.length === 1 ? `${erstes} trägt` : `${zahl(betroffen.length)} Glieder ${kette.kette} tragen`;
+    sage(k, "P1", "widerlegt", `Die Datei entspricht nicht dem Datenformat: ${erstes} trägt einen Zeitpunkt feiner als Millisekunden; WATT schreibt Zeitpunkte nur in ganzen Millisekunden und lehnt solche Dateien ab.`, `${wer} einen Zeitpunkt mit einer von 0 verschiedenen Ziffer ab der vierten Nachkommastelle${betroffen.length === 1 ? "" : `, das erste ist ${erstes}`}. Nach dem Datenformat (${kette.feld}) steht der Zeitpunkt in ganzen Millisekunden; ein Glied mit feinerem Zeitpunkt macht die Datei ungültig (seit 02.11.2026). Nachgestellte Nullen wie „.123000Z“ sind ganze Millisekunden und gelten nicht als feiner (E-68). Die übrigen Schritte rechnen trotzdem weiter.`, {
+      fundstelle: dateiFundstelle(k, erstes),
+      grenze,
+      details: betroffen.map((b) => {
+        const z = String(b.g["zeitpunkt"]);
+        return { text: `${nummer(b)}: ${z.length > 40 ? `${z.slice(0, 40)}…` : z}` };
+      }),
+    });
+  }
   if (harte.length) {
     sage(k, "P1", "widerlegt", `Die Datei entspricht nicht dem Datenformat ${v}.`, `${anzahl(harte.length, "Feld fehlt oder hat", "Felder fehlen oder haben")} einen falschen Typ gegenüber ${schema}. WATT schreibt alle Felder, auch leere; eine solche Datei ist nicht so von WATT exportiert.`, {
       fundstelle: fund,
       grenze,
       details: harte.slice(0, 100).map((f) => ({ text: f.text })),
     });
-  } else if (!xmlVor18) {
+  } else if (!xmlVor18 && !fein) {
     const exp = typeof d["exportiertAm"] === "string" ? d["exportiertAm"] : "?";
     sage(k, "P1", "bestaetigt", `Die Datei ist ein vollständiger Klartext-Export im Datenformat ${v}${kt.quelle === "xml" ? " (XML)" : ""}.`, `format watt-daten, version ${v}, exportiert am ${exp} aus WATT ${String(d["appVersion"] ?? "")}. Pflichtfelder und Typen der gelesenen Teile entsprechen ${schema}.`, { fundstelle: fund, grenze });
   }

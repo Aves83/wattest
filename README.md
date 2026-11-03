@@ -32,7 +32,7 @@ Buchungsdaten (Export im Überblick) und verschlüsselte Sicherungen (`.wattbak`
 
 | Nr. | Schritt | Inhalt |
 | --- | --- | --- |
-| P1 | Format | Formatversion 16 bis 19, Pflichtfelder und Typen nach dem Schema der Version; Hinweis, solange das Schema eine Vorabfassung ist (derzeit keine) |
+| P1 | Format | Formatversion 16 bis 19 (ältere lehnt WATT ab: „?“), Pflichtfelder und Typen nach dem Schema der Version, Zeitpunkte der Glieder beider Ketten in ganzen Millisekunden; Hinweis, solange das Schema eine Vorabfassung ist (derzeit keine) |
 | P2 | Arbeitszeitkette | Prüfsumme jedes Glieds nach 4.2 (sieben bzw. neun Felder), Verkettung, laufende Nummern, Neubeginn nur am Anfang; Glied ohne Uhrstand nach einem mit Uhrstand „?“ |
 | P3 | Daten und Kette | Kette nachspielen (7.) und mit `eintraege` und `abwesenheiten` vergleichen, mit Bestandsform 1 und 2 (4.6) und „Importiert am“ nach 7.1 |
 | P4 | Zeit | Zeitstempel und Vermerke zur Geräteuhr in einer Aussage (8., Schritt 5; ein unerklärter Rücksprung ist „?“), Zerlegung bei `uhr_verstellt` nach 4.7, Bezug bei `uhr_ruecksprung`, Neustarts, automatische Uhrzeit |
