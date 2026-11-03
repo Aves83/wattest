@@ -5,8 +5,9 @@
 // und schreibt tests/vektoren/technische-erlaeuterung.json. Die Zerlegung in Felder (objekt) gehört
 // WATTest und bleibt aus der bisherigen Datei erhalten.
 // Ohne Pfad holt das Skript die öffentliche Fassung aus Aves83/watt_public (doc/technische-erlaeuterung.md);
-// mit Pfad liest es eine lokale Kopie, etwa zum Abgleich einer neuen Fassung.
-// Aufruf: node scripts/vektoren-holen.mjs [<technische-erlaeuterung.md>]
+// mit Pfad liest es eine lokale Kopie, etwa zum Abgleich einer neuen Fassung; mit einer Commit-Kennung holt es die
+// Fassung dieses Commits statt der von main.
+// Aufruf: node scripts/vektoren-holen.mjs [<technische-erlaeuterung.md> | <Commit>]
 
 import { readFileSync, writeFileSync } from "node:fs";
 
@@ -23,12 +24,13 @@ async function hole(url, art) {
 let quelle;
 let herkunft;
 let text;
-if (process.argv[2]) {
+const ref = /^[0-9a-f]{7,40}$/.test(process.argv[2] ?? "") ? process.argv[2] : null;
+if (process.argv[2] && !ref) {
   quelle = process.argv[2];
   herkunft = `lokale Kopie ${quelle}`;
   text = readFileSync(quelle, "utf8");
 } else {
-  const commit = (await hole(`https://api.github.com/repos/${REPO}/commits/main`, "json")).sha;
+  const commit = (await hole(`https://api.github.com/repos/${REPO}/commits/${ref ?? "main"}`, "json")).sha;
   quelle = `${REPO}/${PFAD}`;
   herkunft = `${REPO}, ${PFAD}, Commit ${commit.slice(0, 7)}`;
   text = await hole(`https://raw.githubusercontent.com/${REPO}/${commit}/${PFAD}`, "text");

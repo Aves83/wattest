@@ -42,7 +42,7 @@ for (const name of ["bergamotte-17.json", "cherimoya-18.json"]) {
 
 const VORABFASSUNG = "Das Schema der Formatversion 19 ist eine Vorabfassung.";
 
-test("U-19: Stand 15db84d: keine Version ist Vorabfassung, Version 19 ohne Hinweis", async () => {
+test("U-19: Stand b97d95c (seit 15db84d): keine Version ist Vorabfassung, Version 19 ohne Hinweis", async () => {
   assert.deepEqual(SCHEMA_VORABFASSUNG, []);
   const d = (await erzeugeKette({ eintraege: 2 })).daten;
   for (const datei of [json("x.json", d), { name: "x.xml", bytes: utf8(alsXml(d as never)) }]) {

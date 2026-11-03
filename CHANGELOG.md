@@ -1,5 +1,17 @@
 # Änderungen
 
+## 0.1.13 – 03.11.2026
+
+Nachzug auf die Unterlagen zu WATT 0.8.113 (watt_public, Commit b97d95c vom 03.11.2026). Bisher galt Commit 15db84d.
+
+- Unterlagen: Diff 15db84d..b97d95c von `doc/technische-erlaeuterung.md`, `doc/datenformat.md` und `schema/README.md` gelesen. TE mit neuem Kopf („WATT-Version: 0.8.113 · Stand: 03.11.2026“) und in 7. dem Satz, dass WATT Dateien der Formatversionen vor 16 schon beim Lesen abweist („Diese Datei ist zu alt.“); Rechenbeispiele B1 bis B15 unverändert (`tests/vektoren/` nennt jetzt b97d95c). Datenformat: Dateien mit `version` unter 16 werden abgelehnt (E-851), Zeitpunkte der Glieder beider Ketten in ganzen Millisekunden, dazu Änderungen an `sonderTage`, `amtsform`, `schulart`, `regionaleFeiertage`, `ferien[].quelle` und den Altfeldern. README der Schemas: kleinste lesbare Formatversion 16. Schemas, XSDs, Schema-Auszug und XML-Typtabelle unverändert.
+- P1, Formatversion unter 16: weiter „?“, jetzt mit dem Satz der Unterlagen: „WATT liest Dateien ab Formatversion 16; diese Datei hat Formatversion n.“ Begründung: Versionen 1 bis 15 stammen aus Vorabversionen vor WATT 0.8.94 „Apfel“, WATT lehnt sie ab, Schemas gibt es für sie nicht.
+- P1, Zeitpunkte feiner als Millisekunden: Trägt ein Glied der Arbeitszeitkette oder der Nachweiskette eine von 0 verschiedene Ziffer ab der vierten Nachkommastelle, ist P1 ✗ („Die Datei entspricht nicht dem Datenformat: Glied n der Arbeitszeitkette trägt einen Zeitpunkt feiner als Millisekunden; WATT schreibt Zeitpunkte nur in ganzen Millisekunden und lehnt solche Dateien ab.“, je Kette mit erstem Glied, Anzahl und Liste). „.123000Z“ gilt als ganze Millisekunden (E-68). Die übrigen Schritte rechnen weiter.
+- Nicht betroffen: `sonderTage[].art` und `.grund`, `amtsform`, `schulart`, `regionaleFeiertage`, `ferien[].quelle`, Altfelder; WATTest prüft diese Teile nur auf ihre Grundform und deutet sie nicht.
+- `scripts/vektoren-holen.mjs` nimmt eine Commit-Kennung von watt_public als Argument.
+- Tests (`tests/nachzug-0-1-13.test.ts`): Version 15 „?“ mit neuem Text, Version 20 unverändert; Zeitpunkt „.123456Z“ in Glied 2 der Nachweiskette von `drachenfrucht-19` (neu verkettet): P1 ✗, P8 Kette ✓, P2 bis P6, P9 ✓, Gesamtzeile ✗; in Glied 8 der Arbeitszeitkette (neu verkettet): P1 ✗, P2 bis P5 und P8 ✓, P6 ✗ (3 Signaturen zu Glied 8 bis 10 ungültig) mit Herkunft der Glieder 1–7 ✓ und 8–10 „?“, Gesamtzeile ✗; mehrere Glieder beider Ketten; Grenzfall „.123000Z“ ohne ✗; XML. `drachenfrucht-19` unverändert wie in 0.1.12.
+- Dokumentation: SPEZIFIKATION, ENTSCHEIDUNGEN (E-68), UNKLARHEITEN (keine neue, keine offen), README.
+
 ## 0.1.12 – 02.11.2026
 
 Nachzug auf die Unterlagen zu WATT 0.8.111 „Drachenfrucht“ (watt_public, Commit 15db84d vom 01.11.2026; seit 01.11.2026 an Testende ausgeliefert, Datenformat 19). Bisher galt Commit b9ca278.

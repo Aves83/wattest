@@ -124,6 +124,16 @@ export async function neuVerketten(protokoll: Record<string, unknown>[]): Promis
   }
 }
 
+/** Rechnet prev und hash der Nachweiskette ab dem Glied an Stelle ab neu (5.1: seq, zeitpunkt, ereignis, referenzId, pruefsumme, prev). */
+export async function nachweiseNeuVerketten(kette: Record<string, unknown>[], ab = 0): Promise<void> {
+  for (let i = ab; i < kette.length; i++) {
+    const g = kette[i]!;
+    g["prev"] = i === 0 ? "0" : kette[i - 1]!["hash"];
+    const s = L(g["seq"]) + L(g["zeitpunkt"]) + L(g["ereignis"]) + L(g["referenzId"]) + L(g["pruefsumme"]) + L(g["prev"]);
+    g["hash"] = hex(new Uint8Array(await subtle.digest("SHA-256", puffer(utf8(s)))));
+  }
+}
+
 export interface KettenAngaben {
   eintraege: number;
   /** Zertifikate; ohne: Kette ohne Schlüssel */
