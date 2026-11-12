@@ -1,5 +1,16 @@
 # Änderungen
 
+## 0.1.14 – 12.11.2026
+
+Berichtigung für XML-Exporte der Formatversion 19 mit Schlüsseln. Grundlage: watt_public, Commit 7631e7f vom 06.11.2026. Bisher galt Commit b97d95c.
+
+- Berichtigt: Ein XML-Export der Formatversion 19 mit Schlüsseln ergab bis 0.1.13 P1 ✗ („Die Datei entspricht nicht dem Datenformat 19.“ mit „$.kettenschluessel[0].zertifikate: erwartet array, gefunden object“), P6 und P7 „?“ und damit die Gesamtzeile ✗, obwohl die Datei der XSD entspricht. WATTest liest die Zertifikate der Schlüssel im XML jetzt als Liste; der Befund gleicht dem des JSON.
+- Wichtig für: alle, die einen XML-Export aus WATT ab 0.8.111 „Drachenfrucht“ prüfen. Solche Exporte tragen Schlüssel und Signaturen der Kette; ein Befund ✗ aus WATTest bis 0.1.13 für eine solche XML-Datei sagt nichts über die Datei, die Prüfung ist mit 0.1.14 zu wiederholen. Nicht betroffen waren JSON-Exporte, ZIP mit JSON und XML-Exporte ohne Schlüssel (Formatversion 18 und 19 ohne Signatur).
+- Ursache: Die XSD 19 beschreibt `zertifikate` im Typ `Kettenschluessel` als Element mit anonymem Typ, darin je Zertifikat ein Element `zertifikat`. `scripts/xml-typen.mjs` las nur benannte Typen und führte `zertifikat` als Feld des Schlüssels; jetzt wird ein anonymer Typ aus Elementen ein eigener Typ `<Typ>.<Element>` (E-69). Die Typtabelle `src/kern/xml-typen.ts` ändert sich nur bei `Kettenschluessel.zertifikate`.
+- Unterlagen: Diff b97d95c..7631e7f von `doc/technische-erlaeuterung.md`, `doc/datenformat.md` und `schema/` gelesen. TE, Schemas 16 bis 19 und XSDs 18 und 19 unverändert; `doc/datenformat.md` mit neuem Stand (06.11.2026) und der Beispieldatei `erdbeere-19`; `schema/README.md` mit WATT 0.8.118 „Erdbeere“ in der Versionstabelle. Für die Prüfung ändert sich nichts. Rechenbeispiele B1 bis B15 unverändert (`tests/vektoren/` nennt jetzt 7631e7f); Schema-Auszug unverändert.
+- Tests (`tests/eingaben.test.ts`): `drachenfrucht-19` als XML ergibt denselben Befund wie als JSON (P1 bis P6, P8, P9 ✓, P7 „?“ ohne Wurzeln); eine erzeugte signierte Kette als XML P1, P6 und P7 ✓ wie als JSON. Alle übrigen Ergebnisse wie in 0.1.13.
+- Dokumentation: SPEZIFIKATION, ENTSCHEIDUNGEN (E-69), UNKLARHEITEN (keine neue, keine offen).
+
 ## 0.1.13 – 03.11.2026
 
 Nachzug auf die Unterlagen zu WATT 0.8.113 (watt_public, Commit b97d95c vom 03.11.2026). Bisher galt Commit 15db84d.

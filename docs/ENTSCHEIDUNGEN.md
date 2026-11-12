@@ -1,6 +1,6 @@
 # Entscheidungen
 
-Entscheidungen, die die Aufträge für WATTest 0.1.0 bis 0.1.13 offenließen: Frage, Entscheidung, Begründung.
+Entscheidungen, die die Aufträge für WATTest 0.1.0 bis 0.1.14 offenließen: Frage, Entscheidung, Begründung.
 
 | Nr. | Frage | Entscheidung | Begründung |
 | --- | --- | --- | --- |
