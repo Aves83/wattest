@@ -11,7 +11,7 @@ import { SCHEMA_VORABFASSUNG } from "../src/kern/schema-auszug.js";
 import { sha256Hex } from "../src/kern/sha.js";
 import { berlinMinute, deutsch, zeitpunktMs } from "../src/kern/zeit.js";
 import { leseZip } from "../src/kern/zip.js";
-import { erzeugeKette } from "./erzeuger.js";
+import { APP_DIGEST_HEX, erzeugeKette, testzertifikate } from "./erzeuger.js";
 import { befund, json, liesText, qrAus, texte, zeichen } from "./hilfen.js";
 import { alsXml } from "./xml-schreiber.js";
 import { zip } from "./zip-schreiber.js";
@@ -36,6 +36,36 @@ for (const name of ["bergamotte-17.json", "cherimoya-18.json"]) {
     }
   });
 }
+
+// XSD 19, Typ Kettenschluessel: zertifikate ist ein Element mit anonymem Typ, darin je Zertifikat ein Element zertifikat.
+// Bis 0.1.13 übersah die Typtabelle diesen Typ: XML mit Schlüsseln ergab P1 ✗ („erwartet array, gefunden object“),
+// die Zertifikate blieben ungelesen (P6, P7 „?“).
+test("XML: drachenfrucht-19.json als XML (signierte Kette, Schlüssel mit Zertifikaten) ergibt denselben Befund wie das JSON", async () => {
+  const d = lade("drachenfrucht-19.json");
+  const a = leseQr(qrAus(d));
+  assert.ok(a.ok);
+  const alsJson = await befund([json("x.json", d)], { anker: [a.anker] });
+  const b = await befund([{ name: "x.xml", bytes: utf8(alsXml(d)) }], { anker: [a.anker] });
+  assert.deepEqual(b.aussagen.filter((x) => x.schritt === "P1").map((x) => [x.zeichen, x.text]), [["bestaetigt", "Die Datei ist ein vollständiger Klartext-Export im Datenformat 19 (XML)."]], texte(b, "P1"));
+  for (const s of ["P1", "P2", "P3", "P4", "P5", "P6", "P8", "P9"] as const) assert.equal(zeichen(b, s), "bestaetigt", `${s}:\n${texte(b)}`);
+  assert.equal(zeichen(b, "P7"), "offen", texte(b, "P7"));
+  const ohneP1 = (x: typeof b): string[] => x.aussagen.filter((y) => y.schritt !== "P1").map((y) => `${y.schritt} ${y.zeichen}: ${y.text}`);
+  assert.deepEqual(ohneP1(b), ohneP1(alsJson));
+  assert.equal(b.gesamt, alsJson.gesamt);
+});
+
+test("XML: erzeugte Kette mit Schlüssel, Zertifikaten und Signaturen: P1, P6 und P7 wie beim JSON", async () => {
+  const z = await testzertifikate();
+  const e = await erzeugeKette({ eintraege: 3, zertifikate: z });
+  const weiter = { wurzeln: [z.wurzelDer], appSignatur: APP_DIGEST_HEX };
+  const alsJson = await befund([json("x.json", e.daten)], weiter);
+  const b = await befund([{ name: "x.xml", bytes: utf8(alsXml(e.daten)) }], weiter);
+  for (const s of ["P1", "P6", "P7"] as const) {
+    assert.equal(zeichen(alsJson, s), "bestaetigt", `JSON ${s}:\n${texte(alsJson, s)}`);
+    assert.equal(zeichen(b, s), "bestaetigt", `XML ${s}:\n${texte(b, s)}`);
+  }
+  assert.ok(!b.aussagen.some((x) => /unbekannt|Felder, die das Datenformat nicht kennt/.test(x.text)), texte(b, "P1"));
+});
 
 // U-19: Versionen, die die README der Schemas in watt_public als Vorabfassung führt, nennt P1 als Hinweis.
 // Seit watt_public 15db84d ist keine Version mehr Vorabfassung; der Test setzt Version 19 künstlich darauf.

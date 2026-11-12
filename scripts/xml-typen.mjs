@@ -13,17 +13,56 @@ const ordner = process.argv[2] ?? "referenz/watt_public";
 const typen = {};
 const einfach = {};
 
+/** Inhalt eines complexType ab der Stelle hinter seinem öffnenden Tag bis zum passenden Ende; anonyme Typen darin zählen mit. */
+function inhaltBis(text, ab) {
+  const re = /<xs:complexType\b[^>]*>|<\/xs:complexType>/g;
+  re.lastIndex = ab;
+  let tiefe = 1;
+  for (let m; (m = re.exec(text)); ) {
+    if (m[0].startsWith("</")) {
+      if (--tiefe === 0) return { inhalt: text.slice(ab, m.index), ende: re.lastIndex };
+    } else if (!m[0].endsWith("/>")) tiefe++;
+  }
+  throw new Error("complexType nicht geschlossen");
+}
+
+/**
+ * Liest die Elemente eines Typs. Ein Element ohne type-Attribut mit einem anonymen complexType aus Elementen (XSD 19:
+ * zertifikate im Typ Kettenschluessel) erhält den Typnamen <Typ>.<Element>; seine Elemente gehören nicht zum äußeren Typ.
+ * Ein anonymer Typ ohne Elemente (antwort: Zahl mit Attribut schluessel) bleibt außen vor, ihn liest xml.ts selbst.
+ */
+function liesTyp(name, inhalt) {
+  const felder = (typen[name] ??= {});
+  const re = /<xs:element name="([^"]+)"([^>]*?)(\/?)>/g;
+  for (let m; (m = re.exec(inhalt)); ) {
+    const [, feld, attribute, leer] = m;
+    // Liste: maxOccurs unbounded oder eine Zahl größer als 1 (seit Version 19 z. B. 256 Schlüssel, 8 Zertifikate).
+    const max = /maxOccurs="([^"]+)"/.exec(attribute)?.[1];
+    const liste = max === "unbounded" || (max !== undefined && Number(max) > 1);
+    const typ = /type="([^"]+)"/.exec(attribute)?.[1];
+    if (typ) {
+      felder[feld] = { typ, liste };
+      continue;
+    }
+    const auf = /\s*<xs:complexType>/y;
+    auf.lastIndex = re.lastIndex;
+    if (leer || !auf.test(inhalt)) continue;
+    const innen = inhaltBis(inhalt, auf.lastIndex);
+    re.lastIndex = innen.ende;
+    if (!innen.inhalt.includes("<xs:element ")) continue;
+    felder[feld] = { typ: `${name}.${feld}`, liste };
+    liesTyp(`${name}.${feld}`, innen.inhalt);
+  }
+}
+
 for (const v of [18, 19]) {
   const xsd = readFileSync(join(ordner, `watt-daten-${v}.xsd`), "utf8");
   for (const m of xsd.matchAll(/<xs:simpleType name="([^"]+)">\s*<xs:restriction base="([^"]+)"/g)) einfach[m[1]] = m[2];
-  for (const m of xsd.matchAll(/<xs:complexType name="([^"]+)">([\s\S]*?)<\/xs:complexType>/g)) {
-    const name = m[1];
-    const felder = (typen[name] ??= {});
-    for (const e of m[2].matchAll(/<xs:element name="([^"]+)" type="([^"]+)"([^>]*)\/?>/g)) {
-      // Liste: maxOccurs unbounded oder eine Zahl größer als 1 (seit Version 19 z. B. 256 Schlüssel, 8 Zertifikate).
-      const max = /maxOccurs="([^"]+)"/.exec(e[3])?.[1];
-      felder[e[1]] = { typ: e[2], liste: max === "unbounded" || (max !== undefined && Number(max) > 1) };
-    }
+  const re = /<xs:complexType name="([^"]+)">/g;
+  for (let m; (m = re.exec(xsd)); ) {
+    const innen = inhaltBis(xsd, re.lastIndex);
+    liesTyp(m[1], innen.inhalt);
+    re.lastIndex = innen.ende;
   }
 }
 

@@ -537,8 +537,12 @@ export const XML_TYPEN: Record<string, XmlTyp> = {
   "Kettenschluessel": {
     "felder": {
       "fingerabdruck": "text",
-      "zertifikat": "text"
+      "zertifikate": "Kettenschluessel.zertifikate"
     }
+  },
+  "Kettenschluessel.zertifikate": {
+    "liste": "zertifikat",
+    "von": "text"
   },
   "Kettensignaturen": {
     "liste": "signatur",
