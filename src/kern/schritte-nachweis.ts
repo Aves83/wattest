@@ -3,7 +3,7 @@
 
 // P8: Nachweiskette, Inhaltsprüfsummen (Technische Erläuterung 5., 5.1) und Aktenauszug mit SHA256SUMS.txt.
 
-import { anzahl, type Aussage, type Detail } from "./befund.js";
+import { anzahl, aufzaehlung, type Aussage, type Detail } from "./befund.js";
 import { ausBase64, textAus } from "./bytes.js";
 import { GRENZE } from "./grenzen.js";
 import { anzeigeEingabe, gespraechEingabe, nachtragEingabe, nachweisgliedEingabe, type AnzeigeRoh, type DokumentFeld } from "./kanonisch.js";
@@ -28,8 +28,39 @@ export interface Aktenauszug {
   summenText: string;
 }
 
-/** Prüfsummen der Dokumente, die über eine bestätigte Anzeige an die Nachweiskette gebunden sind. */
-export type Dokumentbindung = Map<string, { anzeige: string; dateiname: string; glied: number }>;
+/**
+ * Prüfsummen der Dokumente, die über eine bestätigte Anzeige an die Nachweiskette gebunden sind; von nennt das Schreiben
+ * nach seiner Art im Genitiv („der Überlastungsanzeige“, „des Antrags auf Zeitausgleich“).
+ */
+export type Dokumentbindung = Map<string, { anzeige: string; dateiname: string; glied: number; von: string }>;
+
+/**
+ * Art eines Schreibens (Technische Erläuterung 5.; Datenformat, nachweise.anzeigen[].art, seit Formatversion 20): ohne
+ * das Feld (Versionen 16 bis 19) und mit UEBERLASTUNGSANZEIGE eine Überlastungsanzeige, mit ZEITAUSGLEICH ein Antrag
+ * auf Zeitausgleich. „Anzeige“ meint in der Technischen Erläuterung beide Arten. Einen anderen Wert kennt das
+ * Datenformat nicht (P1); ein solches Schreiben heißt hier wie ein gelöschtes nur „Schreiben“. Die Art geht nicht in
+ * die Prüfsumme ein und steht nicht im Glied der Nachweiskette; WATTest benennt nach ihr, wertet sie aber nicht.
+ */
+interface Schreibart {
+  name: string;
+  /** Genitiv mit Artikel */
+  von: string;
+  /** Dativ nach einer Zahl: Einzahl, Mehrzahl */
+  gesendet: [string, string];
+}
+
+const UEBERLASTUNGSANZEIGE: Schreibart = { name: "Überlastungsanzeige", von: "der Überlastungsanzeige", gesendet: ["gesendeten Überlastungsanzeige", "gesendeten Überlastungsanzeigen"] };
+const ZEITAUSGLEICH: Schreibart = { name: "Antrag auf Zeitausgleich", von: "des Antrags auf Zeitausgleich", gesendet: ["gesendeten Antrag auf Zeitausgleich", "gesendeten Anträgen auf Zeitausgleich"] };
+const SCHREIBEN: Schreibart = { name: "Schreiben", von: "des Schreibens", gesendet: ["gesendeten Schreiben", "gesendeten Schreiben"] };
+
+export function schreibart(anzeige: Record<string, unknown>, version: number | null): Schreibart {
+  // Vor Formatversion 20 kennt das Datenformat das Feld art nicht; P1 nennt es dort als unbekanntes Feld, WATTest
+  // übergeht es wie WATT beim Einlesen (Datenformat, Grundregeln), und das Schreiben ist eine Überlastungsanzeige.
+  if (version !== null && version < 20) return UEBERLASTUNGSANZEIGE;
+  const art = anzeige["art"];
+  if (art === undefined || art === "UEBERLASTUNGSANZEIGE") return UEBERLASTUNGSANZEIGE;
+  return art === "ZEITAUSGLEICH" ? ZEITAUSGLEICH : SCHREIBEN;
+}
 
 export async function pruefeNachweise(k: Kontext): Promise<Dokumentbindung> {
   const bindung: Dokumentbindung = new Map();
@@ -70,39 +101,43 @@ export async function pruefeNachweise(k: Kontext): Promise<Dokumentbindung> {
   // Inhalte
   const abw: Detail[] = [];
   const hinweise: string[] = [];
-  const inhalt = new Map<string, { art: string; pruefsumme: string | null; berechnet: string; dokumente?: DokumentFeld[] }>();
+  const inhalt = new Map<string, { art: string; name: string; pruefsumme: string | null; berechnet: string; dokumente?: DokumentFeld[]; schreiben?: Schreibart }>();
   let dokumente = 0;
+  // Gesendete Schreiben je Art; die Prüfsumme rechnet für beide Arten dasselbe Verfahren, die Art geht nicht ein (5., 5.1).
+  const gesendet = new Map<Schreibart, number>();
   for (const a of anzeigen) {
     const id = String(a["id"] ?? "");
     if (a["pruefsumme"] === null || a["pruefsumme"] === undefined) continue; // Entwurf
+    const sa = schreibart(a, k.kt.version);
+    gesendet.set(sa, (gesendet.get(sa) ?? 0) + 1);
     const docs: DokumentFeld[] = [];
     let lesbar = true;
     for (const d of liste(a["dokumente"])) {
       const b = ausBase64(String(d["inhalt"] ?? ""));
       if (!b) {
         lesbar = false;
-        abw.push({ text: `Anzeige ${id}: Das Dokument ${String(d["dateiname"])} ist kein gültiges Base64.` });
+        abw.push({ text: `${sa.name} ${id}: Das Dokument ${String(d["dateiname"])} ist kein gültiges Base64.` });
         continue;
       }
       docs.push({ art: d["art"], dateiname: d["dateiname"], sha256: await sha256Hex(b) });
     }
     dokumente += docs.length;
     const berechnet = await sha256Hex(anzeigeEingabe(a as AnzeigeRoh, docs));
-    if (lesbar && berechnet !== a["pruefsumme"]) abw.push({ text: `Anzeige ${id}: Die gespeicherte Prüfsumme passt nicht zum Inhalt der Anzeige (Verfahren ${String(a["pruefverfahren"] ?? 1)}).` });
-    inhalt.set(id, { art: "anzeige", pruefsumme: a["pruefsumme"] as string, berechnet, dokumente: docs });
+    if (lesbar && berechnet !== a["pruefsumme"]) abw.push({ text: `${sa.name} ${id}: Die gespeicherte Prüfsumme passt nicht zum Inhalt (Verfahren ${String(a["pruefverfahren"] ?? 1)}).` });
+    inhalt.set(id, { art: "anzeige", name: sa.name, pruefsumme: a["pruefsumme"] as string, berechnet, dokumente: docs, schreiben: sa });
   }
   let nachtraege = 0;
   for (const gs of gespraeche) {
     const id = String(gs["id"] ?? "");
     const h = await sha256Hex(gespraechEingabe(gs));
     if (h !== gs["pruefsumme"]) abw.push({ text: `Gesprächsnotiz ${id}: Die gespeicherte Prüfsumme passt nicht zum Inhalt.` });
-    inhalt.set(id, { art: "gespraech", pruefsumme: String(gs["pruefsumme"]), berechnet: h });
+    inhalt.set(id, { art: "gespraech", name: "Gesprächsnotiz", pruefsumme: String(gs["pruefsumme"]), berechnet: h });
     for (const n of liste(gs["nachtraege"])) {
       nachtraege++;
       const nid = String(n["id"] ?? "");
       const nh = await sha256Hex(nachtragEingabe(n, gs["id"]));
       if (nh !== n["pruefsumme"]) abw.push({ text: `Nachtrag ${nid}: Die gespeicherte Prüfsumme passt nicht zum Inhalt.` });
-      inhalt.set(nid, { art: "nachtrag", pruefsumme: String(n["pruefsumme"]), berechnet: nh });
+      inhalt.set(nid, { art: "nachtrag", name: "Nachtrag", pruefsumme: String(n["pruefsumme"]), berechnet: nh });
     }
   }
 
@@ -122,7 +157,8 @@ export async function pruefeNachweise(k: Kontext): Promise<Dokumentbindung> {
       const e = eingetragen.get(ref);
       if (!e) abw.push({ text: `Nachweisglied ${seq}: Löschvermerk für ${ref}, aber kein früheres Glied trägt diesen Nachweis ein.` });
       else if (e.pruefsumme !== ps) abw.push({ text: `Nachweisglied ${seq}: Der Löschvermerk nennt eine andere Prüfsumme als Nachweisglied ${e.seq}.` });
-      loeschDetails.push({ text: `Nachweisglied ${seq}: ${ev === "ANZEIGE_GELOESCHT" ? "Anzeige" : "Gesprächsnotiz"} ${ref} gelöscht (eingetragen in Nachweisglied ${e?.seq ?? "?"}).` });
+      // Das Glied nennt die Art des Schreibens nicht (5.); ohne den Inhalt in der Datei bleibt es ein „Schreiben“.
+      loeschDetails.push({ text: `Nachweisglied ${seq}: ${ev === "ANZEIGE_GELOESCHT" ? (inhalt.get(ref)?.schreiben?.name ?? SCHREIBEN.name) : "Gesprächsnotiz"} ${ref} gelöscht (eingetragen in Nachweisglied ${e?.seq ?? "?"}).` });
     } else if (ev === "WIEDERHERSTELLUNG" || ev === "WIEDERHERSTELLUNG_UNTERBROCHEN") {
       wiederDetails.push({ text: `Nachweisglied ${seq}: ${ev === "WIEDERHERSTELLUNG" ? "Wiederherstellung" : "Wiederherstellung mit unterbrochener Kette in der Datei"} (Referenz ${ref}, SHA-256 der eingespielten Datei ${ps}).` });
     } else abw.push({ text: `Nachweisglied ${seq}: unbekanntes Ereignis ${ev}.` });
@@ -130,12 +166,12 @@ export async function pruefeNachweise(k: Kontext): Promise<Dokumentbindung> {
   for (const [id, v] of inhalt) {
     const e = eingetragen.get(id);
     if (!e) {
-      abw.push({ text: `${v.art === "anzeige" ? "Anzeige" : v.art === "gespraech" ? "Gesprächsnotiz" : "Nachtrag"} ${id} steht in keinem Glied der Nachweiskette.` });
+      abw.push({ text: `${v.name} ${id} steht in keinem Glied der Nachweiskette.` });
       continue;
     }
-    if (e.pruefsumme !== v.berechnet) abw.push({ text: `${v.art === "anzeige" ? "Anzeige" : v.art === "gespraech" ? "Gesprächsnotiz" : "Nachtrag"} ${id}: Nachweisglied ${e.seq} nennt eine andere Prüfsumme als der Inhalt ergibt.` });
+    if (e.pruefsumme !== v.berechnet) abw.push({ text: `${v.name} ${id}: Nachweisglied ${e.seq} nennt eine andere Prüfsumme als der Inhalt ergibt.` });
     else if (geloescht.has(id)) hinweise.push(`${id}: Inhalt vorhanden, obwohl Nachweisglied ${geloescht.get(id)} die Löschung vermerkt.`);
-    else if (v.dokumente) for (const d of v.dokumente) bindung.set(d.sha256, { anzeige: id, dateiname: String(d.dateiname), glied: e.seq });
+    else if (v.dokumente) for (const d of v.dokumente) bindung.set(d.sha256, { anzeige: id, dateiname: String(d.dateiname), glied: e.seq, von: (v.schreiben ?? SCHREIBEN).von });
   }
   for (const [ref, e] of eingetragen) {
     if (!inhalt.has(ref) && !geloescht.has(ref)) {
@@ -145,7 +181,10 @@ export async function pruefeNachweise(k: Kontext): Promise<Dokumentbindung> {
       abw.push({ text: `Nachweisglied ${e.seq}: Der Nachweis ${ref} fehlt in der Datei, ohne dass seine Löschung vermerkt ist.` });
     }
   }
-  const zahlen = `${anzahl([...inhalt.values()].filter((v) => v.art === "anzeige").length, "gesendete Anzeige", "gesendete Anzeigen")} mit ${anzahl(dokumente, "Dokument", "Dokumenten")}, ${anzahl(gespraeche.length, "Gesprächsnotiz", "Gesprächsnotizen")} und ${anzahl(nachtraege, "Nachtrag", "Nachträgen")}`;
+  // Schreiben nach ihrer Art gezählt: Überlastungsanzeigen, Anträge auf Zeitausgleich, Schreiben mit unbekannter Art.
+  const jeArt = [UEBERLASTUNGSANZEIGE, ZEITAUSGLEICH, SCHREIBEN].filter((sa) => gesendet.has(sa)).map((sa) => anzahl(gesendet.get(sa)!, ...sa.gesendet));
+  const schreiben = jeArt.length ? aufzaehlung(jeArt) : anzahl(0, ...SCHREIBEN.gesendet);
+  const zahlen = `${schreiben} mit ${anzahl(dokumente, "Dokument", "Dokumenten")}, ${anzahl(gespraeche.length, "Gesprächsnotiz", "Gesprächsnotizen")} und ${anzahl(nachtraege, "Nachtrag", "Nachträgen")}`;
   if (abw.length) {
     sage(k, "P8", "widerlegt", "Die Nachweise entsprechen nicht der Nachweiskette.", `WATTest hat die Inhaltsprüfsummen von ${zahlen} nach 5.1 neu berechnet und mit der Nachweiskette verglichen.`, {
       fundstelle: fund,
@@ -160,7 +199,7 @@ export async function pruefeNachweise(k: Kontext): Promise<Dokumentbindung> {
     });
   }
   if (loeschDetails.length) {
-    sage(k, "P8", "hinweis", `Die Nachweiskette vermerkt ${anzahl(loeschDetails.length, "Löschung", "Löschungen")}.`, "Gesendete Anzeigen und Gesprächsnotizen lassen sich löschen; ihr Inhalt verschwindet, der Vermerk ihrer Existenz bleibt in der Kette (5.).", { fundstelle: fund, details: loeschDetails });
+    sage(k, "P8", "hinweis", `Die Nachweiskette vermerkt ${anzahl(loeschDetails.length, "Löschung", "Löschungen")}.`, "Gesendete Schreiben (Überlastungsanzeigen und Anträge auf Zeitausgleich) und Gesprächsnotizen lassen sich löschen; ihr Inhalt verschwindet, der Vermerk ihrer Existenz bleibt in der Kette (5.). Das Glied nennt die Art eines Schreibens nicht; ein gelöschtes heißt hier deshalb nur „Schreiben“.", { fundstelle: fund, details: loeschDetails });
   }
   if (wiederDetails.length) {
     sage(k, "P8", "hinweis", `Die Nachweiskette vermerkt ${anzahl(wiederDetails.length, "Wiederherstellung", "Wiederherstellungen")}.`, "Eine Wiederherstellung ersetzt die Nachweiskette des Geräts durch die der Datei und hängt ein Glied an (5., 7.).", { fundstelle: fund, details: wiederDetails });
@@ -175,14 +214,14 @@ export async function pruefeNachweise(k: Kontext): Promise<Dokumentbindung> {
         const dn = typeof h["dateiname"] === "string" ? (h["dateiname"] as string).replace(/^anhaenge\//, "") : null;
         const datei = dn ? vorhanden.get(dn) : undefined;
         details.push({
-          text: `Anzeige ${String(a["id"])}, Anhang ${String(h["id"])} (${String(h["art"])}, ${String(h["groesse"])} Bytes): ${datei ? (datei.groesse === h["groesse"] ? "Kopie im ZIP, Größe passt" : `Kopie im ZIP mit anderer Größe (${datei.groesse} Bytes)`) : dn ? "Kopie fehlt im ZIP" : "ohne Kopie im Export"}`,
+          text: `${schreibart(a, k.kt.version).name} ${String(a["id"])}, Anhang ${String(h["id"])} (${String(h["art"])}, ${String(h["groesse"])} Bytes): ${datei ? (datei.groesse === h["groesse"] ? "Kopie im ZIP, Größe passt" : `Kopie im ZIP mit anderer Größe (${datei.groesse} Bytes)`) : dn ? "Kopie fehlt im ZIP" : "ohne Kopie im Export"}`,
           inhalt: `Name: ${String(h["name"])}`,
         });
         if (dn) vorhanden.delete(dn);
       }
     }
     for (const [p, a] of vorhanden) details.push({ text: `anhaenge/${p} (${a.groesse} Bytes): keinem Anhang zugeordnet` });
-    sage(k, "P8", "hinweis", `Die Datei nennt ${anzahl(details.length, "Anhang", "Anhänge")} zu Anzeigen; Anhänge prüft WATTest nicht.`, "Anhänge an Anzeigen sind kein Teil des Nachweises: Sie gehen weder in die Inhaltsprüfsumme der Anzeige noch in die Nachweiskette ein (5.1). WATTest listet sie nur auf.", {
+    sage(k, "P8", "hinweis", `Die Datei nennt ${anzahl(details.length, "Anhang", "Anhänge")} zu Anzeigen; Anhänge prüft WATTest nicht.`, "Anhänge an Anzeigen sind kein Teil des Nachweises: Sie gehen weder in die Inhaltsprüfsumme der Anzeige noch in die Nachweiskette ein (5.1). „Anzeige“ meint dabei wie in der Technischen Erläuterung (5.) beide Arten von Schreiben, die Überlastungsanzeige und den Antrag auf Zeitausgleich. WATTest listet die Anhänge nur auf.", {
       fundstelle: fund,
       grenze: GRENZE.nachweis,
       details,
@@ -416,7 +455,7 @@ export function pruefeAktenauszug(az: Aktenauszug, bindungen: { name: string; bi
   const ohne: Detail[] = [];
   for (const d of dokumente) {
     const b = bindungen.map((x) => ({ name: x.name, t: x.bindung.get(d.sha256) })).find((x) => x.t);
-    if (b) treffer.push({ text: `${d.pfad}: Dokument ${b.t!.dateiname} der Anzeige ${b.t!.anzeige}, Nachweisglied ${b.t!.glied} (Datei „${b.name}“)` });
+    if (b) treffer.push({ text: `${d.pfad}: Dokument ${b.t!.dateiname} ${b.t!.von} ${b.t!.anzeige}, Nachweisglied ${b.t!.glied} (Datei „${b.name}“)` });
     else ohne.push({ text: `${d.pfad}: in keiner Anzeige der Nachweiskette` });
   }
   if (!dokumente.length) return;

@@ -2,7 +2,7 @@
 // WATTest © 2026 Hans-Joachim Steudel
 
 // Beispieldateien echter WATT-Versionen: 16 bis 18 mit P1 bis P5, P8, P9 bestätigt, P6 einmal nicht bestätigbar,
-// P7 entfällt; 19 (drachenfrucht) signiert, mit Attestierung aus der Testumgebung.
+// P7 entfällt; 19 (drachenfrucht, erdbeere) signiert, mit Attestierung aus der Testumgebung.
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
@@ -62,15 +62,14 @@ test("Beispieldateien ohne Sprünge: genau eine Aussage zu den Zeitstempeln", as
   }
 });
 
-// drachenfrucht-19 (WATT 0.8.111, Datenformat 19): signierte Kette mit Attestierung aus der Testumgebung von WATT,
-// dazu uhr_verstellt, eingelesene Buchung und Anhänge an einer Anzeige.
+// drachenfrucht-19 (WATT 0.8.111) und erdbeere-19 (WATT 0.8.118), beide Datenformat 19 mit demselben Umfang: signierte
+// Kette mit Attestierung aus der Testumgebung von WATT, dazu uhr_verstellt, eingelesene Buchung und Anhänge an einer
+// Anzeige. Beide ergeben je Schritt dasselbe.
 
-const DRACHENFRUCHT = "drachenfrucht-19.json";
-
-async function drachenfrucht(weiter: Partial<Optionen> = {}): Promise<Befund> {
-  const a = leseQr(qrAus(JSON.parse(liesText(`tests/beispiele/${DRACHENFRUCHT}`))));
+async function signiert(name: string, weiter: Partial<Optionen> = {}): Promise<Befund> {
+  const a = leseQr(qrAus(JSON.parse(liesText(`tests/beispiele/${name}`))));
   assert.ok(a.ok);
-  return befund([beispiel(DRACHENFRUCHT)], { anker: [a.anker], ...weiter });
+  return befund([beispiel(name)], { anker: [a.anker], ...weiter });
 }
 
 function pruefeOhneP7(b: Befund): void {
@@ -91,8 +90,9 @@ function pruefeOhneP7(b: Befund): void {
 
 const p7Details = (b: Befund): string[] => b.aussagen.filter((x) => x.schritt === "P7").flatMap((x) => (x.details ?? []).map((d) => d.text));
 
-test(`${DRACHENFRUCHT} ohne Wurzeln und App-Signatur: P1 bis P6, P8, P9 bestätigt, P7 offen`, async () => {
-  const b = await drachenfrucht();
+for (const DATEI of ["drachenfrucht-19.json", "erdbeere-19.json"]) {
+test(`${DATEI} ohne Wurzeln und App-Signatur: P1 bis P6, P8, P9 bestätigt, P7 offen`, async () => {
+  const b = await signiert(DATEI);
   pruefeOhneP7(b);
   assert.equal(zeichen(b, "P7"), "offen", texte(b, "P7"));
   const d = p7Details(b);
@@ -102,10 +102,10 @@ test(`${DRACHENFRUCHT} ohne Wurzeln und App-Signatur: P1 bis P6, P8, P9 bestäti
   assert.equal(b.gesamt, "offen");
 });
 
-test(`${DRACHENFRUCHT} mit Wurzeln von Google, Sperrliste und App-Signatur aus daten/: ✗ allein in P7, Kette nicht bis zu einer Wurzel (Testumgebung, E-4)`, async () => {
+test(`${DATEI} mit Wurzeln von Google, Sperrliste und App-Signatur aus daten/: ✗ allein in P7, Kette nicht bis zu einer Wurzel (Testumgebung, E-4)`, async () => {
   const wurzeln = JSON.parse(liesText("daten/wurzeln.json")) as { abgerufen: string; quelle: string; zertifikate: { pem: string }[] };
   const app = JSON.parse(liesText("daten/app-signatur.json")) as { paketname: string; sha256: string };
-  const b = await drachenfrucht({
+  const b = await signiert(DATEI, {
     wurzeln: wurzeln.zertifikate.flatMap((z) => pemZuDer(z.pem)),
     wurzelnStand: { abgerufen: wurzeln.abgerufen, quelle: wurzeln.quelle },
     sperrliste: JSON.parse(liesText("daten/sperrliste.json")) as Sperrliste,
@@ -129,3 +129,4 @@ test(`${DRACHENFRUCHT} mit Wurzeln von Google, Sperrliste und App-Signatur aus d
   assert.ok(d.some((x) => /^✓ Kein Zertifikat steht in der Sperrliste \(Stand /.test(x)), d.join("\n"));
   assert.equal(b.gesamt, "widerlegt");
 });
+}

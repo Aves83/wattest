@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: EUPL-1.2
 // WATTest © 2026 Hans-Joachim Steudel
 
-// Erzeugt src/kern/xml-typen.ts aus den XSDs von WATT (Versionen 18 und 19, Aves83/watt_public, schema/).
-// Aufruf: node scripts/xml-typen.mjs <Ordner mit watt-daten-<Version>.xsd>
+// Erzeugt src/kern/xml-typen.ts aus den XSDs von WATT (Versionen 18 bis 20, Aves83/watt_public, schema/).
+// Aufruf: node scripts/xml-typen.mjs <Ordner mit watt-daten-<Version>.xsd und README.md>
+// Eine Version, die in der Versionstabelle der README (noch) keine Zeile hat, nennt der Kopf der erzeugten Datei als
+// noch nicht in watt_public veröffentlicht.
 // Die XSDs liegen nicht im Repository. Eine XSD 17 ist nicht veröffentlicht (U-2); XML der Version 17 liest
 // WATTest mit derselben Tabelle, deren Typen die Felder der Version 17 enthalten.
 
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const ordner = process.argv[2] ?? "referenz/watt_public";
@@ -55,7 +57,13 @@ function liesTyp(name, inhalt) {
   }
 }
 
-for (const v of [18, 19]) {
+const VERSIONEN = [18, 19, 20];
+// Versionen mit einer Zeile in der Versionstabelle der README („| 19 | …“ oder „| 19 (Vorabfassung) | …“).
+const readme = existsSync(join(ordner, "README.md")) ? readFileSync(join(ordner, "README.md"), "utf8") : null;
+const inTabelle = new Set([...(readme ?? "").matchAll(/^\| (\d+)(?: \(Vorabfassung\))? \|/gm)].map((m) => Number(m[1])));
+const ausstehend = readme === null ? [] : VERSIONEN.filter((v) => !inTabelle.has(v));
+
+for (const v of VERSIONEN) {
   const xsd = readFileSync(join(ordner, `watt-daten-${v}.xsd`), "utf8");
   for (const m of xsd.matchAll(/<xs:simpleType name="([^"]+)">\s*<xs:restriction base="([^"]+)"/g)) einfach[m[1]] = m[2];
   const re = /<xs:complexType name="([^"]+)">/g;
@@ -91,9 +99,9 @@ for (const [name, felder] of Object.entries(typen)) {
 const kopf = `// SPDX-License-Identifier: EUPL-1.2
 // WATTest © 2026 Hans-Joachim Steudel
 
-// Erzeugt von scripts/xml-typen.mjs aus den XSDs 18 und 19 von WATT (Aves83/watt_public, schema/,
+// Erzeugt von scripts/xml-typen.mjs aus den XSDs 18 bis 20 von WATT (Aves83/watt_public, schema/,
 // CC BY 4.0, Hans-Joachim Steudel). Nicht von Hand ändern.
-
+${ausstehend.length ? `// Vorläufig: XSD ${ausstehend.join(", ")} ist in watt_public noch nicht veröffentlicht; Quelle und Stand: folgt mit Teil 2.\n` : ""}
 export type XmlTyp = { liste: string; von: string } | { felder: Record<string, string> };
 
 export const XML_TYPEN: Record<string, XmlTyp> = `;

@@ -32,14 +32,14 @@ Buchungsdaten (Export im Überblick) und verschlüsselte Sicherungen (`.wattbak`
 
 | Nr. | Schritt | Inhalt |
 | --- | --- | --- |
-| P1 | Format | Formatversion 16 bis 19 (ältere lehnt WATT ab: „?“), Pflichtfelder und Typen nach dem Schema der Version, Zeitpunkte der Glieder beider Ketten in ganzen Millisekunden; Hinweis, solange das Schema eine Vorabfassung ist (derzeit keine) |
+| P1 | Format | Formatversion 16 bis 20 (ältere lehnt WATT ab: „?“; neuere kennt WATTest nicht: „?“), Pflichtfelder und Typen nach dem Schema der Version, Zeitpunkte der Glieder beider Ketten in ganzen Millisekunden; Hinweis, solange das Schema eine Vorabfassung ist (derzeit keine) |
 | P2 | Arbeitszeitkette | Prüfsumme jedes Glieds nach 4.2 (sieben bzw. neun Felder), Verkettung, laufende Nummern, Neubeginn nur am Anfang; Glied ohne Uhrstand nach einem mit Uhrstand „?“ |
 | P3 | Daten und Kette | Kette nachspielen (7.) und mit `eintraege` und `abwesenheiten` vergleichen, mit Bestandsform 1 und 2 (4.6) und „Importiert am“ nach 7.1 |
 | P4 | Zeit | Zeitstempel und Vermerke zur Geräteuhr in einer Aussage (8., Schritt 5; ein unerklärter Rücksprung ist „?“), Zerlegung bei `uhr_verstellt` nach 4.7, Bezug bei `uhr_ruecksprung`, Neustarts, automatische Uhrzeit |
 | P5 | Anker | Glied, Prüfsumme, Zeitpunkt und Zähler des Ankers (6.1, 6.2); ohne Anker „?“ mit dem Hinweis, einen Prüfvermerk hinzuzufügen |
 | P6 | Signaturen | `watt-kopf-1:<hash>` mit dem Schlüssel des Abschnitts; Herkunft je Abschnitt ab der letzten Wiederherstellung bzw. dem Neubeginn, frühestens ab dem ersten Schlüssel oder einem Neubeginn bzw. einer Wiederherstellung unmittelbar davor; Glieder davor „?“ (4.7) (ab Datenformat 19; davor einmal „?“, kein negativer Befund) |
 | P7 | Attestierung | Zertifikatskette bis zu einer Wurzel von Google, Gültigkeit zum Zeitpunkt der Erzeugung (4.7, Schritt 1), Sperrliste (ein gesperrtes Zertifikat ist „?“), Paketname und Signaturzertifikat der App (Fingerabdruck aus 4.7, Schritt 3), Sicherheitsstufe, RootOfTrust, Challenge (ab Datenformat 19; davor Hinweis „Entfällt“) |
-| P8 | Nachweise | Nachweiskette nach 5.1, Inhalte der Anzeigen und Gesprächsnotizen, Aktenauszug gegen `SHA256SUMS.txt` und die Dokumente gegen die Nachweiskette (`PRUEFEN.txt` und die Technische Erläuterung nur gegen `SHA256SUMS.txt`), Aufbau des ZIP-Archivs nach 6.3 mit „ (n)“ bei gleichen Namen (Abweichung „?“) |
+| P8 | Nachweise | Nachweiskette nach 5.1, Inhalte der Anzeigen (Überlastungsanzeigen und, ab Datenformat 20, Anträge auf Zeitausgleich) und Gesprächsnotizen, Aktenauszug gegen `SHA256SUMS.txt` und die Dokumente gegen die Nachweiskette (`PRUEFEN.txt` und die Technische Erläuterung nur gegen `SHA256SUMS.txt`), Aufbau des ZIP-Archivs nach 6.3 mit „ (n)“ bei gleichen Namen (Abweichung „?“) |
 | P9 | Besondere Glieder | Neubeginne (mit Prüfsumme des Bestands nach 4.6), Wiederherstellungen, Löschungen, Änderungen mit Kommentar, Nachträge nach 4.5, eingelesene Buchungen |
 
 ### Dateien von Dritten
@@ -93,7 +93,7 @@ npm run daten     # Sperrliste und Wurzeln von Google nach daten/ holen
 | `src/worker/` | Web Worker mit Fortschritt |
 | `src/ui/` | Seite, Befund, Druckansicht, Impressum, Datenschutz |
 | `daten/` | Wurzeln, Sperrliste und Fingerabdruck der App (Technische Erläuterung 4.7, Schritt 3), mit Quelle und Abrufzeitpunkt |
-| `tests/` | Testvektoren der Technischen Erläuterung, Beispieldateien von WATT, Erzeuger für Datenformat 19 mit eigenen Testzertifikaten, manipulierte Varianten, Härtung und Mutationstests mit festem Seed, Laufzeit, Bau und Oberfläche |
+| `tests/` | Testvektoren der Technischen Erläuterung, Beispieldateien von WATT, Erzeuger für Datenformat 19 und 20 mit eigenen Testzertifikaten, manipulierte Varianten, Härtung und Mutationstests mit festem Seed, Laufzeit, Bau und Oberfläche |
 | `scripts/` | Bau, Abruf der Daten, Auszüge aus Schemas und XSD, Rechenbeispiele aus der Technischen Erläuterung |
 
 Die Unterlagen von WATT liegen nicht im Repository; `scripts/schema-auszug.mjs` und `scripts/xml-typen.mjs` erzeugen aus Schemas und XSDs (Ordner `schema/` von watt_public) die Dateien in `src/kern/`, `scripts/vektoren-holen.mjs` liest die Rechenbeispiele B1 bis B15 aus den Codeblöcken der Technischen Erläuterung nach `tests/vektoren/`.

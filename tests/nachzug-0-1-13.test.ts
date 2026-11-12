@@ -31,8 +31,8 @@ async function mitAnker(d: Daten): Promise<Befund> {
 
 const p1 = (b: Befund): [string, string][] => b.aussagen.filter((x) => x.schritt === "P1").map((x) => [x.zeichen, x.text]);
 
-test("Unterlagen: Rechenbeispiele seit watt_public b97d95c unverändert (Quelle jetzt 7631e7f, Stand 03.11.2026)", () => {
-  assert.match(liesText("tests/vektoren/technische-erlaeuterung.json"), /Commit 7631e7f\), Codeblöcke der Rechenbeispiele, Stand 03\.11\.2026/);
+test("Unterlagen: Rechenbeispiele gegenüber watt_public b97d95c bis auf B3 unverändert (Quelle zu Datenformat 20: folgt mit Teil 2)", () => {
+  assert.match(liesText("tests/vektoren/technische-erlaeuterung.json"), /Commit folgt mit Teil 2\), Codeblöcke der Rechenbeispiele, Stand folgt mit Teil 2/);
 });
 
 test("P1, Formatversion 15: „?“ mit dem Text nach Datenformat und README der Schemas", async () => {
@@ -43,18 +43,18 @@ test("P1, Formatversion 15: „?“ mit dem Text nach Datenformat und README der
   const a = b.aussagen.find((x) => x.schritt === "P1")!;
   assert.equal(
     a.begruendung,
-    "Dateien der Versionen 1 bis 15 stammen aus Vorabversionen vor WATT 0.8.94 „Apfel“; WATT lehnt sie ab („Diese Datei ist zu alt.“), Schemas gibt es für sie nicht (Datenformat, Grundregeln; README der Schemas). WATTest kennt die Formatversionen 16 bis 19. Die folgenden Schritte rechnen trotzdem nach den bekannten Regeln.",
+    "Dateien der Versionen 1 bis 15 stammen aus Vorabversionen vor WATT 0.8.94 „Apfel“; WATT lehnt sie ab („Diese Datei ist zu alt.“), Schemas gibt es für sie nicht (Datenformat, Grundregeln; README der Schemas). WATTest kennt die Formatversionen 16 bis 20. Die folgenden Schritte rechnen trotzdem nach den bekannten Regeln.",
   );
   assert.ok(!b.aussagen.some((x) => x.zeichen === "widerlegt"), texte(b));
   assert.equal(b.gesamt, "offen");
 });
 
-test("P1, Formatversion 20: weiter „WATTest kennt das Datenformat 20 nicht.“", async () => {
+test("P1, Formatversion 21: weiter „WATTest kennt das Datenformat 21 nicht.“ (Version 20 kennt WATTest seit 0.1.15)", async () => {
   const d = lade("apfel-16.json");
-  d.version = 20;
-  const b = await befund([json("neu-20.json", d)]);
-  assert.deepEqual(p1(b), [["offen", "WATTest kennt das Datenformat 20 nicht."]]);
-  assert.match(b.aussagen.find((x) => x.schritt === "P1")!.begruendung, /Eine neuere Version braucht eine neuere Fassung von WATTest\./);
+  d.version = 21;
+  const b = await befund([json("neu-21.json", d)]);
+  assert.deepEqual(p1(b), [["offen", "WATTest kennt das Datenformat 21 nicht."]]);
+  assert.equal(b.aussagen.find((x) => x.schritt === "P1")!.begruendung, "WATTest 0.1 kennt die Formatversionen 16 bis 20. Eine neuere Version braucht eine neuere Fassung von WATTest. Die folgenden Schritte rechnen trotzdem nach den bekannten Regeln.");
 });
 
 test("Zeitpunkte feiner als Millisekunden: Ziffer ungleich 0 ab der vierten Nachkommastelle", () => {
