@@ -3,7 +3,6 @@
 
 // Erzeugt von scripts/xml-typen.mjs aus den XSDs 18 bis 20 von WATT (Aves83/watt_public, schema/,
 // CC BY 4.0, Hans-Joachim Steudel). Nicht von Hand ändern.
-// Vorläufig: XSD 20 ist in watt_public noch nicht veröffentlicht; Quelle und Stand: folgt mit Teil 2.
 
 export type XmlTyp = { liste: string; von: string } | { felder: Record<string, string> };
 

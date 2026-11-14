@@ -43,8 +43,8 @@ async function einfuegen(e: Erzeugt, i: number, glieder: Record<string, unknown>
 
 const bestaetigt = (b: Awaited<ReturnType<typeof befund>>): string | undefined => b.aussagen.find((a) => a.schritt === "P6" && a.zeichen === "bestaetigt")?.text;
 
-test("Rechenbeispiele B1 bis B15 sind seit watt_public 48fe38a bis auf B3 unverändert (Quelle zu Datenformat 20: folgt mit Teil 2)", () => {
-  assert.match(liesText("tests/vektoren/technische-erlaeuterung.json"), /Commit folgt mit Teil 2\), Codeblöcke der Rechenbeispiele, Stand folgt mit Teil 2/);
+test("Rechenbeispiele B1 bis B15 sind seit watt_public 48fe38a bis auf B3 unverändert (Quelle jetzt c0cbd96, Stand 13.11.2026)", () => {
+  assert.match(liesText("tests/vektoren/technische-erlaeuterung.json"), /Commit c0cbd96\), Codeblöcke der Rechenbeispiele, Stand 13\.11\.2026/);
 });
 
 // 4.7, Stand 48fe38a: Der Abschnitt beginnt beim letzten Glied wiederherstellung bzw. neubeginn vor j, wenn es nach

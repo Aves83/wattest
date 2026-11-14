@@ -31,8 +31,8 @@ async function mitAnker(d: Daten): Promise<Befund> {
 
 const p1 = (b: Befund): [string, string][] => b.aussagen.filter((x) => x.schritt === "P1").map((x) => [x.zeichen, x.text]);
 
-test("Unterlagen: Rechenbeispiele gegenüber watt_public b97d95c bis auf B3 unverändert (Quelle zu Datenformat 20: folgt mit Teil 2)", () => {
-  assert.match(liesText("tests/vektoren/technische-erlaeuterung.json"), /Commit folgt mit Teil 2\), Codeblöcke der Rechenbeispiele, Stand folgt mit Teil 2/);
+test("Unterlagen: Rechenbeispiele gegenüber watt_public b97d95c bis auf B3 unverändert (Quelle jetzt c0cbd96, Stand 13.11.2026)", () => {
+  assert.match(liesText("tests/vektoren/technische-erlaeuterung.json"), /Commit c0cbd96\), Codeblöcke der Rechenbeispiele, Stand 13\.11\.2026/);
 });
 
 test("P1, Formatversion 15: „?“ mit dem Text nach Datenformat und README der Schemas", async () => {

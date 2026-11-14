@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 // WATTest © 2026 Hans-Joachim Steudel
 
-// Nachzug auf Datenformat 20 von WATT „Felsenbirne“ (Grundlage in watt_public: folgt mit Teil 2):
+// Nachzug auf Datenformat 20 von WATT 0.8.126 „Felsenbirne“ (watt_public c0cbd96, Technische Erläuterung
+// „WATT-Version: 0.8.126 · Stand: 13.11.2026“):
 // - Datenformat und Schema 20: nachweise.anzeigen[].art mit UEBERLASTUNGSANZEIGE oder ZEITAUSGLEICH (im XML Typ
 //   Anzeigeart), letztes Feld der Anzeige, kein Pflichtfeld; „Fehlt das Feld (Versionen 16 bis 19), ist es eine
 //   Überlastungsanzeige.“ Beim Antrag auf Zeitausgleich ist stufe immer AUSSAGE und ohne Bedeutung, zeitraumVon und
@@ -10,8 +11,9 @@
 //   ANZEIGE_GESENDET und ANZEIGE_GELOESCHT, die Art steht nicht im Ketteneintrag und geht nicht in die
 //   Inhaltsprüfsumme ein, das Prüfverfahren (Verfahren 2) ist für beide dasselbe.
 // - Rechenbeispiel B3 mit "version": 20 und neuer Prüfsumme; B4 bis B7 unverändert.
-// Eine Beispieldatei der Version 20 gibt es noch nicht; die Dateien hier sind aus drachenfrucht-19 abgeleitet. Die
-// Formatversion geht in keine Prüfsumme der Ketten ein, Arbeitszeitkette und Signaturen bleiben deshalb gültig.
+// Die künstlichen Dateien der Version 20 im ersten Teil sind aus drachenfrucht-19 abgeleitet (Vorarbeit vor der
+// Beispieldatei). Die Formatversion geht in keine Prüfsumme der Ketten ein, Arbeitszeitkette und Signaturen bleiben
+// deshalb gültig. Der zweite Teil leitet dieselben Fälle aus der Beispieldatei felsenbirne-20 von WATT ab.
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
@@ -142,10 +144,11 @@ test("Unterlagen: B3 mit \"version\": 20 und neuer Prüfsumme, B4 bis B7 unverä
   ]) assert.equal(v.find((x) => x.id === id)!.sha256, summe, id);
 });
 
-test("eigene Rechnung nach 5.1, Verfahren 2, ergibt die gespeicherte Prüfsumme der Anzeige in drachenfrucht-19 und erdbeere-19", async () => {
-  for (const name of ["drachenfrucht-19.json", "erdbeere-19.json"]) {
-    const a = lade(name).nachweise.anzeigen[0]!;
-    assert.equal(await pruefsummeVerfahren2(a), a["pruefsumme"], name);
+test("eigene Rechnung nach 5.1, Verfahren 2, ergibt die gespeicherte Prüfsumme jedes Schreibens in drachenfrucht-19, erdbeere-19 und felsenbirne-20", async () => {
+  for (const [name, anzahl] of [["drachenfrucht-19.json", 1], ["erdbeere-19.json", 1], ["felsenbirne-20.json", 2]] as const) {
+    const anzeigen = lade(name).nachweise.anzeigen;
+    assert.equal(anzeigen.length, anzahl, name);
+    for (const a of anzeigen) assert.equal(await pruefsummeVerfahren2(a), a["pruefsumme"], `${name}, ${String(a["id"])}`);
   }
 });
 
@@ -155,7 +158,7 @@ test("P1, Formatversion 20 ohne art (drachenfrucht-19 nur mit version 20): ✓, 
   const b = await mitAnker(d);
   assert.deepEqual(von(b, "P1"), [["bestaetigt", "Die Datei ist ein vollständiger Klartext-Export im Datenformat 20."]]);
   assert.equal(aussage(b, "Die Datei ist ein vollständiger Klartext-Export im Datenformat 20.").begruendung, "format watt-daten, version 20, exportiert am 2026-10-02T10:00:00.123Z aus WATT 0.8.111. Pflichtfelder und Typen der gelesenen Teile entsprechen watt-daten-20.schema.json.");
-  // Version 20 steht (noch) nicht als Vorabfassung in der README der Schemas: kein Hinweis.
+  // Die README der Schemas führt Version 20 seit c0cbd96 in der Versionstabelle, nicht als Vorabfassung: kein Hinweis.
   assert.ok(!b.aussagen.some((x) => x.schritt === "P1" && x.zeichen === "hinweis"), texte(b, "P1"));
   assert.deepEqual(von(b, "P8"), P8_BESTAETIGT);
   assert.equal(aussage(b, "Die Nachweise entsprechen der Nachweiskette.").begruendung, "WATTest hat die Inhaltsprüfsummen von 1 gesendeten Überlastungsanzeige mit 1 Dokument, 1 Gesprächsnotiz und 1 Nachtrag nach 5.1 neu berechnet; jede stimmt mit der gespeicherten und mit dem Glied der Nachweiskette überein.");
@@ -308,6 +311,134 @@ test("Aktenauszug mit dem Anschreiben des Antrags: an die Nachweiskette gebunden
     `Aktenauszug/Anschreiben.pdf: Dokument Anschreiben.pdf der Überlastungsanzeige ${UEBERLASTUNG}, Nachweisglied 1 (Datei „x.json“)`,
     `Aktenauszug/Antrag.pdf: Dokument Antrag.pdf des Antrags auf Zeitausgleich ${ANTRAG}, Nachweisglied 4 (Datei „x.json“)`,
   ]);
+});
+
+// Zweiter Teil: dieselben Fälle aus der Beispieldatei felsenbirne-20 (WATT 0.8.126 „Felsenbirne“). Der Antrag auf
+// Zeitausgleich steht dort an erster Stelle (anzeigen[0]), die Überlastungsanzeige an zweiter; die Nachweiskette
+// bleibt, wie WATT sie schrieb (Glied 1 Überlastungsanzeige, Glied 4 Antrag).
+
+const F_ANTRAG = "4312a057-747a-4c01-9607-fcae3dc8da6c";
+const F_UEBERLASTUNG = "eb0caf7b-6913-4778-a6e2-aba5181454be";
+const P1_20: [string, string][] = [["bestaetigt", "Die Datei ist ein vollständiger Klartext-Export im Datenformat 20."]];
+
+test("felsenbirne-20: gesendeter Antrag auf Zeitausgleich wie von WATT geschrieben; die eigene Rechnung nach Verfahren 2 trifft die gespeicherte Prüfsumme und Glied 4", async () => {
+  const d = lade("felsenbirne-20.json");
+  assert.equal(d.version, 20);
+  const [antrag, anzeige] = d.nachweise.anzeigen as [Satz, Satz];
+  assert.equal(d.nachweise.anzeigen.length, 2);
+  assert.deepEqual(
+    [antrag["id"], antrag["art"], antrag["stufe"], antrag["zeitraumVon"], antrag["zeitraumBis"], antrag["kopien"], (antrag["dokumente"] as Satz[]).map((x) => x["art"]), antrag["notizen"], antrag["anhaenge"]],
+    [F_ANTRAG, "ZEITAUSGLEICH", "AUSSAGE", "2026-09-22", "2026-09-24", [], ["ANSCHREIBEN"], [], []],
+  );
+  assert.deepEqual([anzeige["id"], anzeige["art"], anzeige["stufe"]], [F_UEBERLASTUNG, "UEBERLASTUNGSANZEIGE", "ZUSAMMENFASSUNG"]);
+  assert.ok(typeof antrag["gesendetAm"] === "string" && typeof anzeige["gesendetAm"] === "string");
+  assert.deepEqual(d.nachweise.kette.map((g) => [g["seq"], g["ereignis"]]), [[1, "ANZEIGE_GESENDET"], [2, "GESPRAECHSNOTIZ_GESPEICHERT"], [3, "NACHTRAG"], [4, "ANZEIGE_GESENDET"]]);
+  assert.deepEqual([d.protokoll.length, (d["kettensignaturen"] as unknown[]).length, (d["kettenschluessel"] as unknown[]).length], [10, 8, 1]);
+
+  // Verfahren 2, art geht nicht ein: Antrag und Überlastungsanzeige.
+  assert.equal(antrag["pruefverfahren"], 2);
+  assert.equal(await pruefsummeVerfahren2(antrag), "8cbb1926b009ccab553d1e36b0230a95bfddb52db85407b3c0689b4b7869b1c7");
+  assert.equal(antrag["pruefsumme"], "8cbb1926b009ccab553d1e36b0230a95bfddb52db85407b3c0689b4b7869b1c7");
+  assert.deepEqual([d.nachweise.kette[3]!["referenzId"], d.nachweise.kette[3]!["pruefsumme"]], [F_ANTRAG, antrag["pruefsumme"]]);
+  assert.equal(await pruefsummeVerfahren2(anzeige), anzeige["pruefsumme"]);
+  assert.deepEqual([d.nachweise.kette[0]!["referenzId"], d.nachweise.kette[0]!["pruefsumme"]], [F_UEBERLASTUNG, anzeige["pruefsumme"]]);
+
+  const b = await mitAnker(d, "felsenbirne-20.json");
+  assert.deepEqual(von(b, "P1"), P1_20);
+  assert.ok(!b.aussagen.some((x) => x.schritt === "P1" && x.zeichen === "hinweis"), texte(b, "P1"));
+  assert.deepEqual(von(b, "P8"), P8_BESTAETIGT);
+  assert.equal(aussage(b, "Die Nachweiskette ist lückenlos und unverändert.").fundstelle, "Nachweisglied 1 bis 4, Datei „felsenbirne-20.json“");
+  assert.equal(aussage(b, "Die Nachweise entsprechen der Nachweiskette.").begruendung, begruendungP8("1 gesendeten Überlastungsanzeige und 1 gesendeten Antrag auf Zeitausgleich"));
+  wieDrachenfrucht(b);
+});
+
+test("felsenbirne-20 mit geändertem art, Prüfsumme unverändert: P1 und P8 bleiben ✓, nur die Benennung folgt art", async () => {
+  // Antrag als Überlastungsanzeige ausgegeben.
+  const d = lade("felsenbirne-20.json");
+  d.nachweise.anzeigen[0]!["art"] = "UEBERLASTUNGSANZEIGE";
+  let b = await mitAnker(d);
+  assert.deepEqual(von(b, "P1"), P1_20);
+  assert.deepEqual(von(b, "P8"), P8_BESTAETIGT);
+  assert.equal(aussage(b, "Die Nachweise entsprechen der Nachweiskette.").begruendung, begruendungP8("2 gesendeten Überlastungsanzeigen"));
+  wieDrachenfrucht(b);
+
+  // Überlastungsanzeige (Stufe ZUSAMMENFASSUNG, eine Kopie, Anhänge) als Antrag ausgegeben (E-70).
+  const e = lade("felsenbirne-20.json");
+  e.nachweise.anzeigen[1]!["art"] = "ZEITAUSGLEICH";
+  b = await mitAnker(e);
+  assert.deepEqual(von(b, "P1"), P1_20);
+  assert.deepEqual(von(b, "P8"), P8_BESTAETIGT);
+  assert.equal(aussage(b, "Die Nachweise entsprechen der Nachweiskette.").begruendung, begruendungP8("2 gesendeten Anträgen auf Zeitausgleich"));
+  const anhaenge = aussage(b, "Die Datei nennt 2 Anhänge zu Anzeigen; Anhänge prüft WATTest nicht.");
+  assert.ok(anhaenge.details!.every((x) => x.text.startsWith(`Antrag auf Zeitausgleich ${F_UEBERLASTUNG}, Anhang `)), texte(b, "P8"));
+  wieDrachenfrucht(b);
+});
+
+test("felsenbirne-20 ohne art (beim Antrag, bei beiden Schreiben): P1 ✓, P8 ✓ und zählt Überlastungsanzeigen", async () => {
+  const d = lade("felsenbirne-20.json");
+  delete d.nachweise.anzeigen[0]!["art"];
+  let b = await mitAnker(d);
+  assert.deepEqual(von(b, "P1"), P1_20);
+  assert.deepEqual(von(b, "P8"), P8_BESTAETIGT);
+  assert.equal(aussage(b, "Die Nachweise entsprechen der Nachweiskette.").begruendung, begruendungP8("2 gesendeten Überlastungsanzeigen"));
+  delete d.nachweise.anzeigen[1]!["art"];
+  b = await mitAnker(d);
+  assert.deepEqual(von(b, "P1"), P1_20);
+  assert.deepEqual(von(b, "P8"), P8_BESTAETIGT);
+  assert.equal(aussage(b, "Die Nachweise entsprechen der Nachweiskette.").begruendung, begruendungP8("2 gesendeten Überlastungsanzeigen"));
+  wieDrachenfrucht(b);
+});
+
+test("felsenbirne-20, geänderter Inhalt des Antrags (stufe, Zeitraum, Betreff, Anschreiben) bei gleicher Prüfsumme: P8 ✗, Kette ✓, Gesamtzeile ✗", async () => {
+  for (const [feld, wert] of [["stufe", "NACHWEIS"], ["zeitraumVon", null], ["zeitraumBis", "2026-09-25"], ["betreff", "Antrag"], ["anschreiben", "geändert"]] as const) {
+    const d = lade("felsenbirne-20.json");
+    d.nachweise.anzeigen[0]![feld] = wert;
+    const b = await mitAnker(d);
+    assert.deepEqual(von(b, "P1"), P1_20, feld);
+    assert.deepEqual(von(b, "P8"), [
+      ["bestaetigt", "Die Nachweiskette ist lückenlos und unverändert."],
+      ["widerlegt", "Die Nachweise entsprechen nicht der Nachweiskette."],
+    ], feld);
+    assert.deepEqual(aussage(b, "Die Nachweise entsprechen nicht der Nachweiskette.").details!.map((x) => x.text), [
+      `Antrag auf Zeitausgleich ${F_ANTRAG}: Die gespeicherte Prüfsumme passt nicht zum Inhalt (Verfahren 2).`,
+      `Antrag auf Zeitausgleich ${F_ANTRAG}: Nachweisglied 4 nennt eine andere Prüfsumme als der Inhalt ergibt.`,
+    ], feld);
+    for (const s of ["P2", "P3", "P4", "P5", "P6", "P9"] as const) assert.equal(zeichen(b, s), "bestaetigt", `${feld}, ${s}:\n${texte(b)}`);
+    assert.equal(b.gesamt, "widerlegt", feld);
+  }
+});
+
+test("felsenbirne-20, art mit unbekanntem Wert: P1 ✗; P8 rechnet weiter und nennt das Schreiben ohne Art", async () => {
+  const d = lade("felsenbirne-20.json");
+  d.nachweise.anzeigen[0]!["art"] = "WIDERSPRUCH";
+  const b = await mitAnker(d);
+  assert.deepEqual(von(b, "P1"), [["widerlegt", "Die Datei entspricht nicht dem Datenformat 20."]]);
+  assert.deepEqual(aussage(b, "Die Datei entspricht nicht dem Datenformat 20.").details!.map((x) => x.text), ["$.nachweise: Wert passt zu keiner erlaubten Form", '$.nachweise.anzeigen[0].art: Wert "WIDERSPRUCH" ist nicht erlaubt']);
+  assert.deepEqual(von(b, "P8"), P8_BESTAETIGT);
+  assert.equal(aussage(b, "Die Nachweise entsprechen der Nachweiskette.").begruendung, begruendungP8("1 gesendeten Überlastungsanzeige und 1 gesendeten Schreiben"));
+  for (const s of ["P2", "P3", "P4", "P5", "P6", "P9"] as const) assert.equal(zeichen(b, s), "bestaetigt", `${s}:\n${texte(b)}`);
+  assert.equal(b.gesamt, "widerlegt");
+});
+
+test("felsenbirne-20 als XML: art beider Schreiben (Typ Anzeigeart), Befund je Schritt wie als JSON; unbekannter Wert ebenso P1 ✗", async () => {
+  const d = lade("felsenbirne-20.json");
+  const xml = alsXml(d);
+  assert.match(xml, /<anhaenge\/>\n\s*<art>ZEITAUSGLEICH<\/art>\n\s*<\/anzeige>/);
+  assert.match(xml, /<art>UEBERLASTUNGSANZEIGE<\/art>\n\s*<\/anzeige>/);
+  const j = await mitAnker(d, "felsenbirne-20.json");
+  const x = await mitAnker(d, "felsenbirne-20.xml");
+  assert.deepEqual(von(x, "P1"), [["bestaetigt", "Die Datei ist ein vollständiger Klartext-Export im Datenformat 20 (XML)."]]);
+  assert.match(aussage(x, "Die Datei ist ein vollständiger Klartext-Export im Datenformat 20 (XML).").begruendung, /entsprechen watt-daten-20\.xsd \(über die Abbildung auf das JSON und watt-daten-20\.schema\.json\)\.$/);
+  assert.ok(!x.aussagen.some((a) => a.schritt === "P1" && a.zeichen !== "bestaetigt"), texte(x, "P1"));
+  for (const s of ["P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9"]) assert.deepEqual(von(x, s), von(j, s), s);
+  assert.equal(aussage(x, "Die Nachweise entsprechen der Nachweiskette.").begruendung, begruendungP8("1 gesendeten Überlastungsanzeige und 1 gesendeten Antrag auf Zeitausgleich"));
+  assert.equal(x.gesamt, j.gesamt);
+  wieDrachenfrucht(x);
+
+  d.nachweise.anzeigen[0]!["art"] = "WIDERSPRUCH";
+  const c = await mitAnker(d, "felsenbirne-20.xml");
+  assert.deepEqual(von(c, "P1"), [["widerlegt", "Die Datei entspricht nicht dem Datenformat 20."]]);
+  assert.deepEqual(von(c, "P8"), P8_BESTAETIGT);
 });
 
 test("P1: Version 21 bleibt unbekannt; unter 16 nennt die Begründung die Versionen 16 bis 20", async () => {

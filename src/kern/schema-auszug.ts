@@ -3,7 +3,6 @@
 
 // Erzeugt von scripts/schema-auszug.mjs aus den JSON-Schemas 16 bis 20 von WATT (Aves83/watt_public, schema/,
 // CC BY 4.0, Hans-Joachim Steudel). Nicht von Hand ändern.
-// Vorläufig: Schema 20 ist in watt_public noch nicht veröffentlicht; Quelle und Stand: folgt mit Teil 2.
 
 /** Versionen, deren Schema die README in schema/ als Vorabfassung führt. */
 export const SCHEMA_VORABFASSUNG: readonly number[] = [];
