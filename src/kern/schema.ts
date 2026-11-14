@@ -115,6 +115,12 @@ class Pruefer {
   }
 }
 
+/** Kleinste und größte Formatversion, deren Schema WATTest kennt (derzeit 16 und 20). */
+export const FORMATVERSIONEN: { von: number; bis: number } = (() => {
+  const v = Object.keys(SCHEMA_AUSZUG).map(Number);
+  return { von: Math.min(...v), bis: Math.max(...v) };
+})();
+
 export function bekannteVersion(v: unknown): v is number {
   return typeof v === "number" && SCHEMA_AUSZUG[v] !== undefined;
 }

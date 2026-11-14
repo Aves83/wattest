@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: EUPL-1.2
 // WATTest © 2026 Hans-Joachim Steudel
 
-// Erzeugt src/kern/schema-auszug.ts aus den JSON-Schemas von WATT (Versionen 16 bis 19):
+// Erzeugt src/kern/schema-auszug.ts aus den JSON-Schemas von WATT (Versionen 16 bis 20):
 // die Teile, die WATTest liest, ohne Beschreibungen. Andere Definitionen werden nur auf ihren Typ geprüft.
 // Quelle ist Aves83/watt_public (schema/). Versionen, die die README dort als Vorabfassung führt
 // („| 19 (Vorabfassung) |“), stehen in SCHEMA_VORABFASSUNG; P1 nennt das im Befund.
+// Eine Version, die in der Versionstabelle der README (noch) keine Zeile hat, nennt der Kopf der erzeugten Datei als
+// noch nicht in watt_public veröffentlicht.
 // Aufruf: node scripts/schema-auszug.mjs <Ordner mit watt-daten-<Version>.schema.json und README.md>
 
 import { readFileSync, writeFileSync } from "node:fs";
@@ -37,8 +39,13 @@ function bereinige(x, istProperties = false) {
 const readme = readFileSync(join(ordner, "README.md"), "utf8");
 const vorab = [...readme.matchAll(/^\| (\d+) \(Vorabfassung\) \|/gm)].map((m) => Number(m[1]));
 
+// Versionen mit einer Zeile in der Versionstabelle („| 19 | …“ oder „| 19 (Vorabfassung) | …“).
+const inTabelle = new Set([...readme.matchAll(/^\| (\d+)(?: \(Vorabfassung\))? \|/gm)].map((m) => Number(m[1])));
+const VERSIONEN = [16, 17, 18, 19, 20];
+const ausstehend = VERSIONEN.filter((v) => !inTabelle.has(v));
+
 const aus = {};
-for (const v of [16, 17, 18, 19]) {
+for (const v of VERSIONEN) {
   const s = JSON.parse(readFileSync(join(ordner, `watt-daten-${v}.schema.json`), "utf8"));
   const defs = {};
   for (const [k, d] of Object.entries(s.$defs)) {
@@ -57,13 +64,13 @@ for (const v of [16, 17, 18, 19]) {
 const kopf = `// SPDX-License-Identifier: EUPL-1.2
 // WATTest © 2026 Hans-Joachim Steudel
 
-// Erzeugt von scripts/schema-auszug.mjs aus den JSON-Schemas 16 bis 19 von WATT (Aves83/watt_public, schema/,
+// Erzeugt von scripts/schema-auszug.mjs aus den JSON-Schemas 16 bis 20 von WATT (Aves83/watt_public, schema/,
 // CC BY 4.0, Hans-Joachim Steudel). Nicht von Hand ändern.
-
+${ausstehend.length ? `// Vorläufig: Schema ${ausstehend.join(", ")} ist in watt_public noch nicht veröffentlicht; Quelle und Stand: folgt mit Teil 2.\n` : ""}
 /** Versionen, deren Schema die README in schema/ als Vorabfassung führt. */
 export const SCHEMA_VORABFASSUNG: readonly number[] = ${JSON.stringify(vorab)};
 
 /* eslint-disable */
 export const SCHEMA_AUSZUG: Record<number, any> = `;
 writeFileSync("src/kern/schema-auszug.ts", kopf + JSON.stringify(aus) + ";\n");
-console.log("geschrieben, Vorabfassung:", vorab.join(", ") || "keine");
+console.log("geschrieben, Vorabfassung:", vorab.join(", ") || "keine", "· ohne Zeile in der Versionstabelle:", ausstehend.join(", ") || "keine");

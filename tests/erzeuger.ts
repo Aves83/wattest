@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // WATTest © 2026 Hans-Joachim Steudel
 
-// Erzeuger für Testdateien im Datenformat 19 mit Schlüssel, Attestierung und Signaturen nach der
+// Erzeuger für Testdateien im Datenformat 19 (wahlweise 20) mit Schlüssel, Attestierung und Signaturen nach der
 // Technischen Erläuterung (4.2, 4.7). Eigene Test-Wurzel, eigenes Zwischen- und Blattzertifikat;
 // echte ECDSA-Signaturen über WebCrypto. Die Prüfsummen rechnet der Erzeuger selbst, nicht mit dem Kern.
 
@@ -136,6 +136,8 @@ export async function nachweiseNeuVerketten(kette: Record<string, unknown>[], ab
 
 export interface KettenAngaben {
   eintraege: number;
+  /** Formatversion der Datei; Vorgabe 19 (erste Version mit Schlüssel und Signaturen), 20 für die Art des Schreibens */
+  version?: 19 | 20;
   /** Zertifikate; ohne: Kette ohne Schlüssel */
   zertifikate?: Testzertifikate | null;
   bestaetigung?: Partial<Bestaetigung>;
@@ -166,7 +168,10 @@ function ausHexTest(h: string): Uint8Array<ArrayBuffer> {
 export const APP_DIGEST = new Uint8Array(32).map((_, i) => i * 7 + 3);
 export const APP_DIGEST_HEX = hex(APP_DIGEST);
 
-/** Kleinster Datenbestand der Version 19 aus Rechenbeispiel B3 der Technischen Erläuterung. */
+/**
+ * Kleinster Datenbestand aus Rechenbeispiel B3 der Technischen Erläuterung. B3 trägt seit Datenformat 20 "version": 20
+ * und unterscheidet sich sonst nicht von der Fassung für 19; erzeugeKette setzt die Version selbst (Vorgabe 19).
+ */
 function grundbestand(): Record<string, unknown> {
   const v = JSON.parse(liesText("tests/vektoren/technische-erlaeuterung.json")).vektoren.find((x: { id: string }) => x.id === "B3");
   return JSON.parse(v.eingabe);
@@ -183,6 +188,7 @@ export interface Erzeugt {
 
 export async function erzeugeKette(a: KettenAngaben): Promise<Erzeugt> {
   const d = grundbestand() as Erzeugt["daten"];
+  d["version"] = a.version ?? 19;
   d["exportiertAm"] = "2026-10-25T09:00:00Z";
   d["appVersion"] = "0.9.0";
   const t0 = a.beginn ?? Date.parse("2026-10-24T08:00:00Z");

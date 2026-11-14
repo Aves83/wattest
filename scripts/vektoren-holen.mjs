@@ -6,7 +6,9 @@
 // WATTest und bleibt aus der bisherigen Datei erhalten.
 // Ohne Pfad holt das Skript die öffentliche Fassung aus Aves83/watt_public (doc/technische-erlaeuterung.md);
 // mit Pfad liest es eine lokale Kopie, etwa zum Abgleich einer neuen Fassung; mit einer Commit-Kennung holt es die
-// Fassung dieses Commits statt der von main.
+// Fassung dieses Commits statt der von main. Trägt die Kopfzeile einer lokalen Kopie noch die Platzhalter für Version
+// und Datum („WATT-Version: {{VERSION}} · Stand: {{BUILD_DATUM}}“), ist die Fassung noch nicht in watt_public
+// veröffentlicht; Commit und Stand heißen dann „folgt mit Teil 2“.
 // Aufruf: node scripts/vektoren-holen.mjs [<technische-erlaeuterung.md> | <Commit>]
 
 import { readFileSync, writeFileSync } from "node:fs";
@@ -35,8 +37,13 @@ if (process.argv[2] && !ref) {
   herkunft = `${REPO}, ${PFAD}, Commit ${commit.slice(0, 7)}`;
   text = await hole(`https://raw.githubusercontent.com/${REPO}/${commit}/${PFAD}`, "text");
 }
-// Kopfzeile der TE: „WATT-Version: … · Stand: TT.MM.JJJJ“.
-const stand = /^WATT-Version: .* · Stand: (\d{2}\.\d{2}\.\d{4})$/m.exec(text)?.[1];
+// Kopfzeile der TE: „WATT-Version: … · Stand: TT.MM.JJJJ“; vor der Veröffentlichung mit Platzhaltern.
+const AUSSTEHEND = "folgt mit Teil 2";
+let stand = /^WATT-Version: .* · Stand: (\d{2}\.\d{2}\.\d{4})$/m.exec(text)?.[1];
+if (!stand && process.argv[2] && !ref && /^WATT-Version: \{\{VERSION\}\} · Stand: \{\{BUILD_DATUM\}\}$/m.test(text)) {
+  stand = AUSSTEHEND;
+  herkunft = `${REPO}, ${PFAD}; diese Fassung ist dort noch nicht veröffentlicht, Commit ${AUSSTEHEND}`;
+}
 if (!stand) throw new Error(`${quelle}: Kopfzeile mit Stand fehlt`);
 
 const FELD = {

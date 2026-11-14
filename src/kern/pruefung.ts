@@ -9,7 +9,7 @@ import { GRENZE_HAERTUNG, GRENZWERTE, grenzeText } from "./grenzen.js";
 import { leseJson } from "./json.js";
 import { glieder, liste, objekt, type Klartext } from "./klartext.js";
 import { Abbruch, dateiFundstelle, sage, type Kontext, type Optionen } from "./kontext.js";
-import { bekannteVersion, pruefeSchema } from "./schema.js";
+import { bekannteVersion, FORMATVERSIONEN, pruefeSchema } from "./schema.js";
 import { SCHEMA_VORABFASSUNG } from "./schema-auszug.js";
 import { pruefeAnker } from "./schritte-anker.js";
 import { pruefeDaten } from "./schritte-daten.js";
@@ -182,9 +182,9 @@ function pruefeFormat(k: Kontext): void {
   if (!bekannteVersion(v)) {
     if (typeof v === "number" && v < 16) {
       // Datenformat (Grundregeln) und README der Schemas seit watt_public b97d95c.
-      sage(k, "P1", "offen", `WATT liest Dateien ab Formatversion 16; diese Datei hat Formatversion ${v}.`, `Dateien der Versionen 1 bis 15 stammen aus Vorabversionen vor WATT 0.8.94 „Apfel“; WATT lehnt sie ab („Diese Datei ist zu alt.“), Schemas gibt es für sie nicht (Datenformat, Grundregeln; README der Schemas). WATTest kennt die Formatversionen 16 bis 19. Die folgenden Schritte rechnen trotzdem nach den bekannten Regeln.`, { fundstelle: fund, grenze });
+      sage(k, "P1", "offen", `WATT liest Dateien ab Formatversion 16; diese Datei hat Formatversion ${v}.`, `Dateien der Versionen 1 bis 15 stammen aus Vorabversionen vor WATT 0.8.94 „Apfel“; WATT lehnt sie ab („Diese Datei ist zu alt.“), Schemas gibt es für sie nicht (Datenformat, Grundregeln; README der Schemas). WATTest kennt die Formatversionen ${FORMATVERSIONEN.von} bis ${FORMATVERSIONEN.bis}. Die folgenden Schritte rechnen trotzdem nach den bekannten Regeln.`, { fundstelle: fund, grenze });
     } else {
-      sage(k, "P1", "offen", `WATTest kennt das Datenformat ${String(v)} nicht.`, "WATTest 0.1 kennt die Formatversionen 16 bis 19. Eine neuere Version braucht eine neuere Fassung von WATTest. Die folgenden Schritte rechnen trotzdem nach den bekannten Regeln.", { fundstelle: fund, grenze });
+      sage(k, "P1", "offen", `WATTest kennt das Datenformat ${String(v)} nicht.`, `WATTest 0.1 kennt die Formatversionen ${FORMATVERSIONEN.von} bis ${FORMATVERSIONEN.bis}. Eine neuere Version braucht eine neuere Fassung von WATTest. Die folgenden Schritte rechnen trotzdem nach den bekannten Regeln.`, { fundstelle: fund, grenze });
     }
     return;
   }

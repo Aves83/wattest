@@ -1,0 +1,1593 @@
+{
+    "format": "watt-daten",
+    "version": 20,
+    "exportiertAm": "2026-10-02T10:00:00.123Z",
+    "appVersion": "0.8.126",
+    "umfang": "VOLLSTAENDIG",
+    "profil": {
+        "beschaeftigung": [
+            {
+                "ab": "2000-01-01",
+                "pflichtstunden": 25.0,
+                "pflichtstundenMinuten": 45,
+                "teilzeitStunden": null,
+                "altersteilzeit": false,
+                "pflichtstundenAnderer": false
+            },
+            {
+                "ab": "2027-02-15",
+                "pflichtstunden": 29.0,
+                "pflichtstundenMinuten": 60,
+                "teilzeitStunden": 18.5,
+                "altersteilzeit": true,
+                "pflichtstundenAnderer": false
+            }
+        ],
+        "regionaleFeiertage": [
+            "AUGSBURGER_FRIEDENSFEST"
+        ],
+        "bundesland": "BAYERN",
+        "schulart": "BERUFLICHE_SCHULEN",
+        "unterart": "FACHSCHULE_FACHAKADEMIE",
+        "amt": null,
+        "amtsform": null,
+        "amtBezeichnung": "",
+        "funktionenBestaetigt": false,
+        "vorbereitungsdienstBeginn": null,
+        "vorbereitungsdienstEnde": "2027-02-01",
+        "geburtHalbjahr": "1968-08",
+        "geburtMonat": "1968-10",
+        "geburtTag": null,
+        "gdbAnfang": "GDB_30_40_GLEICHGESTELLT",
+        "gdbAenderungen": [
+            {
+                "seit": "2026-11",
+                "stufe": "GDB_60"
+            }
+        ],
+        "antworten": {
+            "antrag": 2
+        },
+        "unterrichtVd": [
+            {
+                "ab": "2026-08-01",
+                "stunden": 9.5
+            }
+        ],
+        "deputatStartwert": -3,
+        "deputatAusgleiche": [
+            {
+                "id": "a1",
+                "tag": "2026-12-01",
+                "einzelstunden": 2,
+                "notiz": "Ausgleich „Dezember“"
+            }
+        ]
+    },
+    "kategorien": [
+        {
+            "id": "unterricht",
+            "name": null,
+            "farbe": "#FF0D4C97",
+            "hoechstdauerMinuten": 600,
+            "aktiv": true,
+            "unterkategorien": [
+                {
+                    "id": "unterricht-1",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                },
+                {
+                    "id": "unterricht-2",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                },
+                {
+                    "id": "unterricht-3",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                },
+                {
+                    "id": "unterricht-4",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                }
+            ],
+            "symbolKey": "co_present",
+            "vorbild": null
+        },
+        {
+            "id": "vorbereitung",
+            "name": null,
+            "farbe": "#FF3D7A57",
+            "hoechstdauerMinuten": 360,
+            "aktiv": true,
+            "unterkategorien": [
+                {
+                    "id": "vorbereitung-1",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                },
+                {
+                    "id": "vorbereitung-2",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                },
+                {
+                    "id": "vorbereitung-3",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                },
+                {
+                    "id": "vorbereitung-4",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                }
+            ],
+            "symbolKey": "menu_book",
+            "vorbild": null
+        },
+        {
+            "id": "korrektur",
+            "name": null,
+            "farbe": "#FF932D5E",
+            "hoechstdauerMinuten": 360,
+            "aktiv": true,
+            "unterkategorien": [
+                {
+                    "id": "korrektur-1",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                },
+                {
+                    "id": "korrektur-2",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                },
+                {
+                    "id": "korrektur-3",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                },
+                {
+                    "id": "korrektur-4",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                },
+                {
+                    "id": "korrektur-5",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                },
+                {
+                    "id": "korrektur-8",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                },
+                {
+                    "id": "korrektur-9",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                }
+            ],
+            "symbolKey": "grading",
+            "vorbild": null
+        },
+        {
+            "id": "aufsicht",
+            "name": null,
+            "farbe": "#FF616D80",
+            "hoechstdauerMinuten": 240,
+            "aktiv": true,
+            "unterkategorien": [
+                {
+                    "id": "aufsicht-1",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                },
+                {
+                    "id": "aufsicht-2",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                }
+            ],
+            "symbolKey": "visibility",
+            "vorbild": null
+        },
+        {
+            "id": "kommunikation",
+            "name": null,
+            "farbe": "#FFBC6F00",
+            "hoechstdauerMinuten": 240,
+            "aktiv": true,
+            "unterkategorien": [
+                {
+                    "id": "kommunikation-1",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                },
+                {
+                    "id": "kommunikation-2",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                },
+                {
+                    "id": "kommunikation-3",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                },
+                {
+                    "id": "kommunikation-4",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                },
+                {
+                    "id": "kommunikation-7",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                },
+                {
+                    "id": "kommunikation-8",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                }
+            ],
+            "symbolKey": "forum",
+            "vorbild": null
+        },
+        {
+            "id": "konferenzen",
+            "name": null,
+            "farbe": "#FF7961BE",
+            "hoechstdauerMinuten": 300,
+            "aktiv": true,
+            "unterkategorien": [
+                {
+                    "id": "konferenzen-1",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                },
+                {
+                    "id": "konferenzen-2",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                },
+                {
+                    "id": "konferenzen-3",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                },
+                {
+                    "id": "konferenzen-4",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                },
+                {
+                    "id": "konferenzen-5",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                },
+                {
+                    "id": "konferenzen-6",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                }
+            ],
+            "symbolKey": "groups",
+            "vorbild": null
+        },
+        {
+            "id": "verwaltung",
+            "name": null,
+            "farbe": "#FF4290AA",
+            "hoechstdauerMinuten": 240,
+            "aktiv": true,
+            "unterkategorien": [
+                {
+                    "id": "verwaltung-1",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                },
+                {
+                    "id": "verwaltung-2",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                },
+                {
+                    "id": "verwaltung-3",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                },
+                {
+                    "id": "verwaltung-4",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                },
+                {
+                    "id": "verwaltung-5",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                },
+                {
+                    "id": "verwaltung-6",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                },
+                {
+                    "id": "verwaltung-12",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                }
+            ],
+            "symbolKey": "approval",
+            "vorbild": null
+        },
+        {
+            "id": "veranstaltungen",
+            "name": null,
+            "farbe": "#FF795526",
+            "hoechstdauerMinuten": 960,
+            "aktiv": true,
+            "unterkategorien": [
+                {
+                    "id": "veranstaltungen-1",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                },
+                {
+                    "id": "veranstaltungen-2",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                },
+                {
+                    "id": "veranstaltungen-3",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                },
+                {
+                    "id": "veranstaltungen-4",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                },
+                {
+                    "id": "veranstaltungen-5",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                }
+            ],
+            "symbolKey": "directions_bus",
+            "vorbild": null
+        },
+        {
+            "id": "fortbildung",
+            "name": null,
+            "farbe": "#FF739C5C",
+            "hoechstdauerMinuten": 600,
+            "aktiv": true,
+            "unterkategorien": [
+                {
+                    "id": "fortbildung-1",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                },
+                {
+                    "id": "fortbildung-2",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                },
+                {
+                    "id": "fortbildung-3",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                }
+            ],
+            "symbolKey": "school",
+            "vorbild": null
+        },
+        {
+            "id": "wege",
+            "name": null,
+            "farbe": "#FF9CA7B3",
+            "hoechstdauerMinuten": 180,
+            "aktiv": false,
+            "unterkategorien": [
+                {
+                    "id": "wege-1",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                },
+                {
+                    "id": "wege-2",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                }
+            ],
+            "symbolKey": "route",
+            "vorbild": null
+        },
+        {
+            "id": "ausbildung",
+            "name": null,
+            "farbe": "#FFD078F8",
+            "hoechstdauerMinuten": 600,
+            "aktiv": true,
+            "unterkategorien": [
+                {
+                    "id": "ausbildung-1",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                },
+                {
+                    "id": "ausbildung-2",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                },
+                {
+                    "id": "ausbildung-3",
+                    "name": null,
+                    "aktiv": true,
+                    "vorbild": null
+                }
+            ],
+            "symbolKey": "local_library",
+            "vorbild": null
+        },
+        {
+            "id": "eigene",
+            "name": "Mentoring",
+            "farbe": "#FFB83A3A",
+            "hoechstdauerMinuten": 120,
+            "aktiv": true,
+            "unterkategorien": [
+                {
+                    "id": "eigene-1",
+                    "name": "Mentoring „A“",
+                    "aktiv": false,
+                    "vorbild": "kommunikation-8"
+                }
+            ],
+            "symbolKey": "category",
+            "vorbild": "kommunikation-7"
+        }
+    ],
+    "ferien": [
+        {
+            "id": 1,
+            "art": "SOMMER",
+            "von": "2025-08-01",
+            "bis": "2025-09-15",
+            "name": null,
+            "quelle": "KMK"
+        },
+        {
+            "id": 2,
+            "art": "ALLERHEILIGEN",
+            "von": "2025-11-03",
+            "bis": "2025-11-07",
+            "name": null,
+            "quelle": "KMK"
+        },
+        {
+            "id": 3,
+            "art": "WEIHNACHTEN",
+            "von": "2025-12-22",
+            "bis": "2026-01-05",
+            "name": null,
+            "quelle": "KMK"
+        },
+        {
+            "id": 4,
+            "art": "FRUEHJAHR",
+            "von": "2026-02-16",
+            "bis": "2026-02-20",
+            "name": null,
+            "quelle": "KMK"
+        },
+        {
+            "id": 5,
+            "art": "OSTERN",
+            "von": "2026-03-30",
+            "bis": "2026-04-10",
+            "name": null,
+            "quelle": "KMK"
+        },
+        {
+            "id": 6,
+            "art": "PFINGSTEN",
+            "von": "2026-05-26",
+            "bis": "2026-06-05",
+            "name": null,
+            "quelle": "KMK"
+        },
+        {
+            "id": 7,
+            "art": "SOMMER",
+            "von": "2026-08-03",
+            "bis": "2026-09-14",
+            "name": null,
+            "quelle": "KMK"
+        },
+        {
+            "id": 32,
+            "art": "SONSTIGE",
+            "von": "2026-10-30",
+            "bis": "2026-10-30",
+            "name": "Brückentag",
+            "quelle": ""
+        },
+        {
+            "id": 8,
+            "art": "ALLERHEILIGEN",
+            "von": "2026-11-02",
+            "bis": "2026-11-06",
+            "name": null,
+            "quelle": "KMK"
+        },
+        {
+            "id": 9,
+            "art": "WEIHNACHTEN",
+            "von": "2026-12-24",
+            "bis": "2027-01-08",
+            "name": null,
+            "quelle": "KMK"
+        },
+        {
+            "id": 10,
+            "art": "FRUEHJAHR",
+            "von": "2027-02-08",
+            "bis": "2027-02-12",
+            "name": null,
+            "quelle": "KMK"
+        },
+        {
+            "id": 33,
+            "art": "WINTER",
+            "von": "2027-02-08",
+            "bis": "2027-02-12",
+            "name": null,
+            "quelle": ""
+        },
+        {
+            "id": 11,
+            "art": "OSTERN",
+            "von": "2027-03-22",
+            "bis": "2027-04-02",
+            "name": null,
+            "quelle": "KMK"
+        },
+        {
+            "id": 34,
+            "art": "EINZELTAG",
+            "von": "2027-05-07",
+            "bis": "2027-05-07",
+            "name": null,
+            "quelle": ""
+        },
+        {
+            "id": 12,
+            "art": "PFINGSTEN",
+            "von": "2027-05-18",
+            "bis": "2027-05-28",
+            "name": null,
+            "quelle": "KMK"
+        },
+        {
+            "id": 13,
+            "art": "SOMMER",
+            "von": "2027-08-02",
+            "bis": "2027-09-13",
+            "name": null,
+            "quelle": "KMK"
+        },
+        {
+            "id": 14,
+            "art": "ALLERHEILIGEN",
+            "von": "2027-11-02",
+            "bis": "2027-11-05",
+            "name": null,
+            "quelle": "KMK"
+        },
+        {
+            "id": 15,
+            "art": "WEIHNACHTEN",
+            "von": "2027-12-24",
+            "bis": "2028-01-07",
+            "name": null,
+            "quelle": "KMK"
+        },
+        {
+            "id": 16,
+            "art": "FRUEHJAHR",
+            "von": "2028-02-28",
+            "bis": "2028-03-03",
+            "name": null,
+            "quelle": "KMK"
+        },
+        {
+            "id": 17,
+            "art": "OSTERN",
+            "von": "2028-04-10",
+            "bis": "2028-04-21",
+            "name": null,
+            "quelle": "KMK"
+        },
+        {
+            "id": 18,
+            "art": "PFINGSTEN",
+            "von": "2028-06-06",
+            "bis": "2028-06-16",
+            "name": null,
+            "quelle": "KMK"
+        },
+        {
+            "id": 19,
+            "art": "SOMMER",
+            "von": "2028-07-31",
+            "bis": "2028-09-11",
+            "name": null,
+            "quelle": "KMK"
+        },
+        {
+            "id": 20,
+            "art": "ALLERHEILIGEN",
+            "von": "2028-10-30",
+            "bis": "2028-11-03",
+            "name": null,
+            "quelle": "KMK"
+        },
+        {
+            "id": 21,
+            "art": "WEIHNACHTEN",
+            "von": "2028-12-23",
+            "bis": "2029-01-05",
+            "name": null,
+            "quelle": "KMK"
+        },
+        {
+            "id": 22,
+            "art": "FRUEHJAHR",
+            "von": "2029-02-12",
+            "bis": "2029-02-16",
+            "name": null,
+            "quelle": "KMK"
+        },
+        {
+            "id": 23,
+            "art": "OSTERN",
+            "von": "2029-03-26",
+            "bis": "2029-04-06",
+            "name": null,
+            "quelle": "KMK"
+        },
+        {
+            "id": 24,
+            "art": "PFINGSTEN",
+            "von": "2029-05-22",
+            "bis": "2029-06-01",
+            "name": null,
+            "quelle": "KMK"
+        },
+        {
+            "id": 25,
+            "art": "SOMMER",
+            "von": "2029-07-30",
+            "bis": "2029-09-10",
+            "name": null,
+            "quelle": "KMK"
+        },
+        {
+            "id": 26,
+            "art": "ALLERHEILIGEN",
+            "von": "2029-10-29",
+            "bis": "2029-11-02",
+            "name": null,
+            "quelle": "KMK"
+        },
+        {
+            "id": 27,
+            "art": "WEIHNACHTEN",
+            "von": "2029-12-24",
+            "bis": "2030-01-04",
+            "name": null,
+            "quelle": "KMK"
+        },
+        {
+            "id": 28,
+            "art": "FRUEHJAHR",
+            "von": "2030-03-04",
+            "bis": "2030-03-08",
+            "name": null,
+            "quelle": "KMK"
+        },
+        {
+            "id": 29,
+            "art": "OSTERN",
+            "von": "2030-04-15",
+            "bis": "2030-04-26",
+            "name": null,
+            "quelle": "KMK"
+        },
+        {
+            "id": 30,
+            "art": "PFINGSTEN",
+            "von": "2030-06-11",
+            "bis": "2030-06-21",
+            "name": null,
+            "quelle": "KMK"
+        },
+        {
+            "id": 31,
+            "art": "SOMMER",
+            "von": "2030-07-29",
+            "bis": "2030-07-31",
+            "name": null,
+            "quelle": "KMK"
+        }
+    ],
+    "sonderTage": [
+        {
+            "tag": "2026-09-22",
+            "art": "UNTERRICHTSFREI",
+            "name": null,
+            "grund": "SCHULFAHRT"
+        },
+        {
+            "tag": "2026-09-23",
+            "art": "UNTERRICHTSFREI",
+            "name": null,
+            "grund": "SCHULFAHRT"
+        },
+        {
+            "tag": "2026-09-24",
+            "art": "UNTERRICHTSFREI",
+            "name": null,
+            "grund": "SCHULFAHRT"
+        },
+        {
+            "tag": "2026-11-25",
+            "art": "UNTERRICHTSFREI",
+            "name": "SchiLF Medien",
+            "grund": "PAEDAGOGISCHER_TAG"
+        }
+    ],
+    "stundenplan": {
+        "aktiv": true,
+        "abWochenAktiv": false,
+        "zykluslaenge": 1,
+        "abBezugstag": "2026-09-15",
+        "abFerienwochenUeberspringen": false,
+        "uebernommenBis": "2026-09-28",
+        "raster": [
+            {
+                "nummer": 1,
+                "von": "08:00",
+                "bis": "08:45"
+            },
+            {
+                "nummer": 2,
+                "von": "08:45",
+                "bis": "09:30"
+            },
+            {
+                "nummer": 3,
+                "von": "09:45",
+                "bis": "10:30"
+            },
+            {
+                "nummer": 4,
+                "von": "10:30",
+                "bis": "11:15"
+            },
+            {
+                "nummer": 5,
+                "von": "11:30",
+                "bis": "12:15"
+            },
+            {
+                "nummer": 6,
+                "von": "12:15",
+                "bis": "13:00"
+            },
+            {
+                "nummer": 7,
+                "von": "13:30",
+                "bis": "14:15"
+            },
+            {
+                "nummer": 8,
+                "von": "14:15",
+                "bis": "15:00"
+            },
+            {
+                "nummer": 9,
+                "von": "15:00",
+                "bis": "15:45"
+            },
+            {
+                "nummer": 10,
+                "von": "15:45",
+                "bis": "16:30"
+            }
+        ],
+        "eintraege": [
+            {
+                "id": "0699af86-38b5-4774-bd6e-72a5c58d596a",
+                "typ": "WOECHENTLICH",
+                "wochentag": 3,
+                "tag": null,
+                "stundeVon": 1,
+                "stundeBis": 1,
+                "beginn": null,
+                "ende": null,
+                "woche": null,
+                "blockId": null,
+                "bezeichnung": "",
+                "kategorieId": "unterricht",
+                "unterkategorieId": "unterricht-1",
+                "gueltigAb": "2026-10-05",
+                "gueltigBis": null,
+                "deaktiviert": false,
+                "fach": "Präsenz",
+                "klasse": "",
+                "raum": "",
+                "ausKalenderlink": true
+            },
+            {
+                "id": "438951ea-8ddf-43ab-b2c1-e028addc8376",
+                "typ": "WOECHENTLICH",
+                "wochentag": 1,
+                "tag": null,
+                "stundeVon": 3,
+                "stundeBis": 4,
+                "beginn": null,
+                "ende": null,
+                "woche": null,
+                "blockId": null,
+                "bezeichnung": "",
+                "kategorieId": "unterricht",
+                "unterkategorieId": "unterricht-1",
+                "gueltigAb": "2026-10-05",
+                "gueltigBis": null,
+                "deaktiviert": false,
+                "fach": "KIT",
+                "klasse": "",
+                "raum": "Inf1 U10L, U05L",
+                "ausKalenderlink": true
+            },
+            {
+                "id": "4f86abe3-12e7-404e-b03a-5e6a75883e76",
+                "typ": "WOECHENTLICH",
+                "wochentag": 3,
+                "tag": null,
+                "stundeVon": 3,
+                "stundeBis": 4,
+                "beginn": null,
+                "ende": null,
+                "woche": null,
+                "blockId": null,
+                "bezeichnung": "",
+                "kategorieId": "unterricht",
+                "unterkategorieId": "unterricht-1",
+                "gueltigAb": "2026-10-05",
+                "gueltigBis": null,
+                "deaktiviert": false,
+                "fach": "Na",
+                "klasse": "",
+                "raum": "E16M",
+                "ausKalenderlink": true
+            },
+            {
+                "id": "70a0bbc3-2ec7-45b5-adb0-9a327be78e5b",
+                "typ": "WOECHENTLICH",
+                "wochentag": 2,
+                "tag": null,
+                "stundeVon": 3,
+                "stundeBis": 4,
+                "beginn": null,
+                "ende": null,
+                "woche": null,
+                "blockId": null,
+                "bezeichnung": "",
+                "kategorieId": "unterricht",
+                "unterkategorieId": "unterricht-1",
+                "gueltigAb": "2026-10-05",
+                "gueltigBis": null,
+                "deaktiviert": false,
+                "fach": "Na",
+                "klasse": "",
+                "raum": "116M",
+                "ausKalenderlink": true
+            },
+            {
+                "id": "79b3d2c7-105e-41ee-b2aa-b1671f96de54",
+                "typ": "WOECHENTLICH",
+                "wochentag": 5,
+                "tag": null,
+                "stundeVon": null,
+                "stundeBis": null,
+                "beginn": "13:00",
+                "ende": "14:30",
+                "woche": null,
+                "blockId": null,
+                "bezeichnung": "",
+                "kategorieId": "unterricht",
+                "unterkategorieId": "unterricht-1",
+                "gueltigAb": "2026-10-05",
+                "gueltigBis": null,
+                "deaktiviert": false,
+                "fach": "Wahlfach",
+                "klasse": "",
+                "raum": "",
+                "ausKalenderlink": true
+            },
+            {
+                "id": "96dc724f-ebe3-4e25-9d43-367984e08851",
+                "typ": "WOECHENTLICH",
+                "wochentag": 5,
+                "tag": null,
+                "stundeVon": 1,
+                "stundeBis": 2,
+                "beginn": null,
+                "ende": null,
+                "woche": null,
+                "blockId": null,
+                "bezeichnung": "",
+                "kategorieId": "unterricht",
+                "unterkategorieId": "unterricht-1",
+                "gueltigAb": "2026-10-05",
+                "gueltigBis": null,
+                "deaktiviert": false,
+                "fach": "Te",
+                "klasse": "",
+                "raum": "118M",
+                "ausKalenderlink": true
+            },
+            {
+                "id": "a24d9dce-1a45-496e-81d3-5ead71113406",
+                "typ": "WOECHENTLICH",
+                "wochentag": 3,
+                "tag": null,
+                "stundeVon": null,
+                "stundeBis": null,
+                "beginn": "13:45",
+                "ende": "14:30",
+                "woche": null,
+                "blockId": null,
+                "bezeichnung": "",
+                "kategorieId": "unterricht",
+                "unterkategorieId": "unterricht-1",
+                "gueltigAb": "2026-10-05",
+                "gueltigBis": null,
+                "deaktiviert": false,
+                "fach": "Te",
+                "klasse": "",
+                "raum": "118M",
+                "ausKalenderlink": true
+            },
+            {
+                "id": "b25f235b-785e-42d8-a923-99bf2d1f5fbf",
+                "typ": "WOECHENTLICH",
+                "wochentag": 3,
+                "tag": null,
+                "stundeVon": 5,
+                "stundeBis": 6,
+                "beginn": null,
+                "ende": null,
+                "woche": null,
+                "blockId": null,
+                "bezeichnung": "",
+                "kategorieId": "unterricht",
+                "unterkategorieId": "unterricht-1",
+                "gueltigAb": "2026-10-05",
+                "gueltigBis": null,
+                "deaktiviert": false,
+                "fach": "KIT",
+                "klasse": "",
+                "raum": "Inf1 U10L, U05L",
+                "ausKalenderlink": true
+            },
+            {
+                "id": "e1",
+                "typ": "EINZELTERMIN",
+                "wochentag": null,
+                "tag": "2026-10-14",
+                "stundeVon": null,
+                "stundeBis": null,
+                "beginn": "14:30",
+                "ende": "16:00",
+                "woche": null,
+                "blockId": null,
+                "bezeichnung": "Konferenz",
+                "kategorieId": "konferenzen",
+                "unterkategorieId": "konferenzen-1",
+                "gueltigAb": null,
+                "gueltigBis": null,
+                "deaktiviert": true,
+                "fach": "",
+                "klasse": "",
+                "raum": "",
+                "ausKalenderlink": false
+            },
+            {
+                "id": "e7568fec-27fb-425d-bf0a-dd5185191213",
+                "typ": "WOECHENTLICH",
+                "wochentag": 1,
+                "tag": null,
+                "stundeVon": 1,
+                "stundeBis": 2,
+                "beginn": null,
+                "ende": null,
+                "woche": null,
+                "blockId": null,
+                "bezeichnung": "",
+                "kategorieId": "unterricht",
+                "unterkategorieId": "unterricht-1",
+                "gueltigAb": "2026-10-05",
+                "gueltigBis": null,
+                "deaktiviert": false,
+                "fach": "W Inf T 1",
+                "klasse": "",
+                "raum": "Inf3 E07L",
+                "ausKalenderlink": true
+            }
+        ],
+        "bloecke": [
+            {
+                "id": "b1",
+                "name": "Block A",
+                "zeitraeume": [
+                    {
+                        "von": "2026-09-15",
+                        "bis": "2026-10-09"
+                    }
+                ]
+            }
+        ],
+        "ausgesetzteTage": [
+            "2026-10-20"
+        ],
+        "verworfen": [
+            {
+                "planRef": "w1@2026-09-29@08:00",
+                "begruendung": "Stunde entfiel",
+                "zeitpunkt": "2026-10-02T08:00:00.123Z"
+            }
+        ],
+        "quelle": "KALENDERLINK"
+    },
+    "eintraege": [
+        {
+            "id": "602f4208-a039-491b-8d90-76dbb09f5ee7",
+            "tag": "2026-09-21",
+            "kategorieId": "korrektur",
+            "unterkategorieId": "korrektur-1",
+            "beginn": null,
+            "ende": null,
+            "dauerMinuten": 60,
+            "notiz": "Vom zweiten Gerät",
+            "quelle": "MANUELL",
+            "planRef": null,
+            "erfasstAm": "2026-09-25T10:00:00Z",
+            "geaendertAm": null,
+            "fach": "",
+            "klasse": "",
+            "plausibilitaetBestaetigt": false,
+            "importiertAm": "2026-10-02T08:10:00.123Z"
+        },
+        {
+            "id": "nacht",
+            "tag": "2026-09-27",
+            "kategorieId": "korrektur",
+            "unterkategorieId": "korrektur-1",
+            "beginn": "2026-09-27T21:00:00.250Z",
+            "ende": "2026-09-27T23:30:00Z",
+            "dauerMinuten": 0,
+            "notiz": "Zeile 1\nZeile 2 \"mit\" Anführung; ä ö ü €",
+            "quelle": "MANUELL",
+            "planRef": null,
+            "erfasstAm": "2026-09-29T08:00:00.123Z",
+            "geaendertAm": null,
+            "fach": "",
+            "klasse": "",
+            "plausibilitaetBestaetigt": true,
+            "importiertAm": null
+        },
+        {
+            "id": "block",
+            "tag": "2026-09-28",
+            "kategorieId": "eigene",
+            "unterkategorieId": null,
+            "beginn": null,
+            "ende": null,
+            "dauerMinuten": 120,
+            "notiz": "",
+            "quelle": "MANUELL",
+            "planRef": null,
+            "erfasstAm": "2026-09-29T08:00:00.123Z",
+            "geaendertAm": "2026-10-02T08:00:00.123Z",
+            "fach": "",
+            "klasse": "",
+            "plausibilitaetBestaetigt": false,
+            "importiertAm": null
+        }
+    ],
+    "abwesenheiten": [
+        {
+            "tag": "2026-09-30",
+            "art": "ARZTBESUCH",
+            "beginn": "2026-09-30T08:00:00Z",
+            "ende": "2026-09-30T09:15:00Z",
+            "importiertAm": null
+        },
+        {
+            "tag": "2026-10-01",
+            "art": "SONDERURLAUB",
+            "beginn": null,
+            "ende": null,
+            "importiertAm": null
+        },
+        {
+            "tag": "2026-12-23",
+            "art": "DIENSTFREI",
+            "beginn": null,
+            "ende": null,
+            "importiertAm": null
+        }
+    ],
+    "protokoll": [
+        {
+            "seq": 1,
+            "zeitpunkt": "2026-09-29T08:00:00.123Z",
+            "aktion": "ANGELEGT",
+            "objektArt": "schluessel",
+            "objektId": "db8c1aca364877c534bdc5ceecfae565565e225ee5f259b21cbeebd8c5da941e",
+            "daten": "{\"status\":\"verfuegbar\",\"fingerabdruck\":\"db8c1aca364877c534bdc5ceecfae565565e225ee5f259b21cbeebd8c5da941e\",\"zertifikateSha256\":\"1bee796d850fc5457e8ba901fab8060ab830fb6ba4f20717721f26ebea2f94b2\",\"sicherheitsstufe\":\"TEE\",\"challenge\":\"216d19629699e6c7e6b2657c239265469d1f9f367dcfdea98b06c32547838ee8\"}",
+            "prev": "0",
+            "hash": "25c8f8a7b7921dd9d418e8fb30c24efa6133f0cfcde020b2b64190546f6d754f",
+            "neustarts": 0,
+            "autoZeit": true
+        },
+        {
+            "seq": 2,
+            "zeitpunkt": "2026-09-29T08:00:00.123Z",
+            "aktion": "ANGELEGT",
+            "objektArt": "eintrag",
+            "objektId": "87e308a3-95c6-4c22-aaa8-b11d37366620",
+            "daten": "{\"tag\":\"2026-09-29\",\"kategorieId\":\"unterricht\",\"unterkategorieId\":null,\"beginn\":\"2026-09-29T06:00:00Z\",\"ende\":\"2026-09-29T07:30:00Z\",\"dauerMinuten\":0,\"notiz\":\"Deutsch · 10a · 104 · 10a Deutsch\",\"quelle\":\"PLAN\",\"planRef\":\"w1@2026-09-29@08:00\",\"erfasstAm\":\"2026-09-29T08:00:00.123Z\",\"geaendertAm\":null,\"begruendung\":null,\"fach\":\"Deutsch\",\"klasse\":\"10a\",\"kategorie\":\"Unterricht\",\"unterkategorie\":null}",
+            "prev": "25c8f8a7b7921dd9d418e8fb30c24efa6133f0cfcde020b2b64190546f6d754f",
+            "hash": "0ed2efacc7f70e1e895674c4f4217cd528e249e8658f2a6be8ae2eacd807e846",
+            "neustarts": 0,
+            "autoZeit": true
+        },
+        {
+            "seq": 3,
+            "zeitpunkt": "2026-09-29T08:00:00.123Z",
+            "aktion": "ANGELEGT",
+            "objektArt": "eintrag",
+            "objektId": "nacht",
+            "daten": "{\"tag\":\"2026-09-27\",\"kategorieId\":\"korrektur\",\"unterkategorieId\":\"korrektur-1\",\"beginn\":\"2026-09-27T21:00:00.250Z\",\"ende\":\"2026-09-27T23:30:00Z\",\"dauerMinuten\":0,\"notiz\":\"Zeile 1\\nZeile 2 \\\"mit\\\" Anführung; ä ö ü €\",\"quelle\":\"MANUELL\",\"planRef\":null,\"erfasstAm\":\"2026-09-29T08:00:00.123Z\",\"geaendertAm\":null,\"begruendung\":null,\"kategorie\":\"Korrektur und Bewertung\",\"unterkategorie\":\"korrektur-1\"}",
+            "prev": "0ed2efacc7f70e1e895674c4f4217cd528e249e8658f2a6be8ae2eacd807e846",
+            "hash": "027174c30d96efaa373ef390ecd3d55de08afd27a239e19df0f2a7d9fd1b9587",
+            "neustarts": 0,
+            "autoZeit": true
+        },
+        {
+            "seq": 4,
+            "zeitpunkt": "2026-09-29T08:00:00.123Z",
+            "aktion": "ANGELEGT",
+            "objektArt": "eintrag",
+            "objektId": "block",
+            "daten": "{\"tag\":\"2026-09-28\",\"kategorieId\":\"eigene\",\"unterkategorieId\":null,\"beginn\":null,\"ende\":null,\"dauerMinuten\":90,\"notiz\":\"\",\"quelle\":\"MANUELL\",\"planRef\":null,\"erfasstAm\":\"2026-09-29T08:00:00.123Z\",\"geaendertAm\":null,\"begruendung\":null,\"kategorie\":\"Mentoring\",\"unterkategorie\":null}",
+            "prev": "027174c30d96efaa373ef390ecd3d55de08afd27a239e19df0f2a7d9fd1b9587",
+            "hash": "a25866f5a8f579af0ea874a69b553f5fb38f5b6382d065ef74070c436004e82a",
+            "neustarts": 0,
+            "autoZeit": true
+        },
+        {
+            "seq": 5,
+            "zeitpunkt": "2026-10-02T08:00:00.123Z",
+            "aktion": "ANGELEGT",
+            "objektArt": "uhr_verstellt",
+            "objektId": "glied",
+            "daten": "{\"vorher\":\"2026-09-29T08:00:00.123Z\",\"nachher\":\"2026-10-02T08:00:00.123Z\",\"abweichungSekunden\":259200,\"richtung\":\"vor\"}",
+            "prev": "a25866f5a8f579af0ea874a69b553f5fb38f5b6382d065ef74070c436004e82a",
+            "hash": "caf4b1fee23dac1d32f14ac54c12329bab11d67e514c936613ef49787db1c40a",
+            "neustarts": 0,
+            "autoZeit": true
+        },
+        {
+            "seq": 6,
+            "zeitpunkt": "2026-10-02T08:00:00.123Z",
+            "aktion": "GEAENDERT",
+            "objektArt": "eintrag",
+            "objektId": "block",
+            "daten": "{\"tag\":\"2026-09-28\",\"kategorieId\":\"eigene\",\"unterkategorieId\":null,\"beginn\":null,\"ende\":null,\"dauerMinuten\":120,\"notiz\":\"\",\"quelle\":\"MANUELL\",\"planRef\":null,\"erfasstAm\":\"2026-09-29T08:00:00.123Z\",\"geaendertAm\":\"2026-10-02T08:00:00.123Z\",\"begruendung\":null,\"kategorie\":\"Mentoring\",\"unterkategorie\":null}",
+            "prev": "caf4b1fee23dac1d32f14ac54c12329bab11d67e514c936613ef49787db1c40a",
+            "hash": "6ab3c5e70fb93d58a9ce0ec679492efeb75349a2c67157f24a1e2987201d9335",
+            "neustarts": 0,
+            "autoZeit": true
+        },
+        {
+            "seq": 7,
+            "zeitpunkt": "2026-10-02T08:00:00.123Z",
+            "aktion": "GELOESCHT",
+            "objektArt": "eintrag",
+            "objektId": "87e308a3-95c6-4c22-aaa8-b11d37366620",
+            "daten": "{\"tag\":\"2026-09-29\",\"kategorieId\":\"unterricht\",\"unterkategorieId\":null,\"beginn\":\"2026-09-29T06:00:00Z\",\"ende\":\"2026-09-29T07:30:00Z\",\"dauerMinuten\":0,\"notiz\":\"Deutsch · 10a · 104 · 10a Deutsch\",\"quelle\":\"PLAN\",\"planRef\":\"w1@2026-09-29@08:00\",\"erfasstAm\":\"2026-09-29T08:00:00.123Z\",\"geaendertAm\":null,\"begruendung\":\"Stunde entfiel\",\"fach\":\"Deutsch\",\"klasse\":\"10a\",\"kategorie\":\"Unterricht\",\"unterkategorie\":null}",
+            "prev": "6ab3c5e70fb93d58a9ce0ec679492efeb75349a2c67157f24a1e2987201d9335",
+            "hash": "e83b0e09e0cd93cbe06f479fd3092855a211bfe98e456f68791099a120f88ef6",
+            "neustarts": 0,
+            "autoZeit": true
+        },
+        {
+            "seq": 8,
+            "zeitpunkt": "2026-10-02T08:00:00.123Z",
+            "aktion": "ANGELEGT",
+            "objektArt": "abwesenheit",
+            "objektId": "2026-10-01",
+            "daten": "{\"tag\":\"2026-10-01\",\"art\":\"SONDERURLAUB\"}",
+            "prev": "e83b0e09e0cd93cbe06f479fd3092855a211bfe98e456f68791099a120f88ef6",
+            "hash": "a39bc6db0800e0bad30af0259c640e0d995dda46a3053dd7926d4ee1bb07ff80",
+            "neustarts": 0,
+            "autoZeit": true
+        },
+        {
+            "seq": 9,
+            "zeitpunkt": "2026-10-02T08:05:00.123Z",
+            "aktion": "ANGELEGT",
+            "objektArt": "abwesenheit",
+            "objektId": "2026-09-30",
+            "daten": "{\"tag\":\"2026-09-30\",\"art\":\"ARZTBESUCH\",\"beginn\":\"2026-09-30T08:00:00Z\",\"ende\":\"2026-09-30T09:15:00Z\"}",
+            "prev": "a39bc6db0800e0bad30af0259c640e0d995dda46a3053dd7926d4ee1bb07ff80",
+            "hash": "7be432f21b80fa4955230735e05993e25faf53fb10019b62373538ae915f2d37",
+            "neustarts": 0,
+            "autoZeit": true
+        },
+        {
+            "seq": 10,
+            "zeitpunkt": "2026-10-02T08:10:00.123Z",
+            "aktion": "ANGELEGT",
+            "objektArt": "eintrag",
+            "objektId": "602f4208-a039-491b-8d90-76dbb09f5ee7",
+            "daten": "{\"tag\":\"2026-09-21\",\"kategorieId\":\"korrektur\",\"unterkategorieId\":\"korrektur-1\",\"beginn\":null,\"ende\":null,\"dauerMinuten\":60,\"notiz\":\"Vom zweiten Gerät\",\"quelle\":\"MANUELL\",\"planRef\":null,\"erfasstAm\":\"2026-09-25T10:00:00Z\",\"geaendertAm\":null,\"begruendung\":null,\"kategorie\":\"Korrektur und Bewertung\",\"unterkategorie\":\"korrektur-1\",\"importDatei\":\"5539d4ab6cda0d71c90a6182e781ea0cbc0aebd995db603d56ada4c9fd073ddd\"}",
+            "prev": "7be432f21b80fa4955230735e05993e25faf53fb10019b62373538ae915f2d37",
+            "hash": "878921fe4c1761e339fa9c9750adec214f723335591e7dea0d96f856d5435e09",
+            "neustarts": 0,
+            "autoZeit": true
+        }
+    ],
+    "laufenderTimer": {
+        "kategorieId": "vorbereitung",
+        "unterkategorieId": "vorbereitung-2",
+        "beginn": "2026-10-02T08:00:00.123Z"
+    },
+    "einstellungen": {
+        "unterkategorienEingeblendet": [
+            "korrektur"
+        ],
+        "schlagworteEingeblendet": [
+            "FACH"
+        ]
+    },
+    "nachweise": {
+        "meineDaten": {
+            "name": "",
+            "schule": "",
+            "adressat": "",
+            "empfaengerEmail": "",
+            "kopien": [
+                {
+                    "stelle": "PERSONALRAT",
+                    "aktiv": false,
+                    "email": ""
+                },
+                {
+                    "stelle": "SCHWERBEHINDERTENVERTRETUNG",
+                    "aktiv": false,
+                    "email": ""
+                },
+                {
+                    "stelle": "GLEICHSTELLUNGSBEAUFTRAGTE",
+                    "aktiv": false,
+                    "email": ""
+                }
+            ]
+        },
+        "anzeigen": [
+            {
+                "id": "4312a057-747a-4c01-9607-fcae3dc8da6c",
+                "erzeugtAm": null,
+                "stufe": "AUSSAGE",
+                "zeitraumVon": "2026-09-22",
+                "zeitraumBis": "2026-09-24",
+                "angabenArt": "MEINE_DATEN",
+                "angabenEntfernt": false,
+                "empfaenger": "leitung@schule.example",
+                "kopien": [],
+                "betreff": "Antrag auf zeitlichen Ausgleich für die Klassenfahrt vom 22.09.2026 bis 24.09.2026",
+                "anschreiben": "Sehr geehrte Damen und Herren, …",
+                "datum": "2026-10-02",
+                "gesendetAn": "leitung@schule.example",
+                "gesendetAm": "2026-10-02T08:40:00.123Z",
+                "pruefsumme": "8cbb1926b009ccab553d1e36b0230a95bfddb52db85407b3c0689b4b7869b1c7",
+                "wiedervorlageAm": "2026-10-30",
+                "wiedervorlageErledigt": false,
+                "wiederhergestelltAm": null,
+                "backupVom": null,
+                "dokumente": [
+                    {
+                        "art": "ANSCHREIBEN",
+                        "dateiname": "Antrag_Zeitausgleich.pdf",
+                        "inhalt": "JVBERi0xLjQgQW50cmFn"
+                    }
+                ],
+                "notizen": [],
+                "pruefverfahren": 2,
+                "kettenkopf": null,
+                "anhaenge": [],
+                "art": "ZEITAUSGLEICH"
+            },
+            {
+                "id": "eb0caf7b-6913-4778-a6e2-aba5181454be",
+                "erzeugtAm": null,
+                "stufe": "ZUSAMMENFASSUNG",
+                "zeitraumVon": "2026-09-01",
+                "zeitraumBis": "2026-09-30",
+                "angabenArt": "PLATZHALTER",
+                "angabenEntfernt": false,
+                "empfaenger": "leitung@schule.example",
+                "kopien": [
+                    {
+                        "stelle": "PERSONALRAT",
+                        "email": "pr@schule.example"
+                    }
+                ],
+                "betreff": "Überlastungsanzeige",
+                "anschreiben": "Sehr geehrte Damen und Herren …",
+                "datum": "2026-10-01",
+                "gesendetAn": "leitung@schule.example",
+                "gesendetAm": "2026-10-02T08:25:00.123Z",
+                "pruefsumme": "f2e058708a5df3c00483156a4be1c58a0780b763647f91755b884e71c2d795cc",
+                "wiedervorlageAm": "2026-11-02",
+                "wiedervorlageErledigt": false,
+                "wiederhergestelltAm": null,
+                "backupVom": null,
+                "dokumente": [
+                    {
+                        "art": "ANSCHREIBEN",
+                        "dateiname": "Anschreiben.pdf",
+                        "inhalt": "JVBERi0xLjQgQW5zY2hyZWliZW4="
+                    }
+                ],
+                "notizen": [
+                    {
+                        "id": 4,
+                        "text": "Vorab telefonisch angekündigt",
+                        "erstelltAm": "2026-10-02T08:20:00.123Z",
+                        "fest": true,
+                        "nachVersand": false
+                    }
+                ],
+                "pruefverfahren": 2,
+                "kettenkopf": null,
+                "anhaenge": [
+                    {
+                        "id": 2,
+                        "art": "PDF",
+                        "name": "Antwort der Schulleitung.pdf",
+                        "groesse": 16,
+                        "erstelltAm": "2026-10-02T08:20:00.123Z"
+                    },
+                    {
+                        "id": 3,
+                        "art": "FOTO",
+                        "name": "Aushang.jpg",
+                        "groesse": 5000,
+                        "erstelltAm": "2026-10-02T08:20:00.123Z"
+                    }
+                ],
+                "art": "UEBERLASTUNGSANZEIGE"
+            }
+        ],
+        "gespraeche": [
+            {
+                "id": "e6385d3f-140c-479a-a481-c5d917c6e1d6",
+                "art": "PERSOENLICH",
+                "zeitpunkt": "2026-10-01T12:00:00Z",
+                "dauerMinuten": 20,
+                "partner": "Schulleitung",
+                "anwesende": "",
+                "anlass": "Überlastungsanzeige",
+                "inhalt": "Entlastung im zweiten Halbjahr zugesagt",
+                "zusagen": "Rückmeldung",
+                "frist": "2026-10-30",
+                "erfasstAm": "2026-10-02T08:30:00.123Z",
+                "pruefsumme": "d1f8c711d112a36227e0d43596ffb009afd93ef8cbbd88857098043379cbf56e",
+                "wiedervorlageAm": "2026-10-30",
+                "wiedervorlageErledigt": false,
+                "wiederhergestelltAm": null,
+                "backupVom": null,
+                "nachtraege": [
+                    {
+                        "id": "e6385d3f-140c-479a-a481-c5d917c6e1d6:a77b0af8-9964-4f15-a22f-1c1781a93ba5",
+                        "text": "Frist um eine Woche verlängert",
+                        "erfasstAm": "2026-10-02T08:35:00.123Z",
+                        "pruefsumme": "a0243122aa344ca3e61b686cd282c863eca7a90e8ac7d0b5cbef0ecd2c01ed6d"
+                    }
+                ]
+            }
+        ],
+        "kette": [
+            {
+                "seq": 1,
+                "zeitpunkt": "2026-10-02T08:25:00.123Z",
+                "ereignis": "ANZEIGE_GESENDET",
+                "referenzId": "eb0caf7b-6913-4778-a6e2-aba5181454be",
+                "pruefsumme": "f2e058708a5df3c00483156a4be1c58a0780b763647f91755b884e71c2d795cc",
+                "prev": "0",
+                "hash": "c5c544a589d06f0a6541247117b8267eea4668ea751fdfab24ab0c210b76f1e5"
+            },
+            {
+                "seq": 2,
+                "zeitpunkt": "2026-10-02T08:30:00.123Z",
+                "ereignis": "GESPRAECHSNOTIZ_GESPEICHERT",
+                "referenzId": "e6385d3f-140c-479a-a481-c5d917c6e1d6",
+                "pruefsumme": "d1f8c711d112a36227e0d43596ffb009afd93ef8cbbd88857098043379cbf56e",
+                "prev": "c5c544a589d06f0a6541247117b8267eea4668ea751fdfab24ab0c210b76f1e5",
+                "hash": "61fcf00168fcf6eb1d1448e6ce2eb7f982d1c22fe3ecb1a35423bbc5264148f4"
+            },
+            {
+                "seq": 3,
+                "zeitpunkt": "2026-10-02T08:35:00.123Z",
+                "ereignis": "NACHTRAG",
+                "referenzId": "e6385d3f-140c-479a-a481-c5d917c6e1d6:a77b0af8-9964-4f15-a22f-1c1781a93ba5",
+                "pruefsumme": "a0243122aa344ca3e61b686cd282c863eca7a90e8ac7d0b5cbef0ecd2c01ed6d",
+                "prev": "61fcf00168fcf6eb1d1448e6ce2eb7f982d1c22fe3ecb1a35423bbc5264148f4",
+                "hash": "3dbd4bccb5d3e2f7764a72086f326a2846de2122ffedba6aa11b52a29d529cee"
+            },
+            {
+                "seq": 4,
+                "zeitpunkt": "2026-10-02T08:40:00.123Z",
+                "ereignis": "ANZEIGE_GESENDET",
+                "referenzId": "4312a057-747a-4c01-9607-fcae3dc8da6c",
+                "pruefsumme": "8cbb1926b009ccab553d1e36b0230a95bfddb52db85407b3c0689b4b7869b1c7",
+                "prev": "3dbd4bccb5d3e2f7764a72086f326a2846de2122ffedba6aa11b52a29d529cee",
+                "hash": "9c46aafc469cb5ed7eb47e731f009e4d4ad9bcd8dc8b9376df71344426bc92b1"
+            }
+        ]
+    },
+    "funktionen": [
+        {
+            "id": "k1",
+            "art": "KLASSENLEITUNG",
+            "gueltigAb": "2026-08-01",
+            "gueltigBis": null,
+            "anrechnungsstunden": null,
+            "anzahlKlassen": 1,
+            "fach": "",
+            "bezeichnung": "",
+            "unterkategorieId": "verwaltung-1",
+            "instanz": ""
+        }
+    ],
+    "kalenderlink": null,
+    "kalenderZuordnungen": [
+        {
+            "fach": "KIT",
+            "kategorieId": "unterricht",
+            "unterkategorieId": "unterricht-3",
+            "nurVorschlag": true
+        }
+    ],
+    "kalenderEntscheidungen": [
+        {
+            "ref": "41714-2172916-2172919@2026-10-05T07:45:00Z",
+            "stand": "VERWORFEN",
+            "zeitpunkt": "2026-10-02T08:15:00.123Z",
+            "tag": "2026-10-05",
+            "von": "09:45",
+            "bis": "11:15",
+            "fach": "KIT",
+            "raum": "Inf3 E07L, U05L"
+        }
+    ],
+    "kettenschluessel": [
+        {
+            "fingerabdruck": "db8c1aca364877c534bdc5ceecfae565565e225ee5f259b21cbeebd8c5da941e",
+            "zertifikate": [
+                "MIIB8jCCAZmgAwIBAgIBATAKBggqhkjOPQQDAjAUMRIwEAYDVQQDDAlUZXN0IFJvb3QwHhcNMjYwMTAxMDAwMDAwWhcNNDkxMjMxMjM1OTU5WjAfMR0wGwYDVQQDDBRBbmRyb2lkIEtleXN0b3JlIEtleTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABHzK1n7KBpUOYm5622m8gicqi40TRZJ+07aUekQwXx4HesM4BDADy5obI5MkbGlJQo6UxQG80k8deSmRqACUlx6jgdAwgc0wgcoGCisGAQQB1nkCAREEgbswgbgCAgEsCgEBAgIBLAoBAQQgIW0ZYpaZ5sfmsmV8I5JlRp0fnzZ9z96piwbDJUeDjugEADBCv4VFPgQ8MDoxFDASBA1kZS5hY2hpbS53YXR0AgEBMSIEIErMvB/3uxX1eiNk45kGVo4BxOS1Pk5dY+dxSOs7+pnZMEC/hUAqMCgEIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQH/CgEAv4VBBQIDAiLgv4VCBQIDAxdyMAoGCCqGSM49BAMCA0cAMEQCIAey0I97vVj0JwdC4Bs+iLk2k9uWuaDFdglM++AWaTfNAiBILbrwYIdp3649GUgexU+T9RGo6gDXXho61bkVa+A5bA==",
+                "MIIBFDCBu6ADAgECAgEBMAoGCCqGSM49BAMCMBQxEjAQBgNVBAMMCVRlc3QgUm9vdDAeFw0yNjAxMDEwMDAwMDBaFw00OTEyMzEyMzU5NTlaMBQxEjAQBgNVBAMMCVRlc3QgUm9vdDBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABKO1xKGrS8q0IgUg0EY9sXpZODjIampjYqC8rfOIZ/FBcTm6lp8k2kNY1t3OCcORtsW2ioFYQzFbU7PzYJ2przIwCgYIKoZIzj0EAwIDSAAwRQIhANvgmdXnmdlHgu+6WpVLUbyk5rytmbm0eAtozg/BdOpQAiBQ8geHAEgwml0EISqcAwxDh7iQFouZDPuSo9LIX4IPQQ=="
+            ]
+        }
+    ],
+    "kettensignaturen": [
+        {
+            "seq": 2,
+            "fingerabdruck": "db8c1aca364877c534bdc5ceecfae565565e225ee5f259b21cbeebd8c5da941e",
+            "signatur": "MEQCIDKD9EcUAs3zKsFxsxFT6aYz1P2dDlAcsayg52YIromEAiB4ReRmEzcXBJMqCBNkl6odPMhuVmvUflk8TiQIEoc2Eg=="
+        },
+        {
+            "seq": 3,
+            "fingerabdruck": "db8c1aca364877c534bdc5ceecfae565565e225ee5f259b21cbeebd8c5da941e",
+            "signatur": "MEYCIQDmmx+F7X2aSIjZjDwrmspLI+YvlazNwu4tQ3G2e9D3rgIhAKBPOQtrQY01K3s3NYO1H/CkSfO6YBzSXW2+zEkOPeAE"
+        },
+        {
+            "seq": 4,
+            "fingerabdruck": "db8c1aca364877c534bdc5ceecfae565565e225ee5f259b21cbeebd8c5da941e",
+            "signatur": "MEYCIQCURaq/8qKq4S7kL1Ng+kzqfhhog2uXJYytZd4z6qd59gIhAKP9RTYIA5z+v8T57UPEPJ7iTgA3zhg+cUK2zJr43bRh"
+        },
+        {
+            "seq": 6,
+            "fingerabdruck": "db8c1aca364877c534bdc5ceecfae565565e225ee5f259b21cbeebd8c5da941e",
+            "signatur": "MEUCIQDKZNc0KOAbDEXti0c2M8Bbw6619Hs8mjSpo5IS4hXQDQIgV1gUF4Rera4+1ESHNXTprvyXSjFSDDEzJvM5QdVeZ/0="
+        },
+        {
+            "seq": 7,
+            "fingerabdruck": "db8c1aca364877c534bdc5ceecfae565565e225ee5f259b21cbeebd8c5da941e",
+            "signatur": "MEQCIBpPYQUK+Dk6ZhIlXk6K8MqrVfLqDYSq8mksfpIBuH1DAiA6QzqUx6VBs8dJjdSge7taT8BfwyOzSLyA1OP+jN6jyA=="
+        },
+        {
+            "seq": 8,
+            "fingerabdruck": "db8c1aca364877c534bdc5ceecfae565565e225ee5f259b21cbeebd8c5da941e",
+            "signatur": "MEQCIDDqbcGPThXkso0KjscKDjgSZYclvfjk8qxrlzwH2S6yAiBk4BEG9kxE6s7dwqPIqu/Gy86FIaFIfE7sgOzq+G5gHA=="
+        },
+        {
+            "seq": 9,
+            "fingerabdruck": "db8c1aca364877c534bdc5ceecfae565565e225ee5f259b21cbeebd8c5da941e",
+            "signatur": "MEUCIQCcb2pW2prN3/avMIGK3Jcha1cE4EQRwv2FcFYNCTG2XgIgCUV1t59+QvwLffz1ehb1iDbWH7ALt3uh7oSGOgxjqhA="
+        },
+        {
+            "seq": 10,
+            "fingerabdruck": "db8c1aca364877c534bdc5ceecfae565565e225ee5f259b21cbeebd8c5da941e",
+            "signatur": "MEUCIQCT8kV8eA+9m228iyU3yN8GK+F9i0bAqBAdppRm/R1BRwIgepG5fybpSEMb7+vplHzFQUXqnzOR31HrPUIkw0CnXak="
+        }
+    ]
+}

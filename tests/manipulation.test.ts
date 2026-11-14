@@ -43,9 +43,9 @@ test("P1: unbekanntes Feld ist nicht bestätigbar", async () => {
   assert.equal(zeichen(b, "P1"), "offen");
 });
 
-test("P1: unbekannte Formatversion ist nicht bestätigbar", async () => {
+test("P1: unbekannte Formatversion (21) ist nicht bestätigbar", async () => {
   const d = lade();
-  d["version"] = 20;
+  d["version"] = 21;
   const b = await befund([json("x.json", d)]);
   assert.equal(zeichen(b, "P1"), "offen");
 });

@@ -13,8 +13,8 @@ import { utf8 } from "../src/kern/bytes.js";
 import { befund, liesText, texte } from "./hilfen.js";
 import { zip } from "./zip-schreiber.js";
 
-test("Unterlagen: Rechenbeispiele seit watt_public b9ca278 unverändert (Quelle jetzt 7631e7f, Stand 03.11.2026)", () => {
-  assert.match(liesText("tests/vektoren/technische-erlaeuterung.json"), /Commit 7631e7f\), Codeblöcke der Rechenbeispiele, Stand 03\.11\.2026/);
+test("Unterlagen: Rechenbeispiele seit watt_public b9ca278 bis auf B3 unverändert (Quelle jetzt c0cbd96, Stand 13.11.2026)", () => {
+  assert.match(liesText("tests/vektoren/technische-erlaeuterung.json"), /Commit c0cbd96\), Codeblöcke der Rechenbeispiele, Stand 13\.11\.2026/);
 });
 
 test("6.3, Schritt 7: ein leerer Name heißt dokument, ohne Endung", () => {

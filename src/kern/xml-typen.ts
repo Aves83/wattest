@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // WATTest © 2026 Hans-Joachim Steudel
 
-// Erzeugt von scripts/xml-typen.mjs aus den XSDs 18 und 19 von WATT (Aves83/watt_public, schema/,
+// Erzeugt von scripts/xml-typen.mjs aus den XSDs 18 bis 20 von WATT (Aves83/watt_public, schema/,
 // CC BY 4.0, Hans-Joachim Steudel). Nicht von Hand ändern.
 
 export type XmlTyp = { liste: string; von: string } | { felder: Record<string, string> };
@@ -434,7 +434,8 @@ export const XML_TYPEN: Record<string, XmlTyp> = {
       "notizen": "Notizen",
       "pruefverfahren": "zahl",
       "kettenkopf": "Kettenkopf",
-      "anhaenge": "Anhaenge"
+      "anhaenge": "Anhaenge",
+      "art": "text"
     }
   },
   "AnzeigeKopien": {
