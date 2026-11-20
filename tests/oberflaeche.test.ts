@@ -83,7 +83,7 @@ test("die Startseite erklärt unter der Einleitung, was WATT ist, ohne Link im F
   assert.doesNotMatch(absatz[1]!, /<a\b/, "kein Link im Fließtext");
   assert.equal(
     absatz[1]!.replace(/<[^>]+>/g, ""),
-    "Über WATT: WATT ist eine kostenlose Android-App (Beta), mit der verbeamtete Lehrkräfte ihre Arbeitszeit erfassen und nachweisen. WATTest stammt vom selben Anbieter, ist aber quelloffen und prüft allein nach den veröffentlichten Unterlagen von WATT.",
+    "Über WATT: WATT ist eine kostenlose Android-App, mit der verbeamtete Lehrkräfte ihre Arbeitszeit erfassen und nachweisen. WATTest stammt vom selben Anbieter, ist aber quelloffen und prüft allein nach den veröffentlichten Unterlagen von WATT.",
   );
 });
 
@@ -173,4 +173,11 @@ test("„Abbrechen“ steht neben „Prüfen“, und hidden blendet auch Knöpfe
   // .knopf setzt display; ohne diese Regel wären versteckte Knöpfe sichtbar.
   assert.match(css, /\[hidden\]\s*\{\s*display: none !important;\s*\}/);
   assert.match(seite, /id="fortschritt-text" class="leise" role="status" aria-live="polite"/);
+});
+
+test("die Seite nennt keinen Stand von WATT: keine Beta, keine Fassung, keine Versionsnummer (0.1.16, E-72)", () => {
+  const text = seite.replace(/<script[\s\S]*?<\/script>/g, "").replace(/<style[\s\S]*?<\/style>/g, "").replace(/<[^>]+>/g, " ");
+  assert.doesNotMatch(text, /\bBeta\b/i);
+  assert.doesNotMatch(text, /\bFassung\b/);
+  assert.doesNotMatch(text, /\b\d+\.\d+\.\d+\b/, "keine Versionsnummer im Text der Seite");
 });

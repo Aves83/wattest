@@ -1,5 +1,13 @@
 # Änderungen
 
+## 0.1.16 – 20.11.2026
+
+Seite ohne Stand von WATT. Grundlage unverändert: watt_public, Commit c0cbd96 vom 14.11.2026.
+
+- Startseite: Im Absatz „Über WATT“ entfällt „(Beta)“; WATT ist seit 19.11.2026 bei Google Play erhältlich. Künftig nennt die Seite keinen Stand von WATT (Beta, Fassung, Versionsnummer), ein Test schreibt das fest (E-72).
+- Prüfung unverändert: Die späteren Commits von watt_public (bis 953fdb1, WATT 0.99.131 „Granatapfel“) ändern an Technischer Erläuterung, Datenformat und `schema/` nur Kopf- und Standzeilen, den Absatz zum Projektstatus, die Versionstabelle und die Tabelle in 12.; Schemas, XSDs und Rechenbeispiele sind gleich. WATT „Granatapfel“ schreibt Datenformat 20, das WATTest seit 0.1.15 kennt.
+- Dokumentation: SPEZIFIKATION, ENTSCHEIDUNGEN (E-72).
+
 ## 0.1.15 – 14.11.2026
 
 Datenformat 20 von WATT 0.8.126 „Felsenbirne“: Art des Schreibens, Antrag auf Zeitausgleich. Grundlage: watt_public, Commit c0cbd96 vom 14.11.2026 (Technische Erläuterung „WATT-Version: 0.8.126 · Stand: 13.11.2026“). Bisher galt Commit 7631e7f.
